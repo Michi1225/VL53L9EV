@@ -18,6 +18,8 @@
   */
 /* USER CODE END Header */
 
+#include "usbpd_def.h"
+#include <cstdint>
 #define USBPD_DPM_USER_C
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -316,13 +318,25 @@ void USBPD_DPM_GetDataInfo(uint8_t PortNum, USBPD_CORE_DataInfoType_TypeDef Data
 void USBPD_DPM_SetDataInfo(uint8_t PortNum, USBPD_CORE_DataInfoType_TypeDef DataId, uint8_t *Ptr, uint32_t Size)
 {
 /* USER CODE BEGIN USBPD_DPM_SetDataInfo */
+  uint32_t index;
   /* Check type of information targeted by request */
   switch(DataId)
   {
 //  case USBPD_CORE_DATATYPE_RDO_POSITION:      /*!< Reset the PDO position selected by the sink only */
     // break;
-//  case USBPD_CORE_DATATYPE_RCV_SRC_PDO:       /*!< Storage of Received Source PDO values        */
-    // break;
+  case USBPD_CORE_DATATYPE_RCV_SRC_PDO:       /*!< Storage of Received Source PDO values        */
+    if (Size <= (USBPD_MAX_NB_PDO * 4))
+    {
+      uint8_t* rdo;
+      DPM_Port.DPM_NumberOfRcvSRCPDO = (Size / 4);
+      /* Copy PDO data in DPM Handle field */
+      for (index = 0; index < (Size / 4); index++)
+      {
+        rdo = (uint8_t*)&DPM_Ports[PortNum].DPM_ListOfRcvSRCPDO[index];
+        (void)memcpy(rdo, (Ptr + (index * 4u)), (4u * sizeof(uint8_t)));
+      }
+    }    
+    break;
 //  case USBPD_CORE_DATATYPE_RCV_SNK_PDO:       /*!< Storage of Received Sink PDO values          */
     // break;
 //  case USBPD_CORE_EXTENDED_CAPA:              /*!< Source Extended capability message content   */
@@ -359,7 +373,72 @@ void USBPD_DPM_SetDataInfo(uint8_t PortNum, USBPD_CORE_DataInfoType_TypeDef Data
 void USBPD_DPM_SNK_EvaluateCapabilities(uint8_t PortNum, uint32_t *PtrRequestData, USBPD_CORE_PDO_Type_TypeDef *PtrPowerObjectType)
 {
 /* USER CODE BEGIN USBPD_DPM_SNK_EvaluateCapabilities */
-  DPM_USER_DEBUG_TRACE(PortNum, "ADVICE: update USBPD_DPM_SNK_EvaluateCapabilities");
+  uint8_t accepted_index = 0;
+  uint32_t accepted_voltage_mV = 0;
+  uint32_t accepted_current_mA = 0;
+
+  USBPD_PDO_TypeDef requested_pdo;
+  USBPD_SNKRDO_TypeDef rdo;
+
+  uint32_t nbpdo = DPM_Port.DPM_NumberOfRcvSRCPDO;
+  uint32_t *ptPDOarray = DPM_Port.DPM_ListOfRcvSRCPDO;
+
+  // Iterate over advertised source PDOs provided
+  /* For each PDO:
+      - if it is FIXED
+      - decode voltage and current
+      - if voltage <= 20000 && current <= 1000
+      - choose the maximum voltage, then maximum current
+   */
+
+  for(size_t pdo_index = 0; pdo_index < nbpdo; pdo_index++)
+  {
+  requested_pdo.d32 = ptPDOarray[pdo_index];
+
+  // Only accept fixed PDO
+  if(requested_pdo.GenericPDO.PowerObject != USBPD_CORE_PDO_TYPE_FIXED) continue;
+
+  uint16_t pdo_voltage_mV = PWR_DECODE_50MV(requested_pdo.SRCFixedPDO.VoltageIn50mVunits);
+  if(pdo_voltage_mV >= accepted_voltage_mV && pdo_voltage_mV <= 20000)
+  {
+    uint16_t pdo_current_mA = PWR_DECODE_10MA(requested_pdo.SRCFixedPDO.MaxCurrentIn10mAunits);
+    if(pdo_voltage_mV == accepted_voltage_mV)
+    {
+      if(pdo_current_mA > accepted_current_mA && pdo_current_mA >= 1000)
+      {
+        accepted_current_mA = pdo_current_mA;
+        accepted_voltage_mV = pdo_voltage_mV;
+        accepted_index = pdo_index;
+      }
+    }else
+    {
+      accepted_current_mA = pdo_current_mA;
+      accepted_voltage_mV = pdo_voltage_mV;
+      accepted_index = pdo_index;
+    }
+
+  }
+  }
+
+  requested_pdo.d32 = ptPDOarray[accepted_index];
+  rdo.d32 = 0;
+
+  rdo.FixedVariableRDO.ObjectPosition = accepted_index + 1;
+  rdo.FixedVariableRDO.OperatingCurrentIn10mAunits = 100; // 1A
+  rdo.FixedVariableRDO.MaxOperatingCurrent10mAunits = 100; // 1A
+  rdo.FixedVariableRDO.USBCommunicationsCapable = 1;
+  rdo.FixedVariableRDO.NoUSBSuspend = 1;
+
+  *PtrRequestData = rdo.d32;
+  *PtrPowerObjectType = USBPD_CORE_PDO_TYPE_FIXED;
+
+
+
+
+   
+
+
+
 /* USER CODE END USBPD_DPM_SNK_EvaluateCapabilities */
 }
 

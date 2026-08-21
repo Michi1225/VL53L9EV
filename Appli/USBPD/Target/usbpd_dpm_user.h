@@ -60,6 +60,54 @@ typedef struct
 } USBPD_IdSettingsTypeDef;
 /* USER CODE BEGIN Typedef */
 
+/**
+  * @brief  USBPD DPM handle Structure definition
+  * @{
+  */
+typedef struct
+{
+    uint32_t                      DPM_ListOfRcvSRCPDO[USBPD_MAX_NB_PDO];   /*!< The list of received Source Power Data Objects from Port partner
+                                                                                (when Port partner is a Source or a DRP port).                       */
+    uint32_t                      DPM_NumberOfRcvSRCPDO;                   /*!< The number of received Source Power Data Objects from port Partner
+                                                                                (when Port partner is a Source or a DRP port).
+                                                                                This parameter must be set to a value lower than USBPD_MAX_NB_PDO    */
+    uint32_t                      DPM_ListOfRcvSNKPDO[USBPD_MAX_NB_PDO];   /*!< The list of received Sink Power Data Objects from Port partner
+                                                                                (when Port partner is a Sink or a DRP port).                         */
+    uint32_t                      DPM_NumberOfRcvSNKPDO;                   /*!< The number of received Sink Power Data Objects from port Partner
+                                                                                (when Port partner is a Sink or a DRP port).
+                                                                                This parameter must be set to a value lower than USBPD_MAX_NB_PDO    */
+    uint32_t                      DPM_RDOPosition;                         /*!< RDO Position of requested DO in Source list of capabilities          */
+    uint32_t                      DPM_RequestedVoltage;                    /*!< Value of requested voltage                                           */
+    uint32_t                      DPM_RequestedCurrent;                    /*!< Value of requested current                                           */
+    int16_t                       DPM_MeasuredCurrent;                     /*!< Value of measured current                                            */
+    uint32_t                      DPM_RDOPositionPrevious;                 /*!< RDO Position of previous requested DO in Source list of capabilities */
+    uint32_t                      DPM_RequestDOMsg;                        /*!< Request Power Data Object message to be sent                         */
+    uint32_t                      DPM_RequestDOMsgPrevious;                /*!< Previous Request Power Data Object message to be sent                */
+    uint32_t                      DPM_RcvRequestDOMsg;                     /*!< Received request Power Data Object message from the port Partner     */
+    volatile uint32_t             DPM_ErrorCode;                           /*!< USB PD Error code                                                    */
+    volatile uint8_t              DPM_IsConnected;                         /*!< USB PD connection state                                              */
+    uint16_t                      DPM_CablePDCapable:1;                    /*!< Flag to keep information that Cable may be PD capable                */
+    uint16_t                      DPM_CableResetOnGoing:1;                 /*!< Flag to manage a cable reset on going                                */
+    uint16_t                      DPM_Reserved:14;                         /*!< Reserved bytes                                                       */
+    uint8_t                       FlagSendGetSrcCapaExtended;
+    volatile uint16_t             DPM_TimerSRCExtendedCapa;                /*!< timer to request the extended capa                                   */
+    USBPD_SDB_TypeDef             DPM_RcvStatus;                           /*!< Status received by port partner                                      */
+    USBPD_PPSSDB_TypeDef          DPM_RcvPPSStatus;                        /*!< PPS Status received by port partner                                  */
+    USBPD_SCEDB_TypeDef           DPM_RcvSRCExtendedCapa;                  /*!< SRC Extended Capability received by port partner                     */
+    USBPD_SKEDB_TypeDef           DPM_RcvSNKExtendedCapa;                  /*!< SNK Extended Capability received by port partner                     */
+    USBPD_GMIDB_TypeDef           DPM_GetManufacturerInfo;                 /*!< Get Manufacturer Info                                                */
+    USBPD_GBSDB_TypeDef           DPM_GetBatteryStatus;                    /*!< Get Battery status                                                   */
+    USBPD_GBCDB_TypeDef           DPM_GetBatteryCapability;                /*!< Get Battery Capability                                               */
+    USBPD_BSDO_TypeDef            DPM_BatteryStatus;                       /*!< Battery status                                                       */
+    volatile uint16_t             DPM_TimerAlert;                          /*!< Timer used to monitor current and trig an ALERT                      */
+    USBPD_ADO_TypeDef             DPM_SendAlert;                           /*!< Save the Alert sent to port partner                                  */
+    USBPD_ADO_TypeDef             DPM_RcvAlert;                            /*!< Save the Alert received by port partner                              */
+    USBPD_DiscoveryIdentity_TypeDef VDM_DiscoCableIdentify;                /*!< VDM Cable Discovery Identify                                         */
+    USBPD_DiscoveryIdentity_TypeDef   VDM_DiscoIdentify;                   /*!< VDM Discovery Identify                                               */
+    USBPD_SVIDPortPartnerInfo_TypeDef VDM_SVIDPortPartner;                 /*!< VDM SVID list                                                        */
+    USBPD_ModeInfo_TypeDef            VDM_ModesPortPartner;                /*!< VDM Modes list                                                       */
+} USBPD_HandleTypeDef;
+
 /* USER CODE END Typedef */
 
 /* Exported define -----------------------------------------------------------*/
@@ -79,7 +127,23 @@ typedef struct
 
 /* Exported variables --------------------------------------------------------*/
 /* USER CODE BEGIN Private_Variables */
-
+USBPD_HandleTypeDef DPM_Port =
+{
+  {
+    .DPM_Reserved = 0,
+    .FlagSendGetSrcCapaExtended = 0,
+    .DPM_TimerSRCExtendedCapa = 0,                  /*!< timer to request the extended capa                                   */
+    .DPM_RcvSRCExtendedCapa = {0},                  /*!< SRC Extended Capability received by port partner                     */
+    .DPM_RcvSNKExtendedCapa = {0},                  /*!< SNK Extended Capability received by port partner                     */
+    .DPM_GetManufacturerInfo = {0},                 /*!< Get Manufacturer Info                                                */
+    .DPM_GetBatteryStatus = {0},                    /*!< Get Battery status                                                   */
+    .DPM_GetBatteryCapability = {0},                /*!< Get Battery Capability                                               */
+    .DPM_BatteryStatus = {0},                       /*!< Battery status                                                       */
+    .DPM_TimerAlert = 0,                            /*!< Timer used to monitor current and trig an ALERT                      */
+    .DPM_SendAlert = {0},                           /*!< Save the Alert sent to port partner                                  */
+    .DPM_RcvAlert = {0},                            /*!< Save the Alert received by port partner                              */
+  }
+}
 /* USER CODE END Private_Variables */
 
 /* Exported functions --------------------------------------------------------*/
