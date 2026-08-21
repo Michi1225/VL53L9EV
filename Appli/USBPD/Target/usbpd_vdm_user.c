@@ -109,6 +109,23 @@ const USBPD_VDM_Callbacks vdmCallbacks =
   USBPD_VDM_SendUVDM,
   USBPD_VDM_ReceiveUVDM,
 };
+
+USBPD_HandleTypeDef DPM_Port =
+{
+    .DPM_Reserved = 0,
+    .FlagSendGetSrcCapaExtended = 0,
+    .DPM_TimerSRCExtendedCapa = 0,                  /*!< timer to request the extended capa                                   */
+    .DPM_RcvSRCExtendedCapa = {0},                  /*!< SRC Extended Capability received by port partner                     */
+    .DPM_RcvSNKExtendedCapa = {0},                  /*!< SNK Extended Capability received by port partner                     */
+    .DPM_GetManufacturerInfo = {0},                 /*!< Get Manufacturer Info                                                */
+    .DPM_GetBatteryStatus = {0},                    /*!< Get Battery status                                                   */
+    .DPM_GetBatteryCapability = {0},                /*!< Get Battery Capability                                               */
+    .DPM_BatteryStatus = {0},                       /*!< Battery status                                                       */
+    .DPM_TimerAlert = 0,                            /*!< Timer used to monitor current and trig an ALERT                      */
+    .DPM_SendAlert = {0},                           /*!< Save the Alert sent to port partner                                  */
+    .DPM_RcvAlert = {0},                            /*!< Save the Alert received by port partner                              */
+
+};
 /* USER CODE END Private_variables */
 
 /* Private functions ---------------------------------------------------------*/

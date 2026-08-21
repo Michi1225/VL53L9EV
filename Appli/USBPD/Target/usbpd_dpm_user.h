@@ -104,7 +104,7 @@ typedef struct
     USBPD_ADO_TypeDef             DPM_RcvAlert;                            /*!< Save the Alert received by port partner                              */
     USBPD_DiscoveryIdentity_TypeDef VDM_DiscoCableIdentify;                /*!< VDM Cable Discovery Identify                                         */
     USBPD_DiscoveryIdentity_TypeDef   VDM_DiscoIdentify;                   /*!< VDM Discovery Identify                                               */
-    USBPD_SVIDPortPartnerInfo_TypeDef VDM_SVIDPortPartner;                 /*!< VDM SVID list                                                        */
+    USBPD_SVIDInfo_TypeDef        VDM_SVIDPortPartner;                     /*!< VDM SVID list                                                        */
     USBPD_ModeInfo_TypeDef            VDM_ModesPortPartner;                /*!< VDM Modes list                                                       */
 } USBPD_HandleTypeDef;
 
@@ -127,23 +127,7 @@ typedef struct
 
 /* Exported variables --------------------------------------------------------*/
 /* USER CODE BEGIN Private_Variables */
-USBPD_HandleTypeDef DPM_Port =
-{
-  {
-    .DPM_Reserved = 0,
-    .FlagSendGetSrcCapaExtended = 0,
-    .DPM_TimerSRCExtendedCapa = 0,                  /*!< timer to request the extended capa                                   */
-    .DPM_RcvSRCExtendedCapa = {0},                  /*!< SRC Extended Capability received by port partner                     */
-    .DPM_RcvSNKExtendedCapa = {0},                  /*!< SNK Extended Capability received by port partner                     */
-    .DPM_GetManufacturerInfo = {0},                 /*!< Get Manufacturer Info                                                */
-    .DPM_GetBatteryStatus = {0},                    /*!< Get Battery status                                                   */
-    .DPM_GetBatteryCapability = {0},                /*!< Get Battery Capability                                               */
-    .DPM_BatteryStatus = {0},                       /*!< Battery status                                                       */
-    .DPM_TimerAlert = 0,                            /*!< Timer used to monitor current and trig an ALERT                      */
-    .DPM_SendAlert = {0},                           /*!< Save the Alert sent to port partner                                  */
-    .DPM_RcvAlert = {0},                            /*!< Save the Alert received by port partner                              */
-  }
-}
+extern USBPD_HandleTypeDef DPM_Port;
 /* USER CODE END Private_Variables */
 
 /* Exported functions --------------------------------------------------------*/

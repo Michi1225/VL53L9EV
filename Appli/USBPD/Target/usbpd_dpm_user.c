@@ -19,7 +19,7 @@
 /* USER CODE END Header */
 
 #include "usbpd_def.h"
-#include <cstdint>
+//#include <cstdint>
 #define USBPD_DPM_USER_C
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -37,7 +37,7 @@
 #include "stdio.h"
 #endif /* _TRACE */
 /* USER CODE BEGIN Includes */
-
+#include <string.h>
 /* USER CODE END Includes */
 
 /** @addtogroup STM32_USBPD_APPLICATION
@@ -332,7 +332,7 @@ void USBPD_DPM_SetDataInfo(uint8_t PortNum, USBPD_CORE_DataInfoType_TypeDef Data
       /* Copy PDO data in DPM Handle field */
       for (index = 0; index < (Size / 4); index++)
       {
-        rdo = (uint8_t*)&DPM_Ports[PortNum].DPM_ListOfRcvSRCPDO[index];
+        rdo = (uint8_t*)&DPM_Port.DPM_ListOfRcvSRCPDO[index];
         (void)memcpy(rdo, (Ptr + (index * 4u)), (4u * sizeof(uint8_t)));
       }
     }    
