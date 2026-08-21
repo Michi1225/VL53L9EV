@@ -56,6 +56,9 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
     ./Libs/lsm6dsv16x-pid
     ./Libs/IMU
+    ./Libs/53L9/app
+    ./Libs/53L9/interface/vl53l9
+    ./Libs/53L9/vl53l9
 
 )
 
@@ -65,6 +68,10 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ./Libs/lsm6dsv16x-pid/lsm6dsv16x_reg.c
     ./Libs/IMU/IMU.c
     ./Libs/IMU/platform.c
+    ./Libs/53L9/interface/platform/platform_utils.c
+    ./Libs/53L9/interface/vl53l9/vl53l9_device.c
+    ./Libs/53L9/interface/vl53l9/vl53l9_platform.c
+    ./Libs/53L9/interface/vl53l9/vl53l9_utils.c
 )
 
 # Link directories setup
@@ -73,8 +80,9 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 )
 
 # Add linked libraries
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
+target_link_libraries(${CMAKE_PROJECT_NAME}
     # Add user defined libraries
+    stm32cubemx
 )
 
 # Remove wrong libob.a library dependency when using cpp files

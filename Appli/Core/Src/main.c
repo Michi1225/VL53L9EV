@@ -22,7 +22,7 @@
 #include "dcmipp.h"
 #include "eth.h"
 #include "hpdma.h"
-#include "i2c.h"
+#include "i3c.h"
 #include "spi.h"
 #include "ucpd.h"
 #include "usb_otg.h"
@@ -95,8 +95,8 @@ int main(void)
   MX_ETH1_Init();
   MX_UCPD1_Init();
   MX_USB2_OTG_HS_PCD_Init();
-  MX_I2C4_Init();
   MX_SPI4_Init();
+  MX_I3C2_Init();
   SystemIsolation_Config();
   /* USER CODE BEGIN 2 */
 
@@ -182,8 +182,6 @@ void PeriphCommonClock_Config(void)
   HAL_GPIO_ConfigPinAttributes(GPIOC,GPIO_PIN_1,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
   HAL_GPIO_ConfigPinAttributes(GPIOC,GPIO_PIN_6,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
   HAL_GPIO_ConfigPinAttributes(GPIOC,GPIO_PIN_7,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOC,GPIO_PIN_10,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
-  HAL_GPIO_ConfigPinAttributes(GPIOC,GPIO_PIN_11,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
   HAL_GPIO_ConfigPinAttributes(GPIOD,GPIO_PIN_10,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
   HAL_GPIO_ConfigPinAttributes(GPIOE,GPIO_PIN_11,GPIO_PIN_SEC|GPIO_PIN_NPRIV);
   HAL_GPIO_ConfigPinAttributes(GPIOE,GPIO_PIN_12,GPIO_PIN_SEC|GPIO_PIN_NPRIV);

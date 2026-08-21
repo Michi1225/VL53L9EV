@@ -72,6 +72,7 @@ typedef funcptr funcptr_NS;
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
 extern SPI_HandleTypeDef hspi4;
+extern I3C_HandleTypeDef hi3c2;
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
