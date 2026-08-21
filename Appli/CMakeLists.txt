@@ -54,11 +54,17 @@ enable_language(C ASM)
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
+    ./Libs/lsm6dsv16x-pid
+    ./Libs/IMU
+
 )
 
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
+    ./Libs/lsm6dsv16x-pid/lsm6dsv16x_reg.c
+    ./Libs/IMU/IMU.c
+    ./Libs/IMU/platform.c
 )
 
 # Link directories setup

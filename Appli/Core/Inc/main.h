@@ -71,7 +71,7 @@ typedef funcptr funcptr_NS;
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-
+extern SPI_HandleTypeDef hspi4;
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
@@ -97,6 +97,8 @@ void Error_Handler(void);
 #define TOF_XSHUT_GPIO_Port GPIOC
 #define TOF_SYNC_Pin GPIO_PIN_7
 #define TOF_SYNC_GPIO_Port GPIOC
+#define IMU_NCS_Pin GPIO_PIN_11
+#define IMU_NCS_GPIO_Port GPIOE
 
 /* USER CODE BEGIN Private defines */
 

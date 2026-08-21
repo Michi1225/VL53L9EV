@@ -1,0 +1,3 @@
+[submodule "Appli/Libs/lsm6dsv16x-pid"]
+	path = Appli/Libs/lsm6dsv16x-pid
+	url = git@github.com:STMicroelectronics/lsm6dsv16x-pid.git

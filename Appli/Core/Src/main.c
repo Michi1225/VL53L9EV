@@ -31,7 +31,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "IMU.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
