@@ -74,14 +74,17 @@ set(STM32_ExtMem_Manager_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/sdcard/stm32_sdcard_driver.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/user/stm32_user_driver.c
 )
+
 # Link directories setup
 set(MX_LINK_DIRS
 
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_USBPD_Library/Core/lib
 )
 # Project libraries
-set (MX_LINK_LIBS  
+set (MX_LINK_LIBS 
+ "-Wl,--start-group" 
 	:USBPDCORE_PD3_FULL_CM55_wc32.a
+ "-Wl,--end-group"
     STM32_Drivers
     ${TOOLCHAIN_LINK_LIBRARIES}
     STM32_ExtMem_Loader	STM32_ExtMem_Manager	

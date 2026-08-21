@@ -47,30 +47,30 @@ void MX_DCMIPP_Init(void)
     Error_Handler();
   }
 
-  /** Pipe 0 Config
+  /** Pipe 1 Config
   */
   pCSI_PipeConfig.DataTypeMode = DCMIPP_DTMODE_DTIDA;
   pCSI_PipeConfig.DataTypeIDA = DCMIPP_DT_RAW8;
-  pCSI_PipeConfig.DataTypeIDB = DCMIPP_DT_YUV420_8;
-  if (HAL_DCMIPP_CSI_PIPE_SetConfig(&hdcmipp, DCMIPP_PIPE0, &pCSI_PipeConfig) != HAL_OK)
+  pCSI_PipeConfig.DataTypeIDB = DCMIPP_DT_RAW8;
+  if (HAL_DCMIPP_CSI_PIPE_SetConfig(&hdcmipp, DCMIPP_PIPE1, &pCSI_PipeConfig) != HAL_OK)
   {
     Error_Handler();
   }
   pCSI_Config.PHYBitrate = DCMIPP_CSI_PHY_BT_1000;
   pCSI_Config.DataLaneMapping = DCMIPP_CSI_PHYSICAL_DATA_LANES;
   pCSI_Config.NumberOfLanes = DCMIPP_CSI_ONE_DATA_LANE;
-  if (HAL_DCMIPP_CSI_SetConfig(&hdcmipp, &pCSI_Config) != HAL_OK)
-  {
-    Error_Handler();
-  }
+  HAL_DCMIPP_CSI_SetConfig(&hdcmipp, &pCSI_Config);
   pPipeConfig.FrameRate = DCMIPP_FRAME_RATE_ALL;
-  pPipeConfig.PixelPipePitch = 10;
-  pPipeConfig.PixelPackerFormat = DCMIPP_PIXEL_PACKER_FORMAT_RGB888_YUV444_1;
-  if (HAL_DCMIPP_PIPE_SetConfig(&hdcmipp, DCMIPP_PIPE0, &pPipeConfig) != HAL_OK)
+  pPipeConfig.PixelPipePitch = 112;
+  pPipeConfig.PixelPackerFormat = DCMIPP_PIXEL_PACKER_FORMAT_MONO_Y8_G8_1;
+  if (HAL_DCMIPP_PIPE_SetConfig(&hdcmipp, DCMIPP_PIPE1, &pPipeConfig) != HAL_OK)
   {
     Error_Handler();
   }
-  HAL_DCMIPP_CSI_SetVCConfig(&hdcmipp, 0U, DCMIPP_CSI_DT_BPP8);
+  if (HAL_DCMIPP_CSI_SetVCConfig(&hdcmipp, 0U, DCMIPP_CSI_DT_BPP6) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE BEGIN DCMIPP_Init 2 */
 
   /* USER CODE END DCMIPP_Init 2 */
@@ -103,6 +103,10 @@ void HAL_DCMIPP_MspInit(DCMIPP_HandleTypeDef* dcmippHandle)
     __HAL_RCC_CSI_CLK_ENABLE();
     __HAL_RCC_CSI_FORCE_RESET();
     __HAL_RCC_CSI_RELEASE_RESET();
+
+    /* DCMIPP interrupt Init */
+    HAL_NVIC_SetPriority(DCMIPP_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(DCMIPP_IRQn);
   /* USER CODE BEGIN DCMIPP_MspInit 1 */
 
   /* USER CODE END DCMIPP_MspInit 1 */
@@ -121,6 +125,9 @@ void HAL_DCMIPP_MspDeInit(DCMIPP_HandleTypeDef* dcmippHandle)
     __HAL_RCC_CSI_CLK_DISABLE();
     __HAL_RCC_CSI_FORCE_RESET();
     __HAL_RCC_CSI_RELEASE_RESET();
+
+    /* DCMIPP interrupt Deinit */
+    HAL_NVIC_DisableIRQ(DCMIPP_IRQn);
   /* USER CODE BEGIN DCMIPP_MspDeInit 1 */
 
   /* USER CODE END DCMIPP_MspDeInit 1 */

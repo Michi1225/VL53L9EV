@@ -93,14 +93,17 @@ set(STM32_USBPD_Library_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_pwr_hw_if.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_timersserver.c
 )
+
 # Link directories setup
 set(MX_LINK_DIRS
 
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_USBPD_Library/Core/lib
 )
 # Project libraries
-set (MX_LINK_LIBS  
+set (MX_LINK_LIBS 
+ "-Wl,--start-group" 
 	:USBPDCORE_PD3_FULL_CM55_wc32.a
+ "-Wl,--end-group"
     STM32_Drivers
     ${TOOLCHAIN_LINK_LIBRARIES}
     STM32_USBPD_Library	
