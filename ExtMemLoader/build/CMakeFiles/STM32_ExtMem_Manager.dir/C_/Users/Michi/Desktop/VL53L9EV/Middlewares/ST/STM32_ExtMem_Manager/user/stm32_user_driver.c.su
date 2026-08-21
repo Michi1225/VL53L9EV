@@ -1,0 +1,10 @@
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/user/stm32_user_driver.c:53:41:EXTMEM_DRIVER_USER_Init	24	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/user/stm32_user_driver.c:67:41:EXTMEM_DRIVER_USER_DeInit	24	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/user/stm32_user_driver.c:82:41:EXTMEM_DRIVER_USER_Read	32	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/user/stm32_user_driver.c:101:41:EXTMEM_DRIVER_USER_Write	32	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/user/stm32_user_driver.c:119:41:EXTMEM_DRIVER_USER_EraseSector	32	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/user/stm32_user_driver.c:134:41:EXTMEM_DRIVER_USER_MassErase	24	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/user/stm32_user_driver.c:146:41:EXTMEM_DRIVER_USER_Enable_MemoryMappedMode	24	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/user/stm32_user_driver.c:159:41:EXTMEM_DRIVER_USER_Disable_MemoryMappedMode	24	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/user/stm32_user_driver.c:173:41:EXTMEM_DRIVER_USER_GetMapAddress	24	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/user/stm32_user_driver.c:188:41:EXTMEM_DRIVER_USER_GetInfo	24	static

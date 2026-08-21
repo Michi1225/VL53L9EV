@@ -1,0 +1,2 @@
+C:/Users/Michi/Desktop/VL53L9EV/FSBL/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_bus.h:1407:22:LL_AHB4_GRP1_EnableClock	24	static
+C:/Users/Michi/Desktop/VL53L9EV/FSBL/Core/Src/gpio.c:40:6:MX_GPIO_Init	32	static

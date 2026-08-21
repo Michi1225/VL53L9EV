@@ -1,0 +1,10 @@
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/stm32_extmem.c:133:22:EXTMEM_Init	24	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/stm32_extmem.c:245:22:EXTMEM_DeInit	24	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/stm32_extmem.c:338:22:EXTMEM_Read	32	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/stm32_extmem.c:435:22:EXTMEM_Write	32	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/stm32_extmem.c:538:22:EXTMEM_WriteInMappedMode	32	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/stm32_extmem.c:608:22:EXTMEM_EraseSector	32	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/stm32_extmem.c:773:22:EXTMEM_EraseAll	24	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/stm32_extmem.c:863:22:EXTMEM_GetInfo	24	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/stm32_extmem.c:945:22:EXTMEM_MemoryMappedMode	24	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/stm32_extmem.c:1086:22:EXTMEM_GetMapAddress	24	static

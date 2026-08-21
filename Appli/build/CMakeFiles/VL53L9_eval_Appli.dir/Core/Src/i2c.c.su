@@ -1,0 +1,6 @@
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_bus.h:1407:22:LL_AHB4_GRP1_EnableClock	24	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_bus.h:3251:22:LL_APB4_GRP1_EnableClock	24	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_bus.h:3319:22:LL_APB4_GRP1_DisableClock	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/Core/Src/i2c.c:30:6:MX_I2C4_Init	8	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/Core/Src/i2c.c:73:6:HAL_I2C_MspInit	440	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/Core/Src/i2c.c:113:6:HAL_I2C_MspDeInit	16	static

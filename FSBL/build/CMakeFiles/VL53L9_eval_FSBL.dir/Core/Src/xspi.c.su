@@ -1,0 +1,6 @@
+C:/Users/Michi/Desktop/VL53L9EV/FSBL/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_bus.h:1407:22:LL_AHB4_GRP1_EnableClock	24	static
+C:/Users/Michi/Desktop/VL53L9EV/FSBL/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_bus.h:1755:22:LL_AHB5_GRP1_EnableClock	24	static
+C:/Users/Michi/Desktop/VL53L9EV/FSBL/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_bus.h:1891:22:LL_AHB5_GRP1_DisableClock	16	static
+C:/Users/Michi/Desktop/VL53L9EV/FSBL/Core/Src/xspi.c:30:6:MX_XSPI1_Init	24	static
+C:/Users/Michi/Desktop/VL53L9EV/FSBL/Core/Src/xspi.c:75:6:HAL_XSPI_MspInit	440	static
+C:/Users/Michi/Desktop/VL53L9EV/FSBL/Core/Src/xspi.c:135:6:HAL_XSPI_MspDeInit	16	static

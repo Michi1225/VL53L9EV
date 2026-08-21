@@ -1,0 +1,78 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"jsonFile" : "directory-.-Debug-d0094a50bb2071803777.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.22"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "VL53L9_eval_FSBL",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "STM32_Drivers::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-STM32_Drivers-Debug-194b545824457d853875.json",
+					"name" : "STM32_Drivers",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "STM32_ExtMem_Manager::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-STM32_ExtMem_Manager-Debug-f3356bd7b3a9dc7a4cf0.json",
+					"name" : "STM32_ExtMem_Manager",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "VL53L9_eval_FSBL::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-VL53L9_eval_FSBL-Debug-238ef743dd9008ba0366.json",
+					"name" : "VL53L9_eval_FSBL",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/Michi/Desktop/VL53L9EV/FSBL/build",
+		"source" : "C:/Users/Michi/Desktop/VL53L9EV/FSBL"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 8
+	}
+}

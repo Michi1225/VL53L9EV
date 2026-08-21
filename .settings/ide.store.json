@@ -1,0 +1,10 @@
+{
+  "source": {
+    "sourceType": "STM32CubeMX"
+  },
+  "device": "STM32N657X0H3Q",
+  "toolchain": "GCC",
+  "core": "Cortex-M55",
+  "order": 0,
+  "tz": "Secure-only"
+}

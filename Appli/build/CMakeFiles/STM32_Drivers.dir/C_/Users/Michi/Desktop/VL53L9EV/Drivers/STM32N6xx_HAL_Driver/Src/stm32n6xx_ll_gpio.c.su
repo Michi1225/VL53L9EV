@@ -1,0 +1,11 @@
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_bus.h:1525:22:LL_AHB4_GRP1_ForceReset	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_bus.h:1563:22:LL_AHB4_GRP1_ReleaseReset	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_gpio.h:311:22:LL_GPIO_SetPinMode	48	static,ignoring_inline_asm
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_gpio.h:381:22:LL_GPIO_SetPinOutputType	24	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_gpio.h:452:22:LL_GPIO_SetPinSpeed	48	static,ignoring_inline_asm
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_gpio.h:523:22:LL_GPIO_SetPinPull	48	static,ignoring_inline_asm
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_gpio.h:596:22:LL_GPIO_SetAFPin_0_7	48	static,ignoring_inline_asm
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_gpio.h:673:22:LL_GPIO_SetAFPin_8_15	48	static,ignoring_inline_asm
+C:/Users/Michi/Desktop/VL53L9EV/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_ll_gpio.c:107:13:LL_GPIO_DeInit	24	static
+C:/Users/Michi/Desktop/VL53L9EV/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_ll_gpio.c:192:13:LL_GPIO_Init	24	static
+C:/Users/Michi/Desktop/VL53L9EV/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_ll_gpio.c:265:6:LL_GPIO_StructInit	16	static

@@ -1,0 +1,4 @@
+C:/Users/Michi/Desktop/VL53L9EV/Appli/Core/Inc/partition_stm32n657xx.h:686:22:TZ_SAU_Setup	4	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/Core/Src/system_stm32n6xx_s.c:176:6:SystemInit	8	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/Core/Src/system_stm32n6xx_s.c:260:6:SystemCoreClockUpdate	56	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/Core/Src/system_stm32n6xx_s.c:413:24:SECURE_SystemCoreClockUpdate	16	static

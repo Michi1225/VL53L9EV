@@ -1,0 +1,2 @@
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Loader/core/systick_management.c:44:19:HAL_InitTick	24	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Loader/core/systick_management.c:66:10:HAL_GetTick	4	static

@@ -1,0 +1,14 @@
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_ucpd.h:1268:22:LL_UCPD_ClearFlag_TypeCEventCC2	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_ucpd.h:1279:22:LL_UCPD_ClearFlag_TypeCEventCC1	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_ucpd.h:1290:22:LL_UCPD_ClearFlag_RxMsgEnd	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_ucpd.h:1301:22:LL_UCPD_ClearFlag_RxOvr	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_ucpd.h:1312:22:LL_UCPD_ClearFlag_RxHRST	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_ucpd.h:1323:22:LL_UCPD_ClearFlag_RxOrderSet	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_ucpd.h:1334:22:LL_UCPD_ClearFlag_TxUND	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_ucpd.h:1345:22:LL_UCPD_ClearFlag_TxHRSTSENT	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_ucpd.h:1356:22:LL_UCPD_ClearFlag_TxHRSTDISC	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_ucpd.h:1367:22:LL_UCPD_ClearFlag_TxMSGABT	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_ucpd.h:1378:22:LL_UCPD_ClearFlag_TxMSGSENT	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_ucpd.h:1389:22:LL_UCPD_ClearFlag_TxMSGDISC	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_hw_if_it.c:36:6:USBPD_PORT0_IRQHandler	8	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_hw_if_it.c:41:6:PORTx_IRQHandler	24	static

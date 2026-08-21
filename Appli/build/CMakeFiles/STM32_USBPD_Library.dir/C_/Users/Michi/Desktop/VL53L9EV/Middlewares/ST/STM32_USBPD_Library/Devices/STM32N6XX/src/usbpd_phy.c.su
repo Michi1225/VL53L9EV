@@ -1,0 +1,16 @@
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_phy.c:115:21:USBPD_PHY_Init	24	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_phy.c:142:10:USBPD_PHY_GetRetryTimerValue	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_phy.c:154:10:USBPD_PHY_GetMinGOODCRCTimerValue	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_phy.c:164:6:USBPD_PHY_Reset	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_phy.c:177:21:USBPD_PHY_ResetRequest	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_phy.c:191:21:USBPD_PHY_SendMessage	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_phy.c:202:21:USBPD_PHY_Send_BIST_Pattern	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_phy.c:215:21:USBPD_PHY_ExitTransmit	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_phy.c:230:6:USBPD_PHY_SetResistor_SinkTxNG	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_phy.c:241:6:USBPD_PHY_SetResistor_SinkTxOK	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_phy.c:252:6:USBPD_PHY_SOPSupported	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_phy.c:263:9:USBPD_PHY_IsResistor_SinkTxOk	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_phy.c:273:6:USBPD_PHY_FastRoleSwapSignalling	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_phy.c:283:6:USBPD_PHY_EnableRX	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_phy.c:293:6:USBPD_PHY_DisableRX	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_phy.c:313:6:PHY_Rx_Completed	24	static

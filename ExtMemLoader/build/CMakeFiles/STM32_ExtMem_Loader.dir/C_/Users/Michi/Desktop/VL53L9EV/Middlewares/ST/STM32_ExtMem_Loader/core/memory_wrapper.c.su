@@ -1,0 +1,5 @@
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Loader/core/memory_wrapper.c:50:19:memory_init	4	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Loader/core/memory_wrapper.c:62:19:memory_write	32	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Loader/core/memory_wrapper.c:79:19:memory_masserase	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Loader/core/memory_wrapper.c:97:19:memory_sectorerase	40	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Loader/core/memory_wrapper.c:120:19:memory_mapmode	24	static

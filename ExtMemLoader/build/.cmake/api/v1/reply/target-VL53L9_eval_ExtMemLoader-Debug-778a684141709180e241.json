@@ -1,0 +1,493 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "VL53L9_eval_ExtMemLoader.elf"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_executable",
+			"target_link_directories",
+			"include",
+			"target_link_libraries",
+			"target_sources"
+		],
+		"files" : 
+		[
+			"CMakeLists.txt",
+			"mx-generated.cmake"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 37,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 40,
+				"parent" : 0
+			},
+			{
+				"file" : 1,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 115,
+				"parent" : 3
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 118,
+				"parent" : 3
+			},
+			{
+				"command" : 4,
+				"file" : 1,
+				"line" : 112,
+				"parent" : 3
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : " -mcpu=cortex-m55 -mfpu=fpv5-d16 -mfloat-abi=hard -mcmse  -Wall -fdata-sections -ffunction-sections -fstack-usage -O0 -g3 -std=gnu11"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 5,
+					"define" : "DEBUG"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "STM32N657xx"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "STM32_EXTMEMLOADER_STM32CUBETARGET"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "USE_HAL_DRIVER"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 5,
+					"path" : "C:/Users/Michi/Desktop/VL53L9EV/ExtMemLoader/Core/Inc"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "C:/Users/Michi/Desktop/VL53L9EV/ExtMemLoader/../Secure_nsclib"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "C:/Users/Michi/Desktop/VL53L9EV/ExtMemLoader/../Drivers/STM32N6xx_HAL_Driver/Inc"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "C:/Users/Michi/Desktop/VL53L9EV/ExtMemLoader/../Drivers/CMSIS/Device/ST/STM32N6xx/Include"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "C:/Users/Michi/Desktop/VL53L9EV/ExtMemLoader/../Drivers/STM32N6xx_HAL_Driver/Inc/Legacy"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "C:/Users/Michi/Desktop/VL53L9EV/ExtMemLoader/../Middlewares/ST/STM32_ExtMem_Loader/core"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "C:/Users/Michi/Desktop/VL53L9EV/ExtMemLoader/../Middlewares/ST/STM32_ExtMem_Loader/MDK-ARM"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "C:/Users/Michi/Desktop/VL53L9EV/ExtMemLoader/../Middlewares/ST/STM32_ExtMem_Loader/STM32Cube"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "C:/Users/Michi/Desktop/VL53L9EV/ExtMemLoader/../Middlewares/ST/STM32_ExtMem_Manager"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "C:/Users/Michi/Desktop/VL53L9EV/ExtMemLoader/../Middlewares/ST/STM32_ExtMem_Manager/sal"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "C:/Users/Michi/Desktop/VL53L9EV/ExtMemLoader/../Middlewares/ST/STM32_ExtMem_Manager/nor_sfdp"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "C:/Users/Michi/Desktop/VL53L9EV/ExtMemLoader/../Middlewares/ST/STM32_ExtMem_Manager/psram"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "C:/Users/Michi/Desktop/VL53L9EV/ExtMemLoader/../Middlewares/ST/STM32_ExtMem_Manager/sdcard"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "C:/Users/Michi/Desktop/VL53L9EV/ExtMemLoader/../Middlewares/ST/STM32_ExtMem_Manager/user"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "C:/Users/Michi/Desktop/VL53L9EV/ExtMemLoader/../Drivers/CMSIS/Include"
+				}
+			],
+			"language" : "C",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					1
+				],
+				"standard" : "11"
+			},
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5
+			]
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 5,
+			"id" : "STM32_Drivers::@6890427a1f51a3e7e1df"
+		},
+		{
+			"backtrace" : 5,
+			"id" : "STM32_ExtMem_Loader::@6890427a1f51a3e7e1df"
+		},
+		{
+			"backtrace" : 5,
+			"id" : "STM32_ExtMem_Manager::@6890427a1f51a3e7e1df"
+		}
+	],
+	"id" : "VL53L9_eval_ExtMemLoader::@6890427a1f51a3e7e1df",
+	"link" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "-mcpu=cortex-m55 -mfpu=fpv5-d16 -mfloat-abi=hard -mcmse  -Wall -fdata-sections -ffunction-sections -fstack-usage -O0 -g3",
+				"role" : "flags"
+			},
+			{
+				"fragment" : "-mcpu=cortex-m55 -mfpu=fpv5-d16 -mfloat-abi=hard -mcmse  -T \"C:/Users/Michi/Desktop/VL53L9EV/ExtMemLoader/stm32n6xx_extmemloader_stm32cube.ld\" --specs=nano.specs -Wl,-Map=VL53L9_eval_ExtMemLoader.map -Wl,--gc-sections -Wl,--print-memory-usage",
+				"role" : "flags"
+			},
+			{
+				"backtrace" : 4,
+				"fragment" : "-LC:\\Users\\Michi\\Desktop\\VL53L9EV\\ExtMemLoader\\..\\Middlewares\\ST\\STM32_USBPD_Library\\Core\\lib",
+				"role" : "libraryPath"
+			},
+			{
+				"backtrace" : 5,
+				"fragment" : "-l:USBPDCORE_PD3_CONFIG_MINSNK_CM55_wc7.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 5,
+				"fragment" : "-lm",
+				"role" : "libraries"
+			}
+		],
+		"language" : "C"
+	},
+	"name" : "VL53L9_eval_ExtMemLoader",
+	"nameOnDisk" : "VL53L9_eval_ExtMemLoader.elf",
+	"paths" : 
+	{
+		"build" : ".",
+		"source" : "."
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5
+			]
+		},
+		{
+			"name" : "Object Libraries",
+			"sourceIndexes" : 
+			[
+				6,
+				7,
+				8,
+				9,
+				10,
+				11,
+				12,
+				13,
+				14,
+				15,
+				16,
+				17,
+				18,
+				19,
+				20,
+				21,
+				22,
+				23,
+				24,
+				25,
+				26,
+				27,
+				28,
+				29,
+				30,
+				31,
+				32,
+				33,
+				34
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 6,
+			"compileGroupIndex" : 0,
+			"path" : "Core/Src/gpio.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 6,
+			"compileGroupIndex" : 0,
+			"path" : "Core/Src/extmem_manager.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 6,
+			"compileGroupIndex" : 0,
+			"path" : "Core/Src/xspi.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 6,
+			"compileGroupIndex" : 0,
+			"path" : "Core/Src/xspim.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 6,
+			"compileGroupIndex" : 0,
+			"path" : "Core/Src/stm32n6xx_hal_msp.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 6,
+			"compileGroupIndex" : 0,
+			"path" : "Core/Src/extmemloader_init.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_Drivers.dir/Core/Src/system_stm32n6xx_fsbl.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_Drivers.dir/C_/Users/Michi/Desktop/VL53L9EV/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_ll_exti.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_Drivers.dir/C_/Users/Michi/Desktop/VL53L9EV/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_cortex.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_Drivers.dir/C_/Users/Michi/Desktop/VL53L9EV/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_rcc.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_Drivers.dir/C_/Users/Michi/Desktop/VL53L9EV/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_rcc_ex.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_Drivers.dir/C_/Users/Michi/Desktop/VL53L9EV/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_gpio.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_Drivers.dir/C_/Users/Michi/Desktop/VL53L9EV/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_dma.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_Drivers.dir/C_/Users/Michi/Desktop/VL53L9EV/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_dma_ex.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_Drivers.dir/C_/Users/Michi/Desktop/VL53L9EV/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_pwr.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_Drivers.dir/C_/Users/Michi/Desktop/VL53L9EV/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_pwr_ex.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_Drivers.dir/C_/Users/Michi/Desktop/VL53L9EV/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_Drivers.dir/C_/Users/Michi/Desktop/VL53L9EV/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_exti.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_Drivers.dir/C_/Users/Michi/Desktop/VL53L9EV/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_ll_rcc.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_Drivers.dir/C_/Users/Michi/Desktop/VL53L9EV/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_ll_utils.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_Drivers.dir/C_/Users/Michi/Desktop/VL53L9EV/Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_xspi.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_ExtMem_Loader.dir/C_/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Loader/core/memory_wrapper.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_ExtMem_Loader.dir/C_/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Loader/core/systick_management.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_ExtMem_Loader.dir/C_/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Loader/MDK-ARM/FlashDev.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_ExtMem_Loader.dir/C_/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Loader/MDK-ARM/FlashPrg.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_ExtMem_Loader.dir/C_/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Loader/STM32Cube/stm32_device_info.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_ExtMem_Loader.dir/C_/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Loader/STM32Cube/stm32_loader_api.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_ExtMem_Manager.dir/C_/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/stm32_extmem.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_ExtMem_Manager.dir/C_/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/sal/stm32_sal_xspi.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_ExtMem_Manager.dir/C_/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/sal/stm32_sal_sd.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_ExtMem_Manager.dir/C_/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/nor_sfdp/stm32_sfdp_data.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_ExtMem_Manager.dir/C_/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/nor_sfdp/stm32_sfdp_driver.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_ExtMem_Manager.dir/C_/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/psram/stm32_psram_driver.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_ExtMem_Manager.dir/C_/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/sdcard/stm32_sdcard_driver.c.obj",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 5,
+			"isGenerated" : true,
+			"path" : "build/CMakeFiles/STM32_ExtMem_Manager.dir/C_/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/user/stm32_user_driver.c.obj",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "EXECUTABLE"
+}

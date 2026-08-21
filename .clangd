@@ -1,0 +1,18 @@
+CompileFlags:
+  CompilationDatabase: Appli/build/Debug
+If:
+  PathMatch: Appli/.*
+
+---
+
+CompileFlags:
+  CompilationDatabase: ExtMemLoader/build
+If:
+  PathMatch: ExtMemLoader/.*
+
+---
+
+CompileFlags:
+  CompilationDatabase: FSBL/build
+If:
+  PathMatch: FSBL/.*

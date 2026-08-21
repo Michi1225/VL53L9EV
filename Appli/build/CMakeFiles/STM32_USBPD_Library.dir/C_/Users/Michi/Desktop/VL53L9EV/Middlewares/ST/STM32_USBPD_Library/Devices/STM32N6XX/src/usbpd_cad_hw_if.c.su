@@ -1,0 +1,15 @@
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/CMSIS/Include/core_cm55.h:3918:22:__NVIC_EnableIRQ	16	static,ignoring_inline_asm
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/CMSIS/Include/core_cm55.h:4115:22:__NVIC_SetPriority	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_ucpd.h:344:22:LL_UCPD_Enable	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_ucpd.h:388:22:LL_UCPD_SetRxOrderSet	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_ucpd.h:641:22:LL_UCPD_SetccEnable	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_ucpd.h:798:22:LL_UCPD_EnableIT_TypeCEventCC2	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Appli/../Drivers/STM32N6xx_HAL_Driver/Inc/stm32n6xx_ll_ucpd.h:809:22:LL_UCPD_EnableIT_TypeCEventCC1	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_cad_hw_if.c:238:6:CAD_Init	56	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_cad_hw_if.c:376:6:CAD_Enter_ErrorRecovery	16	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_cad_hw_if.c:423:10:CAD_StateMachine_SNK	32	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_cad_hw_if.c:944:10:CAD_StateMachine	32	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_cad_hw_if.c:1167:6:CAD_Check_HW_SNK	32	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_cad_hw_if.c:1316:17:ManageStateDetached_SNK	24	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_cad_hw_if.c:1750:17:ManageStateAttachedWait_SNK	40	static
+C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_cad_hw_if.c:1808:17:ManageStateAttached_SNK	40	static
