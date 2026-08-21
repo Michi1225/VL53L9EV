@@ -1,6 +1,0 @@
-C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/boot/stm32_boot_lrun.c:60:20:BOOT_Application	16	static
-C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/boot/stm32_boot_lrun.c:91:20:MapMemory	16	static
-C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/boot/stm32_boot_lrun.c:128:20:CopyApplication	32	static
-C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/boot/stm32_boot_lrun.c:207:20:JumpToApplication	80	static,ignoring_inline_asm
-C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/boot/stm32_boot_lrun.c:267:17:BOOT_GetApplicationSize	16	static
-C:/Users/Michi/Desktop/VL53L9EV/Middlewares/ST/STM32_ExtMem_Manager/boot/stm32_boot_lrun.c:277:17:BOOT_GetApplicationVectorTable	16	static
