@@ -18,6 +18,7 @@
 // private includes
 #include "stm32n6xx_hal.h"
 
+#include "stm32n6xx_hal_dcmipp.h"
 #include "vl53l9_device.h"
 #include "vl53l9_interface.h"
 
@@ -256,8 +257,7 @@ int platform_enable_event(platform_event_t event) {
         break;
     case PLATFORM_GPIO_IT_EVT:
         g_platform_evt &= ~PLATFORM_GPIO_IT_EVT;
-        HAL_NVIC_EnableIRQ(EXTI0_IRQn);
-        HAL_NVIC_EnableIRQ(EXTI6_IRQn);
+        HAL_NVIC_EnableIRQ(EXTI1_IRQn);
         break;
     case PLATFORM_CAM_PIPE_FRAME_EVT:
         g_platform_evt &= ~PLATFORM_CAM_PIPE_FRAME_EVT;
@@ -280,8 +280,7 @@ int platform_disable_event(platform_event_t event) {
         g_platform_evt &= ~PLATFORM_I3C_IBI_EVT;
         break;
     case PLATFORM_GPIO_IT_EVT:
-        HAL_NVIC_DisableIRQ(EXTI0_IRQn);
-        HAL_NVIC_DisableIRQ(EXTI6_IRQn);
+        HAL_NVIC_DisableIRQ(EXTI1_IRQn);
         g_platform_evt &= ~PLATFORM_GPIO_IT_EVT;
         break;
     case PLATFORM_CAM_PIPE_FRAME_EVT:
@@ -380,7 +379,7 @@ void HAL_DCMIPP_PIPE_FrameEventCallback(DCMIPP_HandleTypeDef *hdcmipp, uint32_t 
 /* csi interface */
 
 int platform_start_csi_pipe(uint8_t *buff_csi) {
-    if (HAL_OK != HAL_DCMIPP_CSI_PIPE_Start(&hdcmipp, DCMIPP_PIPE0, DCMIPP_VIRTUAL_CHANNEL0, (uint32_t)buff_csi,
+    if (HAL_OK != HAL_DCMIPP_CSI_PIPE_Start(&hdcmipp, DCMIPP_PIPE1, DCMIPP_VIRTUAL_CHANNEL0, (uint32_t)buff_csi,
                                             DCMIPP_MODE_CONTINUOUS)) {
         return -1;
     }

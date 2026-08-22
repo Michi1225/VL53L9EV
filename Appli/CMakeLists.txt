@@ -72,6 +72,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ./Libs/53L9/interface/vl53l9/vl53l9_device.c
     ./Libs/53L9/interface/vl53l9/vl53l9_platform.c
     ./Libs/53L9/interface/vl53l9/vl53l9_utils.c
+    ./Libs/53L9/app/VL53L9_process.c
 )
 
 # Link directories setup

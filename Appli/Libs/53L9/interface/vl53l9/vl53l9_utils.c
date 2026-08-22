@@ -64,6 +64,15 @@ vl53l9_profile_t g_ranging_profiles[VL53L9_NB_USECASES] = {
         .binning = 4,
         .exposure_ms = 5,
     },
+    {
+        .id = VL53L9_USECASE_GAMING,
+        .sync = VL53L9_SYNC_AUTONOMOUS,
+        .power = VL53L9_POWER_REGULAR,
+        .context = VL53L9_CONTEXT_LONG,
+        .frame_period_us = FPS_TO_FRAME_PERIOD(100),
+        .binning = 2,
+        .exposure_ms = 4,
+    }
 };
 
 int vl53l9_utils_set_profile(vl53l9_device_t *p_dev, vl53l9_profile_t *p_profile) {
