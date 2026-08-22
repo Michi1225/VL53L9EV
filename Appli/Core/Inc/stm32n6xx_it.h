@@ -56,7 +56,10 @@ void DebugMon_Handler(void);
 void DCMIPP_IRQHandler(void);
 void HPDMA1_Channel0_IRQHandler(void);
 void HPDMA1_Channel1_IRQHandler(void);
+void I3C2_EV_IRQHandler(void);
+void I3C2_ER_IRQHandler(void);
 void UCPD1_IRQHandler(void);
+void CSI_IRQHandler(void);
 /* USER CODE BEGIN EFP */
 
 /* USER CODE END EFP */

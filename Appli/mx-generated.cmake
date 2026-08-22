@@ -5,6 +5,9 @@ set(MX_Defines_Syms
 	USE_HAL_DRIVER 
 	STM32N657xx 
 	USE_FULL_LL_DRIVER 
+	NX_INCLUDE_USER_DEFINE_FILE 
+	TX_INCLUDE_USER_DEFINE_FILE 
+	TX_SINGLE_MODE_SECURE=1 
 	USBPD_PORT_COUNT=1 
 	_SNK 
 	USBPDCORE_LIB_PD3_FULL
@@ -13,18 +16,31 @@ set(MX_Defines_Syms
 # STM32CubeMX generated include paths
 set(MX_Include_Dirs
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/NetXDuo/App
+    ${CMAKE_CURRENT_SOURCE_DIR}/NetXDuo/Target
+    ${CMAKE_CURRENT_SOURCE_DIR}/AZURE_RTOS/App
     ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/App
     ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/Target
     ${CMAKE_CURRENT_SOURCE_DIR}/../Secure_nsclib
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/CMSIS/Device/ST/STM32N6xx/Include
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Inc/Legacy
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/tsn/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/drivers/ethernet
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_USBPD_Library/Core/inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/ports/cortex_m55/gnu/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/ports/cortex_m55/gnu/inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/CMSIS/Include
 )
 # STM32CubeMX generated application sources
 set(MX_Application_Src
+    ${CMAKE_CURRENT_SOURCE_DIR}/AZURE_RTOS/App/app_azure_rtos.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/NetXDuo/Target/nx_stm32_phy_custom_driver.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/NetXDuo/App/app_netxduo.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/tx_initialize_low_level.S
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/main.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/gpio.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/csi.c
@@ -33,6 +49,7 @@ set(MX_Application_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/hpdma.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/i3c.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/spi.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_threadx.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/ucpd.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/usb_otg.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_it.c
@@ -83,6 +100,499 @@ set(STM32_Drivers_Src
 
 # Drivers Midllewares
 
+set(netxduo_Src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/tsn/src/nx_shaper.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_announce_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_dynamic_entries_invalidate.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_dynamic_entry_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_dynamic_entry_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_entry_allocate.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_entry_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_gratuitous_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_hardware_address_find.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_initialize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_interface_entries_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_ip_address_find.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_packet_deferred_receive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_packet_receive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_packet_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_periodic_update.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_probe_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_queue_process.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_queue_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_static_entries_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_static_entry_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_static_entry_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_static_entry_delete_internal.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmp_cleanup.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmp_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmp_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmp_interface_ping.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmp_interface_ping6.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmp_packet_process.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmp_packet_receive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmp_ping.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmp_queue_process.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv4_packet_process.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv4_process_echo_reply.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv4_process_echo_request.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv4_send_error_message.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_igmp_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_igmp_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_igmp_interface_report_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_igmp_loopback_disable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_igmp_loopback_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_igmp_multicast_check.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_igmp_multicast_interface_join.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_igmp_multicast_interface_join_internal.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_igmp_multicast_interface_leave.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_igmp_multicast_interface_leave_internal.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_igmp_multicast_join.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_igmp_multicast_leave.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_igmp_packet_process.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_igmp_packet_receive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_igmp_periodic_processing.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_igmp_queue_process.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_invalidate_destination_entry.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_address_change_notify.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_address_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_address_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_auxiliary_packet_pool_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_checksum_compute.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_deferred_link_status_process.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_delete_queue_clear.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_dispatch_process.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_driver_deferred_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_driver_deferred_processing.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_driver_deferred_receive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_driver_direct_command.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_driver_interface_direct_command.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_driver_link_status_event.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_driver_packet_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_fast_periodic_timer_entry.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_forward_packet_process.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_forwarding_disable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_forwarding_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_fragment_assembly.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_fragment_disable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_fragment_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_fragment_forward_packet.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_fragment_packet.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_fragment_timeout_check.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_gateway_address_clear.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_gateway_address_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_gateway_address_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_header_add.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_initialize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_interface_address_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_interface_address_mapping_configure.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_interface_address_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_interface_attach.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_interface_capability_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_interface_capability_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_interface_detach.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_interface_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_interface_mtu_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_interface_physical_address_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_interface_physical_address_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_interface_status_check.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_link_status_change_notify_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_max_payload_size_find.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_packet_checksum_compute.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_packet_deferred_receive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_packet_receive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_packet_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_periodic_timer_entry.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_raw_packet_cleanup.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_raw_packet_disable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_raw_packet_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_raw_packet_filter_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_raw_packet_processing.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_raw_packet_receive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_raw_packet_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_raw_packet_source_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_raw_receive_queue_max_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_route_find.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_static_route_add.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_static_route_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_status_check.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ip_thread_entry.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ipv4_multicast_interface_join.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ipv4_multicast_interface_leave.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ipv4_option_process.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ipv4_packet_receive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_md5.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_packet_allocate.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_packet_copy.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_packet_data_adjust.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_packet_data_append.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_packet_data_extract_offset.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_packet_data_retrieve.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_packet_debug_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_packet_length_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_packet_pool_cleanup.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_packet_pool_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_packet_pool_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_packet_pool_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_packet_pool_initialize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_packet_pool_low_watermark_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_packet_release.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_packet_transmit_release.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_rarp_disable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_rarp_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_rarp_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_rarp_packet_deferred_receive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_rarp_packet_receive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_rarp_packet_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_rarp_periodic_update.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_rarp_queue_process.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_system_initialize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_cleanup_deferred.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_client_bind_cleanup.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_client_socket_bind.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_client_socket_connect.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_client_socket_port_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_client_socket_unbind.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_connect_cleanup.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_deferred_cleanup_check.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_disconnect_cleanup.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_fast_periodic_processing.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_free_port_find.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_initialize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_mss_option_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_no_connection_reset.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_packet_process.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_packet_receive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_packet_send_ack.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_packet_send_control.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_packet_send_fin.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_packet_send_probe.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_packet_send_rst.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_packet_send_syn.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_periodic_processing.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_queue_process.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_receive_cleanup.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_server_socket_accept.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_server_socket_listen.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_server_socket_relisten.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_server_socket_unaccept.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_server_socket_unlisten.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_block_cleanup.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_bytes_available.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_connection_reset.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_disconnect.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_disconnect_complete_notify.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_establish_notify.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_mss_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_mss_peer_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_mss_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_packet_process.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_peer_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_queue_depth_notify_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_receive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_receive_notify.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_receive_queue_flush.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_receive_queue_max_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_retransmit.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_send_internal.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_state_ack_check.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_state_closing.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_state_data_check.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_state_established.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_state_fin_wait1.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_state_fin_wait2.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_state_last_ack.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_state_syn_received.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_state_syn_sent.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_state_transmit_check.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_state_wait.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_thread_resume.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_thread_suspend.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_timed_wait_callback.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_transmit_configure.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_transmit_queue_flush.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_window_update_notify_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_transmit_cleanup.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_window_scaling_option_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_udp_bind_cleanup.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_udp_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_udp_free_port_find.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_udp_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_udp_packet_info_extract.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_udp_packet_receive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_udp_receive_cleanup.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_udp_socket_bind.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_udp_socket_bytes_available.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_udp_socket_checksum_disable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_udp_socket_checksum_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_udp_socket_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_udp_socket_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_udp_socket_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_udp_socket_port_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_udp_socket_receive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_udp_socket_receive_notify.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_udp_socket_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_udp_socket_source_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_udp_socket_unbind.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_udp_source_extract.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_utility.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_udp_socket_vlan_priority_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_socket_vlan_priority_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_packet_vlan_priority_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_udp_socket_vlan_priority_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_tcp_socket_vlan_priority_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_packet_vlan_priority_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_link.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_icmp_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_icmp_ping.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_icmp_source_ping.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ip_raw_packet_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ip_raw_packet_source_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_tcp_client_socket_connect.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_tcp_socket_peer_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_udp_packet_info_extract.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_udp_socket_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_udp_socket_source_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_udp_source_extract.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_icmp_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_icmp_ping.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_icmp_source_ping.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_ip_raw_packet_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_ip_raw_packet_source_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_tcp_client_socket_connect.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_tcp_socket_peer_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_udp_packet_info_extract.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_udp_socket_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_udp_socket_source_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_udp_source_extract.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_arp_dynamic_entries_invalidate.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_arp_dynamic_entry_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_arp_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_arp_entry_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_arp_gratuitous_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_arp_hardware_address_find.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_arp_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_arp_ip_address_find.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_arp_static_entries_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_arp_static_entry_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_arp_static_entry_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_icmp_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_icmp_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_icmp_ping.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_igmp_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_igmp_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_igmp_loopback_disable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_igmp_loopback_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_igmp_multicast_interface_join.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_igmp_multicast_interface_leave.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_igmp_multicast_join.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_igmp_multicast_leave.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_address_change_notify.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_address_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_address_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_auxiliary_packet_pool_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_driver_direct_command.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_driver_interface_direct_command.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_forwarding_disable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_forwarding_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_fragment_disable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_fragment_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_gateway_address_clear.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_gateway_address_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_gateway_address_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_interface_address_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_interface_address_mapping_configure.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_interface_address_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_interface_attach.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_interface_capability_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_interface_capability_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_interface_detach.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_interface_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_interface_mtu_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_interface_physical_address_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_interface_physical_address_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_interface_status_check.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_link_status_change_notify_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_max_payload_size_find.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_raw_packet_disable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_raw_packet_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_raw_packet_filter_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_raw_packet_receive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_raw_packet_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_raw_packet_source_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_raw_receive_queue_max_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_static_route_add.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_static_route_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ip_status_check.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ipv4_multicast_interface_join.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_ipv4_multicast_interface_leave.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_packet_allocate.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_packet_copy.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_packet_data_append.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_packet_data_extract_offset.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_packet_data_retrieve.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_packet_length_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_packet_pool_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_packet_pool_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_packet_pool_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_packet_pool_low_watermark_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_packet_release.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_packet_transmit_release.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_rarp_disable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_rarp_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_rarp_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_client_socket_bind.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_client_socket_connect.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_client_socket_port_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_client_socket_unbind.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_free_port_find.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_server_socket_accept.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_server_socket_listen.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_server_socket_relisten.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_server_socket_unaccept.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_server_socket_unlisten.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_socket_bytes_available.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_socket_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_socket_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_socket_disconnect.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_socket_disconnect_complete_notify.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_socket_establish_notify.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_socket_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_socket_mss_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_socket_mss_peer_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_socket_mss_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_socket_peer_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_socket_queue_depth_notify_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_socket_receive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_socket_receive_notify.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_socket_receive_queue_max_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_socket_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_socket_state_wait.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_socket_timed_wait_callback.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_socket_transmit_configure.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_tcp_socket_window_update_notify_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_udp_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_udp_free_port_find.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_udp_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_udp_packet_info_extract.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_udp_socket_bind.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_udp_socket_bytes_available.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_udp_socket_checksum_disable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_udp_socket_checksum_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_udp_socket_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_udp_socket_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_udp_socket_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_udp_socket_port_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_udp_socket_receive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_udp_socket_receive_notify.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_udp_socket_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_udp_socket_source_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_udp_socket_unbind.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxe_udp_source_extract.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmp_ping6.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv6_DAD_clear_NDCache_entry.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv6_DAD_failure.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv6_dest_table_add.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv6_dest_table_find.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv6_destination_table_periodic_update.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv6_packet_process.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv6_perform_DAD.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv6_process_echo_reply.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv6_process_echo_request.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv6_process_na.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv6_process_ns.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv6_process_packet_too_big.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv6_process_ra.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv6_process_redirect.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv6_send_error_message.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv6_send_ns.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv6_send_queued_packets.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv6_send_rs.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv6_validate_neighbor_message.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv6_validate_options.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_icmpv6_validate_ra.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ipv6_fragment_process.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ipv6_header_add.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ipv6_multicast_join.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ipv6_multicast_leave.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ipv6_option_error.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ipv6_packet_copy.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ipv6_packet_receive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ipv6_packet_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ipv6_prefix_list_add_entry.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ipv6_prefix_list_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ipv6_prefix_list_delete_entry.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ipv6_process_fragment_option.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ipv6_process_hop_by_hop_option.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ipv6_process_routing_option.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_ipv6_util.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_icmpv6_ra_flag_callback_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_address_change_notify.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_address_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_address_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_address_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_default_router_add.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_default_router_add_internal.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_default_router_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_default_router_entry_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_default_router_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_default_router_number_of_entries_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_default_router_table_init.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_destination_table_find_next_hop.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_disable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_find_default_router_from_address.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_find_max_prefix_length.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_interface_find.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_multicast_interface_join.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_multicast_interface_leave.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_prefix_router_timer_tick.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_raw_packet_send_internal.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_router_lookup.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_router_solicitation_check.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_search_onlink.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_stateless_address_autoconfig_disable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_ipv6_stateless_address_autoconfig_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_icmpv6_ra_flag_callback_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_ipv6_address_change_notify.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_ipv6_address_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_ipv6_address_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_ipv6_address_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_ipv6_default_router_add.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_ipv6_default_router_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_ipv6_default_router_entry_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_ipv6_default_router_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_ipv6_default_router_number_of_entries_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_ipv6_disable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_ipv6_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_ipv6_multicast_interface_join.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_ipv6_multicast_interface_leave.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_ipv6_stateless_address_autoconfig_disable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxde_ipv6_stateless_address_autoconfig_enable.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_nd_cache_entry_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_nd_cache_entry_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_nd_cache_hardware_address_find.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_nd_cache_invalidate.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_nd_cache_ip_address_find.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_http_proxy_client.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/drivers/ethernet/nx_stm32_eth_driver.c
+)
 set(STM32_USBPD_Library_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_USBPD_Library/Core/src/usbpd_trace.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_cad_hw_if.c
@@ -92,6 +602,179 @@ set(STM32_USBPD_Library_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_phy_hw_if.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_pwr_hw_if.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_timersserver.c
+)
+set(threadx_Src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/ports/cortex_m55/gnu/src/tx_thread_secure_stack_initialize.S
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/ports/cortex_m55/gnu/src/tx_thread_secure_stack_allocate.S
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/ports/cortex_m55/gnu/src/tx_thread_secure_stack_free.S
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/ports/cortex_m55/gnu/src/tx_thread_context_restore.S
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/ports/cortex_m55/gnu/src/tx_thread_context_save.S
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/ports/cortex_m55/gnu/src/tx_thread_interrupt_control.S
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/ports/cortex_m55/gnu/src/tx_thread_interrupt_disable.S
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/ports/cortex_m55/gnu/src/tx_thread_interrupt_restore.S
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/ports/cortex_m55/gnu/src/tx_thread_schedule.S
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/ports/cortex_m55/gnu/src/tx_thread_stack_build.S
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/ports/cortex_m55/gnu/src/tx_thread_system_return.S
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/ports/cortex_m55/gnu/src/tx_timer_interrupt.S
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_initialize_high_level.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_initialize_kernel_enter.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_initialize_kernel_setup.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/ports/cortex_m55/gnu/src/tx_thread_secure_stack.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/ports/cortex_m55/gnu/src/txe_thread_secure_stack_free.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/ports/cortex_m55/gnu/src/txe_thread_secure_stack_allocate.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_stack_error_handler.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_stack_error_notify.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_system_resume.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_block_allocate.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_block_pool_cleanup.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_block_pool_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_block_pool_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_block_pool_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_block_pool_initialize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_block_pool_prioritize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_block_release.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_byte_allocate.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_byte_pool_cleanup.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_byte_pool_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_byte_pool_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_byte_pool_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_byte_pool_initialize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_byte_pool_prioritize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_byte_pool_search.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_byte_release.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_event_flags_cleanup.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_event_flags_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_event_flags_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_event_flags_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_event_flags_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_event_flags_initialize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_event_flags_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_event_flags_set_notify.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_mutex_cleanup.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_mutex_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_mutex_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_mutex_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_mutex_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_mutex_initialize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_mutex_prioritize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_mutex_priority_change.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_mutex_put.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_queue_cleanup.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_queue_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_queue_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_queue_flush.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_queue_front_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_queue_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_queue_initialize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_queue_prioritize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_queue_receive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_queue_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_queue_send_notify.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_semaphore_ceiling_put.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_semaphore_cleanup.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_semaphore_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_semaphore_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_semaphore_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_semaphore_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_semaphore_initialize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_semaphore_prioritize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_semaphore_put.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_semaphore_put_notify.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_entry_exit_notify.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_identify.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_initialize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_preemption_change.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_priority_change.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_relinquish.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_reset.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_resume.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_shell_entry.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_sleep.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_stack_analyze.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_suspend.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_system_preempt_check.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_system_suspend.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_terminate.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_time_slice.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_time_slice_change.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_timeout.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_thread_wait_abort.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_time_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_time_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_block_allocate.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_block_pool_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_block_pool_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_block_pool_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_block_pool_prioritize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_block_release.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_byte_allocate.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_byte_pool_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_byte_pool_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_byte_pool_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_byte_pool_prioritize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_byte_release.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_event_flags_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_event_flags_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_event_flags_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_event_flags_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_event_flags_set.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_event_flags_set_notify.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_mutex_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_mutex_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_mutex_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_mutex_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_mutex_prioritize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_mutex_put.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_queue_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_queue_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_queue_flush.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_queue_front_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_queue_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_queue_prioritize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_queue_receive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_queue_send.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_queue_send_notify.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_semaphore_ceiling_put.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_semaphore_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_semaphore_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_semaphore_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_semaphore_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_semaphore_prioritize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_semaphore_put.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_semaphore_put_notify.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_thread_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_thread_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_thread_entry_exit_notify.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_thread_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_thread_preemption_change.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_thread_priority_change.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_thread_relinquish.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_thread_reset.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_thread_resume.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_thread_suspend.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_thread_terminate.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_thread_time_slice_change.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_thread_wait_abort.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_timer_activate.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_timer_change.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_timer_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_timer_deactivate.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_timer_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_timer_expiration_process.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_timer_info_get.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_timer_initialize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_timer_system_activate.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_timer_system_deactivate.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/tx_timer_thread_entry.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_timer_activate.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_timer_change.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_timer_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_timer_deactivate.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_timer_delete.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_timer_info_get.c
 )
 
 # Link directories setup
@@ -106,7 +789,7 @@ set (MX_LINK_LIBS
  "-Wl,--end-group"
     STM32_Drivers
     ${TOOLCHAIN_LINK_LIBRARIES}
-    STM32_USBPD_Library	
+    netxduo	STM32_USBPD_Library	threadx	
     
 )
 # Interface library for includes and symbols
@@ -119,10 +802,20 @@ add_library(STM32_Drivers OBJECT)
 target_sources(STM32_Drivers PRIVATE ${STM32_Drivers_Src})
 target_link_libraries(STM32_Drivers PUBLIC stm32cubemx)
 
+# Create netxduo static library
+add_library(netxduo OBJECT)
+target_sources(netxduo PRIVATE ${netxduo_Src})
+target_link_libraries(netxduo PUBLIC stm32cubemx)
+
 # Create STM32_USBPD_Library static library
 add_library(STM32_USBPD_Library OBJECT)
 target_sources(STM32_USBPD_Library PRIVATE ${STM32_USBPD_Library_Src})
 target_link_libraries(STM32_USBPD_Library PUBLIC stm32cubemx)
+
+# Create threadx static library
+add_library(threadx OBJECT)
+target_sources(threadx PRIVATE ${threadx_Src})
+target_link_libraries(threadx PUBLIC stm32cubemx)
 
 
 # Add STM32CubeMX generated application sources to the project

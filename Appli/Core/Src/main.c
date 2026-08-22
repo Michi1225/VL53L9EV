@@ -17,6 +17,7 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include "app_threadx.h"
 #include "main.h"
 #include "csi.h"
 #include "dcmipp.h"
@@ -105,12 +106,15 @@ int main(void)
   /* USBPD initialisation ---------------------------------*/
   MX_USBPD_Init();
 
+  MX_ThreadX_Init();
+
+  /* We should never get here as control is now taken by the scheduler */
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
     /* USER CODE END WHILE */
-    USBPD_DPM_Run();
 
     /* USER CODE BEGIN 3 */
   }

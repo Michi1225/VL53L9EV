@@ -99,6 +99,8 @@ int main(void)
 
   /* USER CODE END 2 */
 
+  /* We should never get here as control is now taken by the scheduler */
+
   /* Launch the application */
   if (BOOT_OK != BOOT_Application())
   {

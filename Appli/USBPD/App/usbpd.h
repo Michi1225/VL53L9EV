@@ -39,8 +39,10 @@
 /* USER CODE BEGIN 1 */
 /* USER CODE END 1 */
 
+unsigned int USBPD_PreInitOs(void);
+
 /* USBPD init function */
-void MX_USBPD_Init(void);
+unsigned int    MX_USBPD_Init(void *memory_ptr);
 
 /* USER CODE BEGIN 2 */
 /* USER CODE END 2 */
