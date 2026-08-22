@@ -18,8 +18,6 @@
   */
 /* USER CODE END Header */
 
-#include "usbpd_def.h"
-//#include <cstdint>
 #define USBPD_DPM_USER_C
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"

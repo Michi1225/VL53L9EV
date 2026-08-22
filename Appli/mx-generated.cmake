@@ -25,12 +25,6 @@ set(MX_Include_Dirs
 )
 # STM32CubeMX generated application sources
 set(MX_Application_Src
-    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/Target/usbpd_dpm_user.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/Target/usbpd_vdm_user.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/Target/usbpd_pwr_user.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/App/usbpd.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/App/usbpd_dpm_core.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/App/usbpd_pwr_if.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/main.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/gpio.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/csi.c
@@ -46,6 +40,12 @@ set(MX_Application_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/secure_nsc.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/sysmem.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/syscalls.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/Target/usbpd_dpm_user.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/Target/usbpd_vdm_user.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/Target/usbpd_pwr_user.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/App/usbpd.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/App/usbpd_dpm_core.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/App/usbpd_pwr_if.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Startup/startup_stm32n657xx.s
 )
 

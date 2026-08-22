@@ -95,7 +95,6 @@ void MX_UCPD1_Init(void)
 
   /* UCPD1 interrupt Init */
   NVIC_SetPriority(UCPD1_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
-  NVIC_EnableIRQ(UCPD1_IRQn);
 
   /* USER CODE BEGIN UCPD1_Init 1 */
 
