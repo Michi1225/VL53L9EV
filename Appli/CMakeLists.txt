@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.22)
 #
 
 # Setup compiler settings
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
@@ -46,6 +46,7 @@ set(CMAKE_CXX_COMPILER_FORCED "true")
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols
+    ETH_PHY_1000MBITS_SUPPORTED
 )
 
 # Enable CMake support for ASM and C languages
@@ -59,6 +60,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ./Libs/53L9/app
     ./Libs/53L9/interface/vl53l9
     ./Libs/53L9/vl53l9
+    ./Libs/PHY
 
 )
 
@@ -73,6 +75,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ./Libs/53L9/interface/vl53l9/vl53l9_platform.c
     ./Libs/53L9/interface/vl53l9/vl53l9_utils.c
     ./Libs/53L9/app/VL53L9_process.c
+    ./Libs/PHY/ADIN1300.c
 )
 
 # Link directories setup

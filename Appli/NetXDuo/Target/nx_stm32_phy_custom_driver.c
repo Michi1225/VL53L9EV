@@ -12,6 +12,7 @@
 /* Private includes ----------------------------------------------------------*/
 #include "nx_stm32_phy_driver.h"
 #include "nx_stm32_eth_config.h"
+#include "stm32n6xx_hal_eth.h"
 
 /* USER CODE BEGIN Includes */
 

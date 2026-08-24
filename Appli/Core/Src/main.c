@@ -100,11 +100,11 @@ int main(void)
   MX_I3C2_Init();
   SystemIsolation_Config();
   /* USER CODE BEGIN 2 */
-
+  uint8_t usb_pd_mem_pool[512];
   /* USER CODE END 2 */
 
   /* USBPD initialisation ---------------------------------*/
-  MX_USBPD_Init();
+  MX_USBPD_Init(usb_pd_mem_pool);
 
   MX_ThreadX_Init();
 
