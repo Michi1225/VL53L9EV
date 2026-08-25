@@ -16,6 +16,8 @@ extern ETH_HandleTypeDef heth;
 typedef struct
 {
     uint32_t PHY_ADDR;
+
+
 }adin1300_Object_t;
 
 typedef enum
@@ -29,7 +31,8 @@ HAL_StatusTypeDef ADIN1300_Reset(adin1300_Object_t *pPhy);
 int32_t ADIN1300_GetLinkStatus(adin1300_Object_t *pPhy);
 
 
-uint32_t ADIN1300_GetPhyID(adin1300_Object_t *pPhy);
+HAL_StatusTypeDef ADIN1300_GetPhyID(adin1300_Object_t *pPhy, uint32_t *id);
 
+extern adin1300_Object_t phy;
 
 #endif

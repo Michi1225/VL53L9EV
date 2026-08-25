@@ -12,10 +12,9 @@
 /* Private includes ----------------------------------------------------------*/
 #include "nx_stm32_phy_driver.h"
 #include "nx_stm32_eth_config.h"
-#include "stm32n6xx_hal_eth.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "ADIN1300.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -57,6 +56,7 @@ int32_t nx_eth_phy_init(void)
     int32_t ret = ETH_PHY_STATUS_OK;
 
 /* USER CODE BEGIN PHY_INIT_1 */
+    if(ADIN1300_Init(&phy) != HAL_OK) ret = ETH_PHY_STATUS_ERROR;
 
 /* USER CODE END PHY_INIT_1 */
     return ret;
@@ -72,7 +72,7 @@ int32_t nx_eth_phy_get_link_state(void)
   int32_t  linkstate = ETH_PHY_STATUS_LINK_ERROR;
 
   /* USER CODE BEGIN LINK_STATE_1 */
-
+  linkstate = ADIN1300_GetLinkStatus(&phy);
   /* USER CODE END LINK_STATE_1 */
   return linkstate;
 }
