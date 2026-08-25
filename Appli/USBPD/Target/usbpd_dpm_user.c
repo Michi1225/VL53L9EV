@@ -36,6 +36,7 @@
 #endif /* _TRACE */
 /* USER CODE BEGIN Includes */
 #include <string.h>
+#include "app_usbx_device.h"
 /* USER CODE END Includes */
 
 /** @addtogroup STM32_USBPD_APPLICATION
@@ -179,7 +180,25 @@ void USBPD_DPM_UserExecute(void const *argument)
 void USBPD_DPM_UserCableDetection(uint8_t PortNum, USBPD_CAD_EVENT State)
 {
 /* USER CODE BEGIN USBPD_DPM_UserCableDetection */
-DPM_USER_DEBUG_TRACE(PortNum, "ADVICE: update USBPD_DPM_UserCableDetection");
+  DPM_USER_DEBUG_TRACE(PortNum, "ADVICE: update USBPD_DPM_UserCableDetection");
+  if (PortNum != USBPD_PORT_0)
+      return;
+
+  switch (State)
+  {
+      case USBPD_CAD_EVENT_ATTACHED:
+      case USBPD_CAD_EVENT_ATTEMC:
+          USBX_Device_Attach();
+          break;
+
+      case USBPD_CAD_EVENT_DETACHED:
+      case USBPD_CAD_EVENT_EMC:
+          USBX_Device_Detach();
+          break;
+
+      default:
+          break;
+  }
 /* USER CODE END USBPD_DPM_UserCableDetection */
 }
 

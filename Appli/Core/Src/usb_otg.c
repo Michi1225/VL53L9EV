@@ -47,7 +47,7 @@ void MX_USB2_OTG_HS_PCD_Init(void)
   hpcd_USB_OTG_HS2.Init.lpm_enable = DISABLE;
   hpcd_USB_OTG_HS2.Init.use_dedicated_ep1 = DISABLE;
   hpcd_USB_OTG_HS2.Init.vbus_sensing_enable = DISABLE;
-  hpcd_USB_OTG_HS2.Init.dma_enable = DISABLE;
+  hpcd_USB_OTG_HS2.Init.dma_enable = ENABLE;
   if (HAL_PCD_Init(&hpcd_USB_OTG_HS2) != HAL_OK)
   {
     Error_Handler();
@@ -83,6 +83,10 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef* pcdHandle)
     /* USB2_OTG_HS clock enable */
     __HAL_RCC_USB2_OTG_HS_CLK_ENABLE();
     __HAL_RCC_USB2_OTG_HS_PHY_CLK_ENABLE();
+
+    /* USB2_OTG_HS interrupt Init */
+    HAL_NVIC_SetPriority(USB2_OTG_HS_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(USB2_OTG_HS_IRQn);
   /* USER CODE BEGIN USB2_OTG_HS_MspInit 1 */
 
   /* USER CODE END USB2_OTG_HS_MspInit 1 */
@@ -103,6 +107,9 @@ void HAL_PCD_MspDeInit(PCD_HandleTypeDef* pcdHandle)
 
     /* Disable VDDUSB */
       HAL_PWREx_DisableVddUSB();
+
+    /* USB2_OTG_HS interrupt Deinit */
+    HAL_NVIC_DisableIRQ(USB2_OTG_HS_IRQn);
   /* USER CODE BEGIN USB2_OTG_HS_MspDeInit 1 */
 
   /* USER CODE END USB2_OTG_HS_MspDeInit 1 */

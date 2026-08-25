@@ -58,6 +58,7 @@
 /* External variables --------------------------------------------------------*/
 extern DCMIPP_HandleTypeDef hdcmipp;
 extern I3C_HandleTypeDef hi3c2;
+extern PCD_HandleTypeDef hpcd_USB_OTG_HS2;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -256,6 +257,20 @@ void UCPD1_IRQHandler(void)
   /* USER CODE BEGIN UCPD1_IRQn 1 */
 
   /* USER CODE END UCPD1_IRQn 1 */
+}
+
+/**
+  * @brief This function handles USB2 OTG HS interrupt.
+  */
+void USB2_OTG_HS_IRQHandler(void)
+{
+  /* USER CODE BEGIN USB2_OTG_HS_IRQn 0 */
+
+  /* USER CODE END USB2_OTG_HS_IRQn 0 */
+  HAL_PCD_IRQHandler(&hpcd_USB_OTG_HS2);
+  /* USER CODE BEGIN USB2_OTG_HS_IRQn 1 */
+
+  /* USER CODE END USB2_OTG_HS_IRQn 1 */
 }
 
 /**

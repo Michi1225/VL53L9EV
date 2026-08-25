@@ -63,6 +63,13 @@ static TX_BYTE_POOL tx_app_byte_pool;
 __ALIGN_BEGIN static UCHAR  nx_byte_pool_buffer[NX_APP_MEM_POOL_SIZE] __ALIGN_END;
 static TX_BYTE_POOL nx_app_byte_pool;
 
+/* USER CODE BEGIN UX_Pool_Buffer */
+/* USER CODE END UX_Pool_Buffer */
+#if defined ( __ICCARM__ )
+#pragma data_alignment=4
+#endif
+__ALIGN_BEGIN static UCHAR ux_byte_pool_buffer[UX_APP_MEM_POOL_SIZE] __ALIGN_END;
+static TX_BYTE_POOL usbx_app_byte_pool;
 /* USER CODE BEGIN USBPD_Pool_Buffer */
 /* USER CODE END USBPD_Pool_Buffer */
 #if defined ( __ICCARM__ )
@@ -148,6 +155,32 @@ VOID tx_application_define(VOID *first_unused_memory)
 
   }
 
+  if (tx_byte_pool_create(&usbx_app_byte_pool, "Ux App memory pool", ux_byte_pool_buffer, UX_APP_MEM_POOL_SIZE) != TX_SUCCESS)
+  {
+    /* USER CODE BEGIN UX_Byte_Pool_Error */
+
+	/* USER CODE END UX_Byte_Pool_Error */
+  }
+  else
+  {
+    /* USER CODE BEGIN UX_Byte_Pool_Success */
+
+    /* USER CODE END UX_Byte_Pool_Success */
+
+    memory_ptr = (VOID *)&usbx_app_byte_pool;
+    status = MX_USBX_Init(memory_ptr);
+    if (status != UX_SUCCESS)
+    {
+      /* USER CODE BEGIN  MX_USBX_Init_Error */
+      while(1)
+      {
+      }
+      /* USER CODE END  MX_USBX_Init_Error */
+    }
+    /* USER CODE BEGIN  MX_USBX_Init_Success */
+
+    /* USER CODE END  MX_USBX_Init_Success */
+  }
   if (tx_byte_pool_create(&usbpd_app_byte_pool, "USBPD App memory pool", usbpd_byte_pool_buffer, USBPD_DEVICE_APP_MEM_POOL_SIZE) != TX_SUCCESS)
   {
     /* USER CODE BEGIN USBPD_Byte_Pool_Error */

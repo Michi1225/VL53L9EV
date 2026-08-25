@@ -27,8 +27,8 @@
 #include "spi.h"
 #include "ucpd.h"
 #include "usb_otg.h"
-#include "usbpd.h"
 #include "gpio.h"
+#include "usbpd.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -99,12 +99,11 @@ int main(void)
   MX_SPI4_Init();
   MX_I3C2_Init();
   SystemIsolation_Config();
+  /* Call PreOsInit function */
+  USBPD_PreInitOs();
   /* USER CODE BEGIN 2 */
-  uint8_t usb_pd_mem_pool[512];
+  
   /* USER CODE END 2 */
-
-  /* USBPD initialisation ---------------------------------*/
-  MX_USBPD_Init(usb_pd_mem_pool);
 
   MX_ThreadX_Init();
 

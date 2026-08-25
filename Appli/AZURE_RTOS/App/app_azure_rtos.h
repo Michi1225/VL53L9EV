@@ -32,6 +32,7 @@
 #include "app_azure_rtos_config.h"
 
 #include "app_netxduo.h"
+#include "app_usbx.h"
 #include "usbpd.h"
 
 /* Private includes ----------------------------------------------------------*/
