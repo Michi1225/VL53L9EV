@@ -72,7 +72,6 @@ set(STM32_ExtMem_Manager_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/sdcard/stm32_sdcard_driver.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/user/stm32_user_driver.c
 )
-
 # Link directories setup
 set(MX_LINK_DIRS
 

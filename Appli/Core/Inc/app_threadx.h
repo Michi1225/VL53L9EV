@@ -44,12 +44,25 @@
 /* USER CODE END EC */
 
 /* Private defines -----------------------------------------------------------*/
+#define TX_APP_STACK_SIZE                       512
+#define TX_APP_THREAD_PRIO                      10
 
 /* USER CODE BEGIN PD */
 
 /* USER CODE END PD */
 
 /* Main thread defines -------------------------------------------------------*/
+#ifndef TX_APP_THREAD_PREEMPTION_THRESHOLD
+#define TX_APP_THREAD_PREEMPTION_THRESHOLD      TX_APP_THREAD_PRIO
+#endif
+
+#ifndef TX_APP_THREAD_TIME_SLICE
+#define TX_APP_THREAD_TIME_SLICE                TX_NO_TIME_SLICE
+#endif
+
+#ifndef TX_APP_THREAD_AUTO_START
+#define TX_APP_THREAD_AUTO_START                TX_AUTO_START
+#endif
 /* USER CODE BEGIN MTD */
 
 /* USER CODE END MTD */
@@ -62,6 +75,7 @@
 /* Exported functions prototypes ---------------------------------------------*/
 UINT App_ThreadX_Init(VOID *memory_ptr);
 void MX_ThreadX_Init(void);
+void tx_app_thread_entry(ULONG thread_input);
 
 /* USER CODE BEGIN EFP */
 

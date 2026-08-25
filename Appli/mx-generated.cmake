@@ -63,6 +63,7 @@ set(MX_Application_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/App/usbpd.c
     ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/App/usbpd_dpm_core.c
     ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/App/usbpd_pwr_if.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/App/usbpd_usb_if.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Startup/startup_stm32n657xx.s
 )
 
@@ -776,17 +777,14 @@ set(threadx_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_timer_delete.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_timer_info_get.c
 )
-
 # Link directories setup
 set(MX_LINK_DIRS
 
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_USBPD_Library/Core/lib
 )
 # Project libraries
-set (MX_LINK_LIBS 
- "-Wl,--start-group" 
+set (MX_LINK_LIBS  
 	:USBPDCORE_PD3_FULL_CM55_wc32.a
- "-Wl,--end-group"
     STM32_Drivers
     ${TOOLCHAIN_LINK_LIBRARIES}
     netxduo	STM32_USBPD_Library	threadx	
