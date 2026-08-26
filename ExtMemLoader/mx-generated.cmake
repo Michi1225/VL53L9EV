@@ -77,14 +77,17 @@ set(STM32_ExtMem_Manager_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/sdcard/stm32_sdcard_driver.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/user/stm32_user_driver.c
 )
+
 # Link directories setup
 set(MX_LINK_DIRS
 
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_USBPD_Library/Core/lib
 )
 # Project libraries
-set (MX_LINK_LIBS  
+set (MX_LINK_LIBS 
+ "-Wl,--start-group" 
 	:USBPDCORE_PD3_FULL_CM55_wc32.a
+ "-Wl,--end-group"
     STM32_Drivers
     ${TOOLCHAIN_LINK_LIBRARIES}
     STM32_ExtMem_Loader	STM32_ExtMem_Manager	
@@ -128,7 +131,7 @@ set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES ADDITIONAL_CLEAN_FILES ${
 add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD 
   COMMAND ${CMAKE_OBJCOPY} -O ihex ${CMAKE_PROJECT_NAME}.elf ${CMAKE_PROJECT_NAME}.hex
   COMMAND ${CMAKE_OBJCOPY} -O binary ${CMAKE_PROJECT_NAME}.elf ${CMAKE_PROJECT_NAME}.bin
-  COMMAND bash "../postbuild.sh" "${cubeide_cubeprogrammer_path}/ExternalLoader" 
+  COMMAND cmd "../postbuild.sh" "${cubeide_cubeprogrammer_path}/ExternalLoader" 
   COMMENT "Executing Post build command")
 
 

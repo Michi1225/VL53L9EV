@@ -49,8 +49,13 @@ set(MX_Application_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/USBX/App/app_usbx.c
     ${CMAKE_CURRENT_SOURCE_DIR}/USBX/App/ux_device_cdc_acm.c
     ${CMAKE_CURRENT_SOURCE_DIR}/AZURE_RTOS/App/app_azure_rtos.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/NetXDuo/Target/nx_stm32_phy_custom_driver.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/NetXDuo/App/app_netxduo.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/Target/usbpd_dpm_user.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/Target/usbpd_vdm_user.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/Target/usbpd_pwr_user.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/App/usbpd.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/App/usbpd_dpm_core.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/App/usbpd_pwr_if.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/App/usbpd_usb_if.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/tx_initialize_low_level.S
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/main.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/gpio.c
@@ -68,13 +73,8 @@ set(MX_Application_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/secure_nsc.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/sysmem.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/syscalls.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/Target/usbpd_dpm_user.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/Target/usbpd_vdm_user.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/Target/usbpd_pwr_user.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/App/usbpd.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/App/usbpd_dpm_core.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/App/usbpd_pwr_if.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/USBPD/App/usbpd_usb_if.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/NetXDuo/App/app_netxduo.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/NetXDuo/Target/nx_stm32_phy_custom_driver.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Startup/startup_stm32n657xx.s
 )
 
@@ -102,6 +102,8 @@ set(STM32_Drivers_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_rif.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_spi.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_spi_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_tim.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_tim_ex.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_ll_ucpd.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_ll_gpio.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_ll_dma.c
@@ -899,14 +901,17 @@ set(threadx_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_timer_delete.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_timer_info_get.c
 )
+
 # Link directories setup
 set(MX_LINK_DIRS
 
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_USBPD_Library/Core/lib
 )
 # Project libraries
-set (MX_LINK_LIBS  
+set (MX_LINK_LIBS 
+ "-Wl,--start-group" 
 	:USBPDCORE_PD3_FULL_CM55_wc32.a
+ "-Wl,--end-group"
     STM32_Drivers
     ${TOOLCHAIN_LINK_LIBRARIES}
     usbx	netxduo	STM32_USBPD_Library	threadx	
