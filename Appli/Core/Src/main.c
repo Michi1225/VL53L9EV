@@ -28,6 +28,7 @@
 #include "ucpd.h"
 #include "usb_otg.h"
 #include "gpio.h"
+#include "usbpd.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -98,6 +99,8 @@ int main(void)
   MX_SPI4_Init();
   MX_I3C2_Init();
   SystemIsolation_Config();
+  /* Call PreOsInit function */
+  USBPD_PreInitOs();
   /* USER CODE BEGIN 2 */
   
   /* USER CODE END 2 */
