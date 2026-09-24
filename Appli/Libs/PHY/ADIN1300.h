@@ -2,11 +2,12 @@
 #define __ADIN_H
 
 
+#include "eth.h"
 #include "main.h"
 #include "ADIN1300_reg.h"
-extern ETH_HandleTypeDef heth;
+extern ETH_HandleTypeDef heth1;
 
-#define ADIN_ETH_HANDLE (&heth)
+#define ADIN_ETH_HANDLE (&heth1)
 
 #define ADIN1300_PHY_ID 0x0283bc30      //Fixed ID for ADIN1300
 #define ADIN1300_PHY_ADDR (1)           //Set by Straps
