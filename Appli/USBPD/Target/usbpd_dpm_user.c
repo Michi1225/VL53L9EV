@@ -234,6 +234,27 @@ void USBPD_DPM_Notification(uint8_t PortNum, USBPD_NotifyEventValue_TypeDef Even
   /* Manage event notified by the stack? */
   switch(EventVal)
   {
+    case USBPD_NOTIFY_USBSTACK_START:
+        if (USBPD_PORTDATAROLE_DFP == DPM_Params[PortNum].PE_DataRole)
+        {
+            USBPD_USBIF_HostStart(PortNum);
+        }
+        else
+        {
+            USBPD_USBIF_DeviceStart(PortNum);
+        }
+        break;
+    case USBPD_NOTIFY_USBSTACK_STOP:
+        if (USBPD_PORTDATAROLE_DFP == DPM_Params[PortNum].PE_DataRole)
+        {
+            USBPD_USBIF_HostStop(PortNum);
+        }
+        else
+        {
+            USBPD_USBIF_DeviceStop(PortNum);
+        }
+        break;
+  }
 //    case USBPD_NOTIFY_POWER_EXPLICIT_CONTRACT :
 //      break;
 //    case USBPD_NOTIFY_REQUEST_ACCEPTED:
