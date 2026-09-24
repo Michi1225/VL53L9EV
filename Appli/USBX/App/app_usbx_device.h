@@ -47,6 +47,9 @@ extern "C" {
 #define UX_DEVICE_APP_THREAD_PRIO         10
 
 /* USER CODE BEGIN EC */
+#define USB_DEVICE_EVENT_START    (1UL << 0)
+#define USB_DEVICE_EVENT_STOP     (1UL << 1)
+extern TX_EVENT_FLAGS_GROUP usb_device_events;
 
 /* USER CODE END EC */
 
@@ -61,14 +64,14 @@ UINT MX_USBX_Device_Stack_Init(void);
 UINT MX_USBX_Device_Stack_DeInit(void);
 
 /* USER CODE BEGIN EFP */
-void USBX_Device_Attach(void)
+static inline void USBX_Device_Attach(void)
 {
     tx_event_flags_set(&usb_device_events,
                        USB_DEVICE_EVENT_START,
                        TX_OR);
 }
 
-void USBX_Device_Detach(void)
+static inline void USBX_Device_Detach(void)
 {
     tx_event_flags_set(&usb_device_events,
                        USB_DEVICE_EVENT_STOP,

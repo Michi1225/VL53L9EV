@@ -32,9 +32,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
-#define USB_DEVICE_EVENT_START    (1UL << 0)
-#define USB_DEVICE_EVENT_STOP     (1UL << 1)
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -51,7 +48,7 @@ static TX_THREAD ux_device_app_thread;
 
 /* USER CODE BEGIN PV */
 extern PCD_HandleTypeDef           hpcd_USB_OTG_HS2;
-static TX_EVENT_FLAGS_GROUP usb_device_events;
+TX_EVENT_FLAGS_GROUP usb_device_events;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/

@@ -37,6 +37,7 @@
 /* USER CODE BEGIN Includes */
 #include <string.h>
 #include "app_usbx_device.h"
+#include "usbpd_usb_if.h"
 /* USER CODE END Includes */
 
 /** @addtogroup STM32_USBPD_APPLICATION
@@ -254,7 +255,6 @@ void USBPD_DPM_Notification(uint8_t PortNum, USBPD_NotifyEventValue_TypeDef Even
             USBPD_USBIF_DeviceStop(PortNum);
         }
         break;
-  }
 //    case USBPD_NOTIFY_POWER_EXPLICIT_CONTRACT :
 //      break;
 //    case USBPD_NOTIFY_REQUEST_ACCEPTED:
