@@ -1,5 +1,5 @@
 CompileFlags:
-  CompilationDatabase: Appli/build/Debug
+  CompilationDatabase: Appli/build
 If:
   PathMatch: Appli/.*
 

@@ -78,7 +78,10 @@ SEMPER_Status_t SEMPER_EnterDOPIMode(
 SEMPER_Status_t SEMPER_EnterSOPIMode(
     SEMPER_Handle_t *dev);
 
-SEMPER_Status_t SEMPEr_ExitOPIMode(
+SEMPER_Status_t SEMPER_ExitOPIMode(
+    SEMPER_Handle_t *dev);
+
+SEMPER_Status_t SEMPER_GetStatus(
     SEMPER_Handle_t *dev);
 
 uint32_t SEMPER_GetMappedAddress(void);

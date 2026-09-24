@@ -22,7 +22,6 @@
 #ifndef __EXTMEMLOADER_CONF_H_
 #define __EXTMEMLOADER_CONF_H_
 
-#include "extmemloader_init.h"
 #include "stm32_extmem_conf.h"
 
 #define STM32EXTLOADER_DEVICE_MEMORY_ID           EXTMEMORY_1

@@ -54,14 +54,15 @@ enable_language(C ASM)
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
-    ./common/s28h2512t/
+    ../common/s28hs512t/
 )
 
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
-    ./common/s28hs512t/s28hs512t.c
-    ./common/s28hs512t/semper_flash.c
+    ../common/s28hs512t/s28hs512t.c
+    ../common/s28hs512t/semper_flash.c
+    ./Core/Src/s28hs512t_driver.c
 )
 
 # Link directories setup
