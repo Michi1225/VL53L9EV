@@ -174,3 +174,57 @@ SEMPER_Status_t SEMPER_ConfigDevice(
 
     return SEMPER_OK;
 }
+
+
+EMPER_Status_t SEMPEr_ExitOPIMode(
+    SEMPER_Handle_t *dev)
+{
+    if (dev == NULL)
+    {
+        return SEMPER_ERROR_PARAM;
+    }
+
+    uint8_t reg[2] = {0};
+    reg[0] = 0x40; // SPI, STR, and reserved bit set to 1 where needed
+    const uint8_t CFR5_SPI_STR_MODE = 0x40;
+
+
+    // Enable Register Write
+    if(S28HS512T_WriteEnable(dev->hxspi, dev->interface, dev->transfer) != S28HS512T_OK)
+    {
+        return SEMPER_ERROR;
+    }
+    // Write to CR5 to exit OPI mode
+    else if (S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer,
+              dev->address_width, S28HS512T_CR5_ADDR, CFR5_SPI_STR_MODE) != S28HS512T_OK)
+    {
+        return SEMPER_ERROR;
+    }
+    // Wait for Memor to be ready
+    else if(S28HS512T_AutoPollingMemReady(dev->hxspi, S28HS512T_SPI_MODE, S28HS512T_STR_TRANSFER) != S28HS512T_OK)
+    {
+        return SEMPER_ERROR;
+    }
+    // Enable Register Write
+    else if(S28HS512T_WriteEnable(dev->hxspi, S28HS512T_SPI_MODE, S28HS512T_STR_TRANSFER) != S28HS512T_OK)
+    {
+        return SEMPER_ERROR;
+    }
+    // Write to CR2 with new dummy cycles (20 Cycles in 8-8-8)
+    else if (S28HS512T_WriteAnyRegister(dev->hxspi, S28HS512T_SPI_MODE, S28HS512T_STR_TRANSFER, S28HS512T_3BYTES_SIZE,
+                                        S28HS512T_CR2_ADDR, S28HS512T_CR2_MEMLAT_8_20_CYCLES) != S28HS512T_OK)
+    {
+        return SEMPER_ERROR;
+    }
+    // Enable Register Write
+    else if(S28HS512T_WriteEnable(dev->hxspi, S28HS512T_SPI_MODE, S28HS512T_STR_TRANSFER) != S28HS512T_OK)
+    {
+        return SEMPER_ERROR;
+    }
+    // Write to CR3 
+    else if (S28HS512T_WriteAnyRegister(dev->hxspi, S28HS512T_SPI_MODE, S28HS512T_STR_TRANSFER, S28HS512T_3BYTES_SIZE,
+                                        S28HS512T_CR3_ADDR, 0x00) != S28HS512T_OK)
+    {
+        return SEMPER_ERROR;
+    }
+}
