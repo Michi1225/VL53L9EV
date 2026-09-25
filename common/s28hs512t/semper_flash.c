@@ -41,6 +41,7 @@ static SEMPER_Status_t SEMPER_Reset(SEMPER_Handle_t *dev)
     dev->access = SEMPER_ACCESS_INDIRECT;     /* After reset S/W setting to indirect access  */
     dev->interface = S28HS512T_SPI_MODE;    /* After reset H/W back to SPI mode by default */
     dev->transfer = S28HS512T_STR_TRANSFER; /* After reset S/W setting to STR mode        */
+    dev->address_width = S28HS512T_3BYTES_SIZE;
 
     HAL_Delay(S28HS512T_RESET_MAX_TIME);
     }
@@ -61,6 +62,12 @@ SEMPER_Status_t SEMPER_Init(
         return SEMPER_ERROR_PARAM;
     }
 
+
+    dev->hxspi         = hxspi;
+    dev->access        = SEMPER_ACCESS_INDIRECT;
+    dev->interface     = S28HS512T_SPI_MODE;
+    dev->transfer      = S28HS512T_STR_TRANSFER;
+    dev->address_width = S28HS512T_3BYTES_SIZE;
 
     (void)S28HS512T_GetFlashInfo(&dev->info);
 
@@ -100,6 +107,24 @@ SEMPER_Status_t SEMPER_ConfigDevice(
     if(dev->access == SEMPER_ACCESS_MAPPED)
     {
         return SEMPER_ERROR_MAPPED_LOCKED;
+    }
+
+    if ((interface != S28HS512T_SPI_MODE) &&
+    (interface != S28HS512T_OPI_MODE))
+    {
+        return SEMPER_ERROR_PARAM;
+    }
+
+    if ((transfer != S28HS512T_STR_TRANSFER) &&
+        (transfer != S28HS512T_DTR_TRANSFER))
+    {
+        return SEMPER_ERROR_PARAM;
+    }
+
+    if ((interface == S28HS512T_SPI_MODE) &&
+        (transfer != S28HS512T_STR_TRANSFER))
+    {
+        return SEMPER_ERROR_PARAM;
     }
 
 
@@ -179,20 +204,25 @@ SEMPER_Status_t SEMPER_EnterDOPIMode(SEMPER_Handle_t *dev)
 {
     const uint8_t CFR5_RSRVD = 0x40;
 
+    uint8_t dat[2] = {0};
+
     if(dev->interface != S28HS512T_SPI_MODE || dev->transfer != S28HS512T_STR_TRANSFER) return SEMPER_ERROR;
 
     if( S28HS512T_WriteEnable(dev->hxspi, dev->interface, dev->transfer) != S28HS512T_OK) return SEMPER_ERROR;
     // Write new CR2 configuration
-    else if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->transfer,
-                                       S28HS512T_CR2_ADDR, S28HS512T_CR2_MEMLAT_10_23_CYCLES) != S28HS512T_OK) return SEMPER_ERROR;
+    dat[0] = S28HS512T_CR2_MEMLAT_10_23_CYCLES;
+    else if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->address_width,
+                                       S28HS512T_CR2_ADDR, dat[0]) != S28HS512T_OK) return SEMPER_ERROR;
     else if(S28HS512T_WriteEnable(dev->hxspi, dev->interface, dev->transfer) != S28HS512T_OK) return SEMPER_ERROR;
     //Write new CR3 configuration
+    dat[0] = S28HS512T_CR3_VRGLAT_10;
     else if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->address_width,
-                                       S28HS512T_CR3_ADDR, S28HS512T_CR3_VRGLAT_10) != S28HS512T_OK) return SEMPER_ERROR;
+                                       S28HS512T_CR3_ADDR, dat[0]) != S28HS512T_OK) return SEMPER_ERROR;
     else if(S28HS512T_WriteEnable(dev->hxspi, dev->interface, dev->transfer) != S28HS512T_OK) return SEMPER_ERROR;
     // Write to CR5 to change to OPI mode in DTR
+    dat[0] = (S28HS512T_CR5_OPI_IT | S28HS512T_CR5_SDRDDR | CFR5_RSRVD);
     else if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->address_width,
-                                       S28HS512T_CR5_ADDR, (S28HS512T_CR5_OPI_IT | S28HS512T_CR5_SDRDDR | CFR5_RSRVD)) != S28HS512T_OK) return SEMPER_ERROR;
+                                       S28HS512T_CR5_ADDR, dat[0]) != S28HS512T_OK) return SEMPER_ERROR;
 
     else
     {
@@ -211,20 +241,25 @@ SEMPER_Status_t SEMPER_EnterSOPIMode(SEMPER_Handle_t *dev)
 {
     const uint8_t CFR5_RSRVD = 0x40;
 
+    uint8_t dat[2] = {0};
+
     if(dev->interface != S28HS512T_SPI_MODE || dev->transfer != S28HS512T_STR_TRANSFER) return SEMPER_ERROR;
 
     if( S28HS512T_WriteEnable(dev->hxspi, dev->interface, dev->transfer) != S28HS512T_OK) return SEMPER_ERROR;
     // Write new CR2 configuration
+    dat[0] = S28HS512T_CR2_MEMLAT_10_23_CYCLES;
     else if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->transfer,
-                                       S28HS512T_CR2_ADDR, S28HS512T_CR2_MEMLAT_10_23_CYCLES) != S28HS512T_OK) return SEMPER_ERROR;
+                                       S28HS512T_CR2_ADDR, dat[0]) != S28HS512T_OK) return SEMPER_ERROR;
     else if(S28HS512T_WriteEnable(dev->hxspi, dev->interface, dev->transfer) != S28HS512T_OK) return SEMPER_ERROR;
     //Write new CR3 configuration
+    dat[0] = S28HS512T_CR3_VRGLAT_10;
     else if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->address_width,
-                                       S28HS512T_CR3_ADDR, S28HS512T_CR3_VRGLAT_10) != S28HS512T_OK) return SEMPER_ERROR;
+                                       S28HS512T_CR3_ADDR, dat[0]) != S28HS512T_OK) return SEMPER_ERROR;
     else if(S28HS512T_WriteEnable(dev->hxspi, dev->interface, dev->transfer) != S28HS512T_OK) return SEMPER_ERROR;
     // Write to CR5 to change to OPI modein STR
+    dat[0] = (S28HS512T_CR5_OPI_IT | CFR5_RSRVD);
     else if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->address_width,
-                                       S28HS512T_CR5_ADDR, (S28HS512T_CR5_OPI_IT | CFR5_RSRVD)) != S28HS512T_OK) return SEMPER_ERROR;
+                                       S28HS512T_CR5_ADDR, dat[0]) != S28HS512T_OK) return SEMPER_ERROR;
 
     else
     {
@@ -250,6 +285,8 @@ SEMPER_Status_t SEMPER_ExitOPIMode(
     const uint8_t CFR5_SPI_STR_MODE = 0x00;
     const uint8_t CFR5_RSRVD = 0x40;
 
+    uint8_t dat[2] = {0};
+
 
     // Enable Register Write
     if(S28HS512T_WriteEnable(dev->hxspi, dev->interface, dev->transfer) != S28HS512T_OK)
@@ -257,8 +294,9 @@ SEMPER_Status_t SEMPER_ExitOPIMode(
         return SEMPER_ERROR;
     }
     // Write to CR5 to exit OPI mode
+    dat[0] = (CFR5_SPI_STR_MODE | CFR5_RSRVD);
     else if (S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer,
-              dev->address_width, S28HS512T_CR5_ADDR, CFR5_SPI_STR_MODE | CFR5_RSRVD) != S28HS512T_OK)
+              dev->address_width, S28HS512T_CR5_ADDR, dat[0]) != S28HS512T_OK)
     {
         return SEMPER_ERROR;
     }
@@ -273,8 +311,9 @@ SEMPER_Status_t SEMPER_ExitOPIMode(
         return SEMPER_ERROR;
     }
     // Write to CR2 with new dummy cycles (20 Cycles in 8-8-8)
+    dat[0] = S28HS512T_CR2_MEMLAT_8_20_CYCLES;
     else if (S28HS512T_WriteAnyRegister(dev->hxspi, S28HS512T_SPI_MODE, S28HS512T_STR_TRANSFER, S28HS512T_3BYTES_SIZE,
-                                        S28HS512T_CR2_ADDR, S28HS512T_CR2_MEMLAT_8_20_CYCLES) != S28HS512T_OK)
+                                        S28HS512T_CR2_ADDR, dat[0]) != S28HS512T_OK)
     {
         return SEMPER_ERROR;
     }
@@ -284,8 +323,9 @@ SEMPER_Status_t SEMPER_ExitOPIMode(
         return SEMPER_ERROR;
     }
     // Write to CR3 
+    dat[0] = 0x00;
     else if (S28HS512T_WriteAnyRegister(dev->hxspi, S28HS512T_SPI_MODE, S28HS512T_STR_TRANSFER, S28HS512T_3BYTES_SIZE,
-                                        S28HS512T_CR3_ADDR, 0x00) != S28HS512T_OK)
+                                        S28HS512T_CR3_ADDR, dat[0]) != S28HS512T_OK)
     {
         return SEMPER_ERROR;
     }
@@ -589,7 +629,7 @@ SEMPER_Status_t SEMPER_EnableMemoryMappedMode(
       if (S28HS512T_EnableMemoryMappedModeDTR(dev->hxspi,
                                                  dev->interface) != S28HS512T_OK)
       {
-        ret = SEMPER_OK;
+        ret = SEMPER_ERROR;
       }
       else /* Update XSPI context if all operations are well done */
       {
@@ -657,7 +697,7 @@ SEMPER_Status_t SEMPER_GetStatus(
     }
     else if ((reg[0] & S28HS512T_SR1_RDYBSY) != 0U)
     {
-      ret = SEMPER_ERROR;
+      ret = SEMPER_BUSY;
     }
     else if (S28HS512T_ReadStatusRegister2(dev->hxspi, dev->interface,
                                              dev->transfer, reg) != S28HS512T_OK)

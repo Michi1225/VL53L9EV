@@ -46,7 +46,9 @@ __attribute__((used)) sStorageInfo const StorageInfo =
     STM32EXTLOADER_DEVICE_PAGE_SIZE,       // Programming Page Size in Bytes
     STM32EXTLOADER_DEVICE_INITIAL_CONTENT, // Initial Content of Erased Memory
     {
-      {STM32EXTLOADER_DEVICE_SECTOR_NUMBERS, STM32EXTLOADER_DEVICE_SECTOR_SIZE}, // Specify Number of sectors and size of each Sector
+      {STM32EXTLOADER_DEVICE_4K_SECTOR_NUMBERS, STM32EXTLOADER_DEVICE_4K_SECTOR_SIZE},     // Specify Number of sectors and size of each Sector
+      {STM32EXTLOADER_DEVICE_128K_SECTOR_NUMBERS, STM32EXTLOADER_DEVICE_128K_SECTOR_SIZE}, // Specify Number of sectors and size of each Sector
+      {STM32EXTLOADER_DEVICE_256K_SECTOR_NUMBERS, STM32EXTLOADER_DEVICE_256K_SECTOR_SIZE}, // Specify Number of sectors and size of each Sector
       {0x00000000, 0x00000000}
     },
 };

@@ -1,0 +1,16 @@
+{
+    "configurations": [
+        {
+            "name": "STM32_Appli",
+            "compileCommands": "${workspaceFolder}/Appli/build/compile_commands.json"
+        },
+        {
+            "name": "STM32_ExtMemLoader",
+            "compileCommands": "${workspaceFolder}/ExtMemLoader/build/compile_commands.json"
+        },
+        {
+            "name": "STM32_FSBL",
+            "compileCommands": "${workspaceFolder}/FSBL/build/compile_commands.json"
+        }
+    ]
+}

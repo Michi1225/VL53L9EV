@@ -1,0 +1,36 @@
+{
+    "version": "2.0.0",
+
+    "tasks": [
+        {
+            "label": "Flash: FSBL",
+            "type": "process",
+            "command": "${workspaceFolder}/scripts/flash.sh",
+            "args": ["fsbl"],
+            "problemMatcher": []
+        },
+        {
+            "label": "Flash: Application A",
+            "type": "process",
+            "command": "${workspaceFolder}/scripts/flash.sh",
+            "args": ["app-a"],
+            "problemMatcher": []
+        },
+        {
+            "label": "Flash: Application B",
+            "type": "process",
+            "command": "${workspaceFolder}/scripts/flash.sh",
+            "args": ["app-b"],
+            "problemMatcher": []
+        },
+        {
+            "label": "Build: Firmware Images",
+            "type": "process",
+            "command": "${workspaceFolder}/scripts/build_images.sh",
+            "args": [
+                "Debug"
+            ],
+            "problemMatcher": "$gcc"
+        }
+    ]
+}

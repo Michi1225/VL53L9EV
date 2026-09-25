@@ -9,7 +9,8 @@ typedef enum
     SEMPER_OK = 0,
     SEMPER_ERROR,
     SEMPER_ERROR_PARAM,
-    SEMPER_ERROR_MAPPED_LOCKED
+    SEMPER_ERROR_MAPPED_LOCKED,
+    SEMPER_BUSY
 } SEMPER_Status_t;
 
 typedef enum

@@ -3,7 +3,6 @@ CMakeFiles/*
 compile_commands.json
 build.ninja
 CMakeCache.txt
-.vscode/*
 cmake_install.cmake
 Appli/build/*
 FSBL/build/*

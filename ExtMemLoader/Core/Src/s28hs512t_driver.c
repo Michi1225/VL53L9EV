@@ -10,6 +10,8 @@
 
 #include "stm32_extmem.h"
 #include "stm32_extmem_conf.h"
+#include "stm32n6xx_hal.h"
+#include <cstdint>
 #if EXTMEM_DRIVER_USER == 1
 #include "stm32_user_driver_api.h"
 #include "stm32_user_driver_type.h"
@@ -83,7 +85,15 @@ EXTMEM_DRIVER_USER_StatusTypeDef EXTMEM_DRIVER_USER_Read(EXTMEM_DRIVER_USER_Obje
 {
   EXTMEM_DRIVER_USER_StatusTypeDef retr = EXTMEM_DRIVER_USER_OK;
   //TODO: validate address
-  Address = Address & 0x03FFFFFF;
+  if ((Address < STM32EXTLOADER_DEVICE_ADDR) ||
+      (Address >= STM32EXTLOADER_DEVICE_ADDR +
+                  STM32EXTLOADER_DEVICE_SIZE))
+  {
+      return EXTMEM_DRIVER_USER_ERROR_1;
+  }
+
+  uint32_t addr =
+      Address - STM32EXTLOADER_DEVICE_ADDR;
   __IO uint8_t *memAddr;
 
   SEMPER_Handle_t *pHandle = UserObject->PtrUserDriver;
@@ -117,7 +127,15 @@ EXTMEM_DRIVER_USER_StatusTypeDef EXTMEM_DRIVER_USER_Write(EXTMEM_DRIVER_USER_Obj
                                                                  uint32_t Address, const uint8_t *Data, uint32_t Size)
 {
   EXTMEM_DRIVER_USER_StatusTypeDef retr = EXTMEM_DRIVER_USER_OK;
-  Address = Address & 0x03FFFFFF;
+  if ((Address < STM32EXTLOADER_DEVICE_ADDR) ||
+      (Address >= STM32EXTLOADER_DEVICE_ADDR +
+                  STM32EXTLOADER_DEVICE_SIZE))
+  {
+      return EXTMEM_DRIVER_USER_ERROR_1;
+  }
+
+  uint32_t addr =
+      Address - STM32EXTLOADER_DEVICE_ADDR;
 
   SEMPER_Handle_t *pHandle = UserObject->PtrUserDriver;
 
@@ -151,7 +169,15 @@ EXTMEM_DRIVER_USER_StatusTypeDef EXTMEM_DRIVER_USER_EraseSector(EXTMEM_DRIVER_US
                                                                        uint32_t Address, uint32_t Size)
 {
   EXTMEM_DRIVER_USER_StatusTypeDef retr = EXTMEM_DRIVER_USER_OK;
-  Address = Address & 0x03FFFFFF;
+  if ((Address < STM32EXTLOADER_DEVICE_ADDR) ||
+      (Address >= STM32EXTLOADER_DEVICE_ADDR +
+                  STM32EXTLOADER_DEVICE_SIZE))
+  {
+      return EXTMEM_DRIVER_USER_ERROR_1;
+  }
+
+  uint32_t addr =
+      Address - STM32EXTLOADER_DEVICE_ADDR;
 
   SEMPER_Handle_t *pHandle = UserObject->PtrUserDriver;
 
@@ -184,8 +210,23 @@ EXTMEM_DRIVER_USER_StatusTypeDef EXTMEM_DRIVER_USER_EraseSector(EXTMEM_DRIVER_US
 		{
 			retr = EXTMEM_DRIVER_USER_ERROR_3;
 		}
-    
-		while (SEMPER_GetStatus(pHandle) != SEMPER_OK);
+    uint32_t start = HAL_GetTick();
+    while(1)
+    {
+      SEMPER_Status_t status = SEMPER_GetStatus(pHandle);
+
+      if(status == SEMPER_OK) return EXTMEM_DRIVER_USER_OK;
+
+      // 100ms Timeout
+      if(HAL_GetTick() - start > 100) return EXTMEM_DRIVER_USER_ERROR_1;
+
+      // SEMPER Still Busy
+      if(status == SEMPER_BUSY) continue;
+
+      // Some error occurred
+      return EXTMEM_DRIVER_USER_ERROR_2;
+      
+    }
 	}
 
   return retr;
@@ -216,8 +257,23 @@ EXTMEM_DRIVER_USER_StatusTypeDef EXTMEM_DRIVER_USER_MassErase(EXTMEM_DRIVER_USER
   	{
   		retr = EXTMEM_DRIVER_USER_ERROR_2;
   	}
+    uint32_t start = HAL_GetTick();
+    while(1)
+    {
+      SEMPER_Status_t status = SEMPER_GetStatus(pHandle);
 
-  	while (SEMPER_GetStatus(pHandle) != SEMPER_OK);
+      if(status == SEMPER_OK) return EXTMEM_DRIVER_USER_OK;
+
+      // 100ms Timeout
+      if(HAL_GetTick() - start > 100) return EXTMEM_DRIVER_USER_ERROR_1;
+
+      // SEMPER Still Busy
+      if(status == SEMPER_BUSY) continue;
+
+      // Some error occurred
+      return EXTMEM_DRIVER_USER_ERROR_2;
+      
+    }
   }
 
   return retr;
