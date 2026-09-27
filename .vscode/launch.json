@@ -1,0 +1,73 @@
+{
+    "version": "0.2.0",
+
+    "configurations": [
+        {
+            "name": "Dev: Debug Application from SRAM",
+            "type": "stlinkgdbtarget",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "deviceName": "STM32N657X0H3Q",
+            "deviceCore": "Cortex-M55",
+            "preLaunchTask": "Internal: Build Appli Debug",
+            "runEntry": "main",
+            "imagesAndSymbols": [
+                {
+                    "imageFileName": "${workspaceFolder}/Appli/build/VL53L9_eval_Appli.elf",
+                    "symbolFileName": "${workspaceFolder}/Appli/build/VL53L9_eval_Appli.elf"
+                }
+            ],
+            "verbose": false
+        },
+
+        {
+            "name": "Dev: Debug FSBL from SRAM",
+            "type": "stlinkgdbtarget",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "deviceName": "STM32N657X0H3Q",
+            "deviceCore": "Cortex-M55",
+            "preLaunchTask": "Internal: Build FSBL Debug",
+            "runEntry": "main",
+            "imagesAndSymbols": [
+                {
+                    "imageFileName": "${workspaceFolder}/FSBL/build/VL53L9_eval_FSBL.elf",
+                    "symbolFileName": "${workspaceFolder}/FSBL/build/VL53L9_eval_FSBL.elf"
+                }
+            ],
+            "verbose": false
+        },
+
+        {
+            "name": "Attach: Application (no reset)",
+            "type": "stlinkgdbtarget",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "deviceName": "STM32N657X0H3Q",
+            "deviceCore": "Cortex-M55",
+            "serverReset": "None",
+            "imagesAndSymbols": [
+                {
+                    "symbolFileName": "${workspaceFolder}/Appli/build/VL53L9_eval_Appli.elf"
+                }
+            ],
+            "verbose": false
+        },
+
+        {
+            "name": "Attach: FSBL (no reset)",
+            "type": "stlinkgdbtarget",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "deviceName": "STM32N657X0H3Q",
+            "deviceCore": "Cortex-M55",
+            "serverReset": "None",
+            "imagesAndSymbols": [
+                {
+                    "symbolFileName": "${workspaceFolder}/FSBL/build/VL53L9_eval_FSBL.elf"
+                }
+            ],
+            "verbose": false
+        }
+    ]
+}
