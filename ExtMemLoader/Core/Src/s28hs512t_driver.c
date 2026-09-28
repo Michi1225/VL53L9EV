@@ -11,7 +11,7 @@
 #include "stm32_extmem.h"
 #include "stm32_extmem_conf.h"
 #include "stm32n6xx_hal.h"
-#include <cstdint>
+#include <stdint.h>
 #if EXTMEM_DRIVER_USER == 1
 #include "stm32_user_driver_api.h"
 #include "stm32_user_driver_type.h"

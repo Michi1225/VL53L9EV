@@ -211,29 +211,27 @@ SEMPER_Status_t SEMPER_EnterDOPIMode(SEMPER_Handle_t *dev)
     if( S28HS512T_WriteEnable(dev->hxspi, dev->interface, dev->transfer) != S28HS512T_OK) return SEMPER_ERROR;
     // Write new CR2 configuration
     dat[0] = S28HS512T_CR2_MEMLAT_10_23_CYCLES;
-    else if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->address_width,
+    if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->address_width,
                                        S28HS512T_CR2_ADDR, dat[0]) != S28HS512T_OK) return SEMPER_ERROR;
-    else if(S28HS512T_WriteEnable(dev->hxspi, dev->interface, dev->transfer) != S28HS512T_OK) return SEMPER_ERROR;
+    if(S28HS512T_WriteEnable(dev->hxspi, dev->interface, dev->transfer) != S28HS512T_OK) return SEMPER_ERROR;
     //Write new CR3 configuration
     dat[0] = S28HS512T_CR3_VRGLAT_10;
-    else if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->address_width,
+    if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->address_width,
                                        S28HS512T_CR3_ADDR, dat[0]) != S28HS512T_OK) return SEMPER_ERROR;
-    else if(S28HS512T_WriteEnable(dev->hxspi, dev->interface, dev->transfer) != S28HS512T_OK) return SEMPER_ERROR;
+    if(S28HS512T_WriteEnable(dev->hxspi, dev->interface, dev->transfer) != S28HS512T_OK) return SEMPER_ERROR;
     // Write to CR5 to change to OPI mode in DTR
     dat[0] = (S28HS512T_CR5_OPI_IT | S28HS512T_CR5_SDRDDR | CFR5_RSRVD);
-    else if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->address_width,
+    if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->address_width,
                                        S28HS512T_CR5_ADDR, dat[0]) != S28HS512T_OK) return SEMPER_ERROR;
 
-    else
-    {
-        HAL_Delay(S28HS512T_WRITE_REG_MAX_TIME);
+    // Configuration successful, apply settings
+    HAL_Delay(S28HS512T_WRITE_REG_MAX_TIME);
 
-        if(S28HS512T_AutoPollingMemReady(dev->hxspi, S28HS512T_OPI_MODE, S28HS512T_DTR_TRANSFER) != S28HS512T_OK) return SEMPER_ERROR;
-        
-        //TODO: Check if config was successful
-        dev->interface = S28HS512T_OPI_MODE;
-        dev->transfer = S28HS512T_DTR_TRANSFER;
-    }
+    if(S28HS512T_AutoPollingMemReady(dev->hxspi, S28HS512T_OPI_MODE, S28HS512T_DTR_TRANSFER) != S28HS512T_OK) return SEMPER_ERROR;
+    
+    //TODO: Check if config was successful
+    dev->interface = S28HS512T_OPI_MODE;
+    dev->transfer = S28HS512T_DTR_TRANSFER;
   return SEMPER_OK;
 }
 
@@ -248,29 +246,27 @@ SEMPER_Status_t SEMPER_EnterSOPIMode(SEMPER_Handle_t *dev)
     if( S28HS512T_WriteEnable(dev->hxspi, dev->interface, dev->transfer) != S28HS512T_OK) return SEMPER_ERROR;
     // Write new CR2 configuration
     dat[0] = S28HS512T_CR2_MEMLAT_10_23_CYCLES;
-    else if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->transfer,
+    if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->transfer,
                                        S28HS512T_CR2_ADDR, dat[0]) != S28HS512T_OK) return SEMPER_ERROR;
-    else if(S28HS512T_WriteEnable(dev->hxspi, dev->interface, dev->transfer) != S28HS512T_OK) return SEMPER_ERROR;
+    if(S28HS512T_WriteEnable(dev->hxspi, dev->interface, dev->transfer) != S28HS512T_OK) return SEMPER_ERROR;
     //Write new CR3 configuration
     dat[0] = S28HS512T_CR3_VRGLAT_10;
-    else if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->address_width,
+    if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->address_width,
                                        S28HS512T_CR3_ADDR, dat[0]) != S28HS512T_OK) return SEMPER_ERROR;
-    else if(S28HS512T_WriteEnable(dev->hxspi, dev->interface, dev->transfer) != S28HS512T_OK) return SEMPER_ERROR;
+    if(S28HS512T_WriteEnable(dev->hxspi, dev->interface, dev->transfer) != S28HS512T_OK) return SEMPER_ERROR;
     // Write to CR5 to change to OPI modein STR
     dat[0] = (S28HS512T_CR5_OPI_IT | CFR5_RSRVD);
-    else if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->address_width,
+    if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->address_width,
                                        S28HS512T_CR5_ADDR, dat[0]) != S28HS512T_OK) return SEMPER_ERROR;
 
-    else
-    {
-        HAL_Delay(S28HS512T_WRITE_REG_MAX_TIME);
+    // Configuration successful, apply settings
+    HAL_Delay(S28HS512T_WRITE_REG_MAX_TIME);
 
-        if(S28HS512T_AutoPollingMemReady(dev->hxspi, S28HS512T_OPI_MODE, S28HS512T_STR_TRANSFER) != S28HS512T_OK) return SEMPER_ERROR;
-        
-        //TODO: Check if config was successful
-        dev->interface = S28HS512T_OPI_MODE;
-        dev->transfer = S28HS512T_STR_TRANSFER;
-    }
+    if(S28HS512T_AutoPollingMemReady(dev->hxspi, S28HS512T_OPI_MODE, S28HS512T_STR_TRANSFER) != S28HS512T_OK) return SEMPER_ERROR;
+    
+    //TODO: Check if config was successful
+    dev->interface = S28HS512T_OPI_MODE;
+    dev->transfer = S28HS512T_STR_TRANSFER;
   return SEMPER_OK;
 }
 
@@ -295,55 +291,53 @@ SEMPER_Status_t SEMPER_ExitOPIMode(
     }
     // Write to CR5 to exit OPI mode
     dat[0] = (CFR5_SPI_STR_MODE | CFR5_RSRVD);
-    else if (S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer,
+    if (S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer,
               dev->address_width, S28HS512T_CR5_ADDR, dat[0]) != S28HS512T_OK)
     {
         return SEMPER_ERROR;
     }
     // Wait for Memor to be ready
-    else if(S28HS512T_AutoPollingMemReady(dev->hxspi, S28HS512T_SPI_MODE, S28HS512T_STR_TRANSFER) != S28HS512T_OK)
+    if(S28HS512T_AutoPollingMemReady(dev->hxspi, S28HS512T_SPI_MODE, S28HS512T_STR_TRANSFER) != S28HS512T_OK)
     {
         return SEMPER_ERROR;
     }
     // Enable Register Write
-    else if(S28HS512T_WriteEnable(dev->hxspi, S28HS512T_SPI_MODE, S28HS512T_STR_TRANSFER) != S28HS512T_OK)
+    if(S28HS512T_WriteEnable(dev->hxspi, S28HS512T_SPI_MODE, S28HS512T_STR_TRANSFER) != S28HS512T_OK)
     {
         return SEMPER_ERROR;
     }
     // Write to CR2 with new dummy cycles (20 Cycles in 8-8-8)
     dat[0] = S28HS512T_CR2_MEMLAT_8_20_CYCLES;
-    else if (S28HS512T_WriteAnyRegister(dev->hxspi, S28HS512T_SPI_MODE, S28HS512T_STR_TRANSFER, S28HS512T_3BYTES_SIZE,
+    if (S28HS512T_WriteAnyRegister(dev->hxspi, S28HS512T_SPI_MODE, S28HS512T_STR_TRANSFER, S28HS512T_3BYTES_SIZE,
                                         S28HS512T_CR2_ADDR, dat[0]) != S28HS512T_OK)
     {
         return SEMPER_ERROR;
     }
     // Enable Register Write
-    else if(S28HS512T_WriteEnable(dev->hxspi, S28HS512T_SPI_MODE, S28HS512T_STR_TRANSFER) != S28HS512T_OK)
+    if(S28HS512T_WriteEnable(dev->hxspi, S28HS512T_SPI_MODE, S28HS512T_STR_TRANSFER) != S28HS512T_OK)
     {
         return SEMPER_ERROR;
     }
     // Write to CR3 
     dat[0] = 0x00;
-    else if (S28HS512T_WriteAnyRegister(dev->hxspi, S28HS512T_SPI_MODE, S28HS512T_STR_TRANSFER, S28HS512T_3BYTES_SIZE,
+    if (S28HS512T_WriteAnyRegister(dev->hxspi, S28HS512T_SPI_MODE, S28HS512T_STR_TRANSFER, S28HS512T_3BYTES_SIZE,
                                         S28HS512T_CR3_ADDR, dat[0]) != S28HS512T_OK)
     {
         return SEMPER_ERROR;
     }
-    else
+    // All operations successful, apply final settings
+    HAL_Delay(S28HS512T_WRITE_REG_MAX_TIME);
+
+    if(S28HS512T_AutoPollingMemReady(dev->hxspi, S28HS512T_SPI_MODE, S28HS512T_STR_TRANSFER) != S28HS512T_OK)
     {
-        HAL_Delay(S28HS512T_WRITE_REG_MAX_TIME);
-
-        if(S28HS512T_AutoPollingMemReady(dev->hxspi, S28HS512T_SPI_MODE, S28HS512T_STR_TRANSFER) != S28HS512T_OK)
-        {
-            return SEMPER_ERROR;
-        }
-        //TODO: Verify data
-
-
-        dev->transfer = S28HS512T_STR_TRANSFER;
-        dev->interface = S28HS512T_SPI_MODE;
-        dev->address_width = S28HS512T_3BYTES_SIZE;
+        return SEMPER_ERROR;
     }
+    //TODO: Verify data
+
+
+    dev->transfer = S28HS512T_STR_TRANSFER;
+    dev->interface = S28HS512T_SPI_MODE;
+    dev->address_width = S28HS512T_3BYTES_SIZE;
     return SEMPER_OK;
 }
 

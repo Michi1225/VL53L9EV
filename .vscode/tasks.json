@@ -3,34 +3,165 @@
 
     "tasks": [
         {
-            "label": "Flash: FSBL",
+            "label": "Build",
             "type": "process",
-            "command": "${workspaceFolder}/scripts/flash.sh",
-            "args": ["fsbl"],
-            "problemMatcher": []
-        },
-        {
-            "label": "Flash: Application A",
-            "type": "process",
-            "command": "${workspaceFolder}/scripts/flash.sh",
-            "args": ["app-a"],
-            "problemMatcher": []
-        },
-        {
-            "label": "Flash: Application B",
-            "type": "process",
-            "command": "${workspaceFolder}/scripts/flash.sh",
-            "args": ["app-b"],
-            "problemMatcher": []
-        },
-        {
-            "label": "Build: Firmware Images",
-            "type": "process",
-            "command": "${workspaceFolder}/scripts/build_images.sh",
+            "command": "${workspaceFolder}/scripts/build.sh",
             "args": [
-                "Debug"
+                "--config",
+                "${input:buildConfig}",
+                "--target",
+                "${input:buildTarget}"
             ],
-            "problemMatcher": "$gcc"
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$gcc",
+            "detail": "Build Debug/Release and select Appli, FSBL, ExtMemLoader or all."
+        },
+
+        {
+            "label": "Internal: Build Appli Debug",
+            "type": "process",
+            "command": "${workspaceFolder}/scripts/build.sh",
+            "args": [
+                "--config",
+                "Debug",
+                "--target",
+                "appli"
+            ],
+            "problemMatcher": "$gcc",
+            "hide": true
+        },
+
+        {
+            "label": "Internal: Build FSBL Debug",
+            "type": "process",
+            "command": "${workspaceFolder}/scripts/build.sh",
+            "args": [
+                "--config",
+                "Debug",
+                "--target",
+                "fsbl"
+            ],
+            "problemMatcher": "$gcc",
+            "hide": true
+        },
+
+        {
+            "label": "Dev: Load + Run SRAM (detach)",
+            "type": "process",
+            "command": "${workspaceFolder}/scripts/run_dev.sh",
+            "args": [
+                "--action",
+                "run",
+                "--target",
+                "${input:devTarget}",
+                "--config",
+                "${input:devConfig}",
+                "--build"
+            ],
+            "problemMatcher": [],
+            "detail": "BOOT1=1: build, load selected ELF into SRAM, run and detach."
+        },
+
+        {
+            "label": "Flash: Build + Program",
+            "type": "process",
+            "command": "${workspaceFolder}/scripts/flash.sh",
+            "args": [
+                "--target",
+                "${input:flashTarget}",
+                "--config",
+                "${input:flashConfig}",
+                "--build"
+            ],
+            "problemMatcher": [],
+            "detail": "Build/sign the selected configuration and program external SEMPER flash."
+        },
+
+        {
+            "label": "Flash: Program Existing Images",
+            "type": "process",
+            "command": "${workspaceFolder}/scripts/flash.sh",
+            "args": [
+                "--target",
+                "${input:flashTarget}"
+            ],
+            "problemMatcher": [],
+            "detail": "Program already-built signed images without rebuilding."
+        }
+    ],
+
+    "inputs": [
+        {
+            "id": "buildConfig",
+            "type": "pickString",
+            "description": "Build configuration",
+            "options": [
+                "Debug",
+                "Release"
+            ],
+            "default": "Debug"
+        },
+
+        {
+            "id": "buildTarget",
+            "type": "pickString",
+            "description": "Build target",
+            "options": [
+                "appli",
+                "fsbl",
+                "extmem",
+                "all"
+            ],
+            "default": "all"
+        },
+
+        {
+            "id": "devConfig",
+            "type": "pickString",
+            "description": "Development build configuration",
+            "options": [
+                "Debug",
+                "Release"
+            ],
+            "default": "Debug"
+        },
+
+        {
+            "id": "devTarget",
+            "type": "pickString",
+            "description": "SRAM development target",
+            "options": [
+                "appli",
+                "fsbl"
+            ],
+            "default": "appli"
+        },
+
+        {
+            "id": "flashConfig",
+            "type": "pickString",
+            "description": "Configuration to build before programming",
+            "options": [
+                "Debug",
+                "Release"
+            ],
+            "default": "Debug"
+        },
+
+        {
+            "id": "flashTarget",
+            "type": "pickString",
+            "description": "External flash target",
+            "options": [
+                "all",
+                "fsbl",
+                "appli-a",
+                "appli-b"
+            ],
+            "default": "all"
         }
     ]
 }
