@@ -49,6 +49,9 @@
 
 /* USER CODE BEGIN PD */
 
+
+#define APP_EVT_ETH_LINK_UP           (1UL << 0)
+#define APP_EVT_ETH_IP_READY          (1UL << 1)
 /* USER CODE END PD */
 
 /* Main thread defines -------------------------------------------------------*/

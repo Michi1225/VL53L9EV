@@ -61,6 +61,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ./Libs/53L9/interface/vl53l9
     ./Libs/53L9/vl53l9
     ./Libs/PHY
+    ./Libs/control
 
 )
 
@@ -76,6 +77,9 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ./Libs/53L9/interface/vl53l9/vl53l9_utils.c
     ./Libs/53L9/app/VL53L9_process.c
     ./Libs/PHY/ADIN1300.c
+    ./Libs/control/control_server.c
+    ./Libs/control/housekeeping.c
+    ./Libs/control/stream_manager.c
 )
 
 # Link directories setup

@@ -2,11 +2,7 @@
     "configurations": [
         {
             "name": "STM32_Appli",
-            "compileCommands": "${workspaceFolder}/Appli/build/Debug/compile_commands.json"
-        },
-        {
-            "name": "STM32_Appli",
-            "compileCommands": "${workspaceFolder}/Appli/build/Debug/compile_commands.json"
+            "compileCommands": "${workspaceFolder}/Appli/build/compile_commands.json"
         },
         {
             "name": "STM32_ExtMemLoader",

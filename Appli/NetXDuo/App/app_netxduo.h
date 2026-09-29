@@ -32,7 +32,7 @@ extern "C" {
 #include "nx_stm32_eth_driver.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "app_events.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -42,7 +42,8 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-
+#define NETWORK_MANAGER_PRIO 10U
+#define NETWORK_MANAGER_STACK_SIZE 4095U
 /* USER CODE END EC */
 /* The DEFAULT_PAYLOAD_SIZE should match with RxBuffLen configured via MX_ETH_Init */
 #ifndef DEFAULT_PAYLOAD_SIZE
@@ -63,6 +64,8 @@ UINT MX_NetXDuo_Init(VOID *memory_ptr);
 
 /* USER CODE BEGIN EFP */
 
+NX_IP *nx_get_ip();
+NX_PACKET_POOL *nx_get_app_pool();
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
