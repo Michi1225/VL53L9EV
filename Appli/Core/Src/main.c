@@ -23,6 +23,7 @@
 #include "dcmipp.h"
 #include "eth.h"
 #include "hpdma.h"
+#include "i2c.h"
 #include "i3c.h"
 #include "spi.h"
 #include "ucpd.h"
@@ -82,7 +83,10 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+#ifdef DEV_MODE
+  App_SystemClock_Config();
+#endif
+  PeriphCommonClock_Config();
   /* USER CODE END Init */
 
   /* USER CODE BEGIN SysInit */
@@ -98,6 +102,7 @@ int main(void)
   MX_USB2_OTG_HS_PCD_Init();
   MX_SPI4_Init();
   MX_I3C2_Init();
+  MX_I2C2_Init();
   SystemIsolation_Config();
   /* Call PreOsInit function */
   USBPD_PreInitOs();
@@ -223,6 +228,28 @@ void PeriphCommonClock_Config(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM6 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM6)
+  {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.

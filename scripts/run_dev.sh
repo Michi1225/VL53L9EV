@@ -211,7 +211,16 @@ case "${TARGET}" in
 esac
 
 if [[ "${BUILD_FIRST}" -eq 1 ]]; then
-    "${SCRIPT_DIR}/build.sh" --target "${TARGET}" --config "${CONFIG}"
+    if [[ "${TARGET}" == "appli" ]]; then
+        "${SCRIPT_DIR}/build.sh" \
+            --target "${TARGET}" \
+            --config "${CONFIG}" \
+            --dev
+    else
+        "${SCRIPT_DIR}/build.sh" \
+            --target "${TARGET}" \
+            --config "${CONFIG}"
+    fi
 fi
 
 [[ -f "${ELF}" ]] || die "ELF not found: ${ELF}"

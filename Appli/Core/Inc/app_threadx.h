@@ -30,7 +30,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "LEDController.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/

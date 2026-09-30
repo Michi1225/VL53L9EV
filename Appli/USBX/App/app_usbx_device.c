@@ -22,7 +22,9 @@
 #include "app_usbx_device.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <math.h>
 
+#include "ux_device_class_cdc_acm.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -32,6 +34,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
+#define STREAM_SAMPLES_PER_BLOCK    8192U
+#define STREAM_LUT_SIZE             1024U
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -49,6 +54,12 @@ static TX_THREAD ux_device_app_thread;
 /* USER CODE BEGIN PV */
 extern PCD_HandleTypeDef           hpcd_USB_OTG_HS2;
 TX_EVENT_FLAGS_GROUP usb_device_events;
+
+
+
+static int16_t stream_buffer[STREAM_SAMPLES_PER_BLOCK];
+static int16_t sine_lut[STREAM_LUT_SIZE];
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -210,32 +221,101 @@ UINT MX_USBX_Device_Stack_Init(void)
 static VOID usbx_app_thread_entry(ULONG thread_input)
 {
   /* USER CODE BEGIN usbx_app_thread_entry */
-    ULONG events;
 
-    TX_PARAMETER_NOT_USED(thread_input);
+    HAL_StatusTypeDef status = HAL_PCD_Start(&hpcd_USB_OTG_HS2);
 
-    for (;;)
+    ULONG actual_length;
+    /* Generate one sine-wave LUT once */
+    for (uint32_t i = 0; i < STREAM_LUT_SIZE; i++)
     {
-        if (tx_event_flags_get(&usb_device_events,
-                               USB_DEVICE_EVENT_START |
-                               USB_DEVICE_EVENT_STOP,
-                               TX_OR_CLEAR,
-                               &events,
-                               TX_WAIT_FOREVER) != TX_SUCCESS)
-        {
-            continue;
-        }
+        float phase = 2.0f * 3.14159265358979323846f *
+                      ((float)i / (float)STREAM_LUT_SIZE);
 
-        if (events & USB_DEVICE_EVENT_STOP)
-        {
-            HAL_PCD_Stop(&hpcd_USB_OTG_HS2);
-        }
-
-        if (events & USB_DEVICE_EVENT_START)
-        {
-            HAL_PCD_Start(&hpcd_USB_OTG_HS2);
-        }
+        sine_lut[i] = (int16_t)(32767.0f * sinf(phase));
     }
+
+    uint32_t phase_index = 0;
+
+    for(;;)
+    {
+
+      /*
+      * Wait until:
+      *  - USB enumeration has completed
+      *  - CDC ACM class has been activated
+      */
+      if ((cdc_acm == UX_NULL) ||
+          (_ux_system_slave->ux_system_slave_device.ux_slave_device_state
+              != UX_DEVICE_CONFIGURED))
+      {
+          tx_thread_sleep(10);
+          continue;
+      }
+  
+      /*
+        * Fill a large block.
+        *
+        * This produces 8 complete sine periods per block:
+        *     8192 samples / 1024 samples per period = 8 periods
+        */
+      for (uint32_t i = 0; i < STREAM_SAMPLES_PER_BLOCK; i++)
+      {
+          stream_buffer[i] = sine_lut[phase_index];
+  
+          phase_index++;
+          if (phase_index >= STREAM_LUT_SIZE)
+          {
+              phase_index = 0;
+          }
+      }
+  
+      /*
+        * Send binary int16_t samples.
+        *
+        * 8192 samples * 2 bytes = 16384 bytes/write.
+        */
+      status = ux_device_class_cdc_acm_write(
+                    cdc_acm,
+                    (UCHAR *)stream_buffer,
+                    sizeof(stream_buffer),
+                    &actual_length);
+  
+      if (status != UX_SUCCESS)
+      {
+          /*
+            * Most likely host disconnected / interface no longer configured.
+            * Don't hammer USBX continuously.
+            */
+          tx_thread_sleep(10);
+      }
+    }
+
+    // ULONG events;
+
+    // TX_PARAMETER_NOT_USED(thread_input);
+
+    // for (;;)
+    // {
+    //     if (tx_event_flags_get(&usb_device_events,
+    //                            USB_DEVICE_EVENT_START |
+    //                            USB_DEVICE_EVENT_STOP,
+    //                            TX_OR_CLEAR,
+    //                            &events,
+    //                            TX_WAIT_FOREVER) != TX_SUCCESS)
+    //     {
+    //         continue;
+    //     }
+
+    //     if (events & USB_DEVICE_EVENT_STOP)
+    //     {
+    //         HAL_PCD_Stop(&hpcd_USB_OTG_HS2);
+    //     }
+
+    //     if (events & USB_DEVICE_EVENT_START)
+    //     {
+    //         HAL_PCD_Start(&hpcd_USB_OTG_HS2);
+    //     }
+    // }
   /* USER CODE END usbx_app_thread_entry */
 }
 

@@ -28,6 +28,7 @@
 #include "app_events.h"
 #include "stream_manager.h"
 #include "app_netxduo.h"
+#include "tx_api.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,17 +48,12 @@
 /* Private variables ---------------------------------------------------------*/
 TX_THREAD tx_app_thread;
 /* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
-TX_THREAD network_manager_thread;
 TX_THREAD control_thread;
 // TX_THREAD stream_thread;
 // TX_THREAD housekeeping_thread;
 
+/* USER CODE END PV */
 
-/* Later */
-// TX_QUEUE stream_queue;
-// TX_MUTEX app_state_mutex;
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
 
@@ -74,7 +70,8 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   TX_BYTE_POOL *byte_pool = (TX_BYTE_POOL*)memory_ptr;
 
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
-
+  LEDController_Init(&led_controller);
+  LEDController_SetAnimation(&led_controller, LED_ANIMATION_CONFIGURING);
   /* USER CODE END App_ThreadX_MEM_POOL */
   CHAR *pointer;
 
@@ -108,10 +105,11 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   /*
     * Control thread stack
     */
-  if (tx_byte_allocate(byte_pool,
+  UINT status = tx_byte_allocate(byte_pool,
                         (VOID **)&control_stack,
                         CONTROL_THREAD_STACK_SIZE,
-                        TX_NO_WAIT) != TX_SUCCESS)
+                        TX_NO_WAIT);
+  if(status != TX_SUCCESS)
   {
       return TX_POOL_ERROR;
   }

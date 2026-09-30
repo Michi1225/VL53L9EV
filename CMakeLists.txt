@@ -17,6 +17,9 @@ set(CMAKE_PROJECT_NAME VL53L9_eval)
 # Core project settings
 project(${CMAKE_PROJECT_NAME})
 
+# Development-mode application build
+option(DEV_MODE "Build application for direct SRAM development" OFF)
+
 # Include external project file
 include("mx-generated.cmake")
 

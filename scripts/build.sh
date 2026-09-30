@@ -27,6 +27,7 @@ set -euo pipefail
 
 CONFIG="Debug"
 TARGET="all"
+DEV_MODE=0
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -64,7 +65,7 @@ usage()
 {
     cat <<EOF
 Usage:
-  $0 --config Debug|Release --target appli|fsbl|extmem|all
+  $0 --config Debug|Release --target appli|fsbl|extmem|all [--dev]
 EOF
 }
 
@@ -201,6 +202,10 @@ while [[ $# -gt 0 ]]; do
             TARGET="$2"
             shift 2
             ;;
+        --dev)
+            DEV_MODE=1
+            shift
+            ;;
         -h|--help)
             usage
             exit 0
@@ -264,6 +269,7 @@ info "Build configuration"
 echo "Project root : ${ROOT_DIR}"
 echo "Configuration: ${CONFIG}"
 echo "Target       : ${TARGET}"
+echo "DEV mode     : ${DEV_MODE}"
 echo "ARM GCC      : ${ARM_GCC}"
 echo "CMake        : ${CMAKE}"
 echo "Objcopy      : ${OBJCOPY}"
@@ -272,7 +278,11 @@ echo "Objcopy      : ${OBJCOPY}"
 cd "${ROOT_DIR}"
 
 info "Configuring CMake"
-"${CMAKE}" --preset "${CONFIG}"
+if [[ "${DEV_MODE}" -eq 1 ]]; then
+    "${CMAKE}" --preset "${CONFIG}" -DDEV_MODE=ON
+else
+    "${CMAKE}" --preset "${CONFIG}" -DDEV_MODE=OFF
+fi
 
 build_target()
 {

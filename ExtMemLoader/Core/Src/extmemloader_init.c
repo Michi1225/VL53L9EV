@@ -23,6 +23,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "extmem_manager.h"
+#include "i2c.h"
 #include "xspi.h"
 #include "xspim.h"
 #include "gpio.h"
@@ -117,6 +118,8 @@ uint32_t extmemloader_Init()
 
   MX_XSPIM_Init();
 
+  MX_I2C2_Init();
+
   MX_EXTMEM_MANAGER_Init();
 
   /* USER CODE BEGIN 2 */
@@ -132,6 +135,7 @@ uint32_t extmemloader_Init()
   */
 void SystemClock_Config(void)
 {
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
@@ -165,6 +169,15 @@ void SystemClock_Config(void)
 
   /* Wait HSE stabilization time before its selection as PLL source. */
   HAL_Delay(HSE_STARTUP_TIMEOUT);
+
+  /** Initializes TIMPRE when TIM is used as Systick Clock Source
+  */
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_TIM;
+  PeriphClkInitStruct.TIMPresSelection = RCC_TIMPRES_DIV1;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
   /** Get current CPU/System buses clocks configuration and if necessary switch
  to intermediate HSI clock to ensure target clock can be set

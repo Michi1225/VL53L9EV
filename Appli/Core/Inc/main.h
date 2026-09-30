@@ -51,7 +51,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "app_clock.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -84,7 +84,7 @@ extern I3C_HandleTypeDef hi3c2;
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+void PeriphCommonClock_Config(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

@@ -29,7 +29,7 @@ typedef enum
 
 HAL_StatusTypeDef ADIN1300_Init(adin1300_Object_t *pPhy);
 HAL_StatusTypeDef ADIN1300_Reset(adin1300_Object_t *pPhy);
-HAL_StatusTypeDef ADIN1300_SubSysReset(adin1300_Object_t *pPhy)
+HAL_StatusTypeDef ADIN1300_SubSysReset(adin1300_Object_t *pPhy);
 int32_t ADIN1300_GetLinkStatus(adin1300_Object_t *pPhy);
 
 

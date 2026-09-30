@@ -28,7 +28,8 @@
                 "--config",
                 "Debug",
                 "--target",
-                "appli"
+                "appli",
+                "--dev"
             ],
             "problemMatcher": "$gcc",
             "hide": true

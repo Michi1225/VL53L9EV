@@ -83,7 +83,15 @@ void MX_ETH1_Init(void)
   heth1.Init.RxBuffLen = 1536;
 
   /* USER CODE BEGIN MACADDRESS */
+  HAL_ETH_MspInit(&heth1);
 
+  /* Select RGMII */
+  SET_BIT(RCC->CCIPR2, RCC_ETH1PHYIF_RGMII);
+
+    /* Configure MDC divider */
+  HAL_ETH_SetMDIOClockRange(&heth1);
+
+  ADIN1300_Init(&phy);
   /* USER CODE END MACADDRESS */
 
   if (HAL_ETH_Init(&heth1) != HAL_OK)
@@ -179,6 +187,9 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
     GPIO_InitStruct.Alternate = GPIO_AF12_ETH1;
     HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
 
+    /* ETH1 interrupt Init */
+    HAL_NVIC_SetPriority(ETH1_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(ETH1_IRQn);
   /* USER CODE BEGIN ETH1_MspInit 1 */
 
   /* USER CODE END ETH1_MspInit 1 */
@@ -227,6 +238,8 @@ void HAL_ETH_MspDeInit(ETH_HandleTypeDef* ethHandle)
                           |GPIO_PIN_9|GPIO_PIN_11|GPIO_PIN_13|GPIO_PIN_0
                           |GPIO_PIN_12);
 
+    /* ETH1 interrupt Deinit */
+    HAL_NVIC_DisableIRQ(ETH1_IRQn);
   /* USER CODE BEGIN ETH1_MspDeInit 1 */
 
   /* USER CODE END ETH1_MspDeInit 1 */

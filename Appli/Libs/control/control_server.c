@@ -1,4 +1,6 @@
 #include "control_server.h"
+#include "tx_api.h"
+#include "tx_port.h"
 
 
 
@@ -80,6 +82,7 @@ void control_thread_entry(ULONG thread_input)
         /*
          * Wait until Ethernet is usable.
          */
+         tx_thread_sleep(1E15);
         tx_event_flags_get(
             &app_events,
             APP_EVT_ETH_IP_READY,

@@ -1,11 +1,11 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    app_usbx.h
-  * @author  MCD Application Team
-  * @brief   USBX applicative header file
+  * @file    i2c.h
+  * @brief   This file contains all the function prototypes for
+  *          the i2c.c file
   ******************************************************************************
-   * @attention
+  * @attention
   *
   * Copyright (c) 2026 STMicroelectronics.
   * All rights reserved.
@@ -18,42 +18,35 @@
   */
 /* USER CODE END Header */
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __APP_USBX_H__
-#define __APP_USBX_H__
+#ifndef __I2C_H__
+#define __I2C_H__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "ux_api.h"
+#include "main.h"
 
-#include "app_usbx_device.h"
-
-/* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
 
-/* Exported types ------------------------------------------------------------*/
-/* USER CODE BEGIN ET */
+extern I2C_HandleTypeDef hi2c2;
 
-/* USER CODE END ET */
+/* USER CODE BEGIN Private defines */
 
-/* Exported constants --------------------------------------------------------*/
-#define USBX_MEMORY_STACK_SIZE       8192
-/* USER CODE BEGIN EC */
+/* USER CODE END Private defines */
 
-/* USER CODE END EC */
+void MX_I2C2_Init(void);
 
-/* Exported functions prototypes ---------------------------------------------*/
-UINT MX_USBX_Init(VOID *memory_ptr);
+/* USER CODE BEGIN Prototypes */
 
-/* USER CODE BEGIN 1 */
-
-/* USER CODE END 1 */
+/* USER CODE END Prototypes */
 
 #ifdef __cplusplus
 }
 #endif
-#endif /* __APP_USBX_H__ */
+
+#endif /* __I2C_H__ */
+

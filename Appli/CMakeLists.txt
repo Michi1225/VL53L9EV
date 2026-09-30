@@ -44,6 +44,13 @@ include("mx-generated.cmake")
 set(CMAKE_CXX_COMPILER_FORCED "true")
 
 # Add project symbols (macros)
+option(DEV_MODE "Build application for direct SRAM development" OFF)
+
+if(DEV_MODE)
+    target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE DEV_MODE)
+endif()
+
+
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols
     ETH_PHY_1000MBITS_SUPPORTED
@@ -62,6 +69,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ./Libs/53L9/vl53l9
     ./Libs/PHY
     ./Libs/control
+    ../common/led
 
 )
 
@@ -80,6 +88,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ./Libs/control/control_server.c
     ./Libs/control/housekeeping.c
     ./Libs/control/stream_manager.c
+    ../common/led/LEDController.c
+    ./Core/Src/app_clock.c
 )
 
 # Link directories setup

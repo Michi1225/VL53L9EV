@@ -47,7 +47,7 @@ void MX_USB2_OTG_HS_PCD_Init(void)
   hpcd_USB_OTG_HS2.Init.lpm_enable = DISABLE;
   hpcd_USB_OTG_HS2.Init.use_dedicated_ep1 = DISABLE;
   hpcd_USB_OTG_HS2.Init.vbus_sensing_enable = DISABLE;
-  hpcd_USB_OTG_HS2.Init.dma_enable = ENABLE;
+  hpcd_USB_OTG_HS2.Init.dma_enable = DISABLE;
   if (HAL_PCD_Init(&hpcd_USB_OTG_HS2) != HAL_OK)
   {
     Error_Handler();
@@ -65,6 +65,24 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef* pcdHandle)
   if(pcdHandle->Instance==USB2_OTG_HS)
   {
   /* USER CODE BEGIN USB2_OTG_HS_MspInit 0 */
+  __HAL_RCC_PWR_CLK_ENABLE();
+
+  HAL_PWREx_EnableVddUSBVMEN();
+
+  while (__HAL_PWR_GET_FLAG(PWR_FLAG_USB33RDY) == 0U)
+  {
+      /* wait */
+  }
+
+  RCC_PeriphCLKInitTypeDef UsbPhyClkInit = {0};
+
+  UsbPhyClkInit.PeriphClockSelection = RCC_PERIPHCLK_USBPHY2;
+  UsbPhyClkInit.UsbPhy2ClockSelection = RCC_USBPHY2CLKSOURCE_CLKP;
+
+  if (HAL_RCCEx_PeriphCLKConfig(&UsbPhyClkInit) != HAL_OK)
+  {
+      Error_Handler();
+  }
 
   /* USER CODE END USB2_OTG_HS_MspInit 0 */
 
@@ -88,6 +106,95 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef* pcdHandle)
     HAL_NVIC_SetPriority(USB2_OTG_HS_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(USB2_OTG_HS_IRQn);
   /* USER CODE BEGIN USB2_OTG_HS_MspInit 1 */
+
+    /*
+      * Reset USB2 OTG core, PHY, and HS PHY controller.
+      */
+      LL_AHB5_GRP1_ForceReset(0x00800000U);
+
+      __HAL_RCC_USB2_OTG_HS_FORCE_RESET();
+      __HAL_RCC_USB2_OTG_HS_PHY_FORCE_RESET();
+
+      /*
+      * Do NOT blindly select HSE/2 here.
+      * Your USBPHY2 reference is configured as 20 MHz through CubeMX.
+      */
+
+      /*
+      * Release HS PHY controller reset first.
+      */
+      LL_AHB5_GRP1_ReleaseReset(0x00800000U);
+
+      /*
+      * OTG register clock must be available.
+      */
+      __HAL_RCC_USB2_OTG_HS_CLK_ENABLE();
+
+      /*
+      * ST recommends a real settling interval before touching PHYC.
+      */
+      for (volatile uint32_t i = 0; i < 10U; i++)
+      {
+          __NOP();
+      }
+
+      /*
+      * Internal HS PHY configuration.
+      *
+      * FSEL = 001 for 20 MHz.
+      */
+      USB2_HS_PHYC->USBPHYC_CR &= ~(0x7U << 4);
+
+      USB2_HS_PHYC->USBPHYC_CR |=
+            (1U << 16)
+          | (1U << 4)     /* 20 MHz */
+          | (1U << 2)
+          |  1U;
+
+      /*
+      * Release PHY reset.
+      */
+      __HAL_RCC_USB2_OTG_HS_PHY_RELEASE_RESET();
+
+      for (volatile uint32_t i = 0; i < 10U; i++)
+      {
+          __NOP();
+      }
+
+      /*
+      * Release OTG core reset.
+      */
+      __HAL_RCC_USB2_OTG_HS_RELEASE_RESET();
+
+      /*
+      * Enable PHY clock.
+      */
+      __HAL_RCC_USB2_OTG_HS_PHY_CLK_ENABLE();
+
+      /*
+      * Important: allow synchronization before HAL continues
+      * into USB_CoreReset().
+      */
+      volatile uint32_t per_source =
+          __HAL_RCC_GET_CLKP_SOURCE();
+
+      volatile uint32_t per_freq =
+          HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_CKPER);
+
+      volatile uint32_t ic5_enabled =
+          LL_RCC_IC5_IsEnabled();
+
+      volatile uint32_t ic5_source =
+          LL_RCC_IC5_GetSource();
+
+      volatile uint32_t ic5_div =
+          LL_RCC_IC5_GetDivider();
+
+      for (volatile uint32_t i = 0; i < 10U; i++)
+      {
+          __NOP();
+      }
+
 
   /* USER CODE END USB2_OTG_HS_MspInit 1 */
   }

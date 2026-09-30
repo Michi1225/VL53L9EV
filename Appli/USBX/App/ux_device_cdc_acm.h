@@ -41,7 +41,9 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
+/* ux_device_cdc_acm.h */
 
+extern UX_SLAVE_CLASS_CDC_ACM *cdc_acm;
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/

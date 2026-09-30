@@ -118,16 +118,16 @@ HAL_StatusTypeDef ADIN1300_Init(adin1300_Object_t *pPhy)
     reg_val = LED_CTRL_2_RSRVD | LED_A_CFG;
     error |= ADIN1300_WriteReg(pPhy, LED_CTRL_2, reg_val);
 
-    // GE_CLK_CFG
-    reg_val = GE_CLK_FREE_125_EN;
-    error |= ADIN1300_WriteExtReg(pPhy, GE_CLK_CFG, reg_val);
-
     // Write GE_PHY_BASE_CFG
     reg_val = GE_PHY_BASE_CFG_RSRVD | GE_MAN_MDI_FLIP_CFG | GE_FLD_100_EN_CFG | GE_FLD_1000_EN_CFG;
     error |= ADIN1300_WriteExtReg(pPhy, GE_PHY_BASE_CFG, reg_val);
 
     // Subsystem Reset
     error |= ADIN1300_SubSysReset(pPhy);
+    
+    // GE_CLK_CFG
+    reg_val = GE_CLK_FREE_125_EN;
+    error |= ADIN1300_WriteExtReg(pPhy, GE_CLK_CFG, reg_val);
 
     // Set MII_CONTROL register
     reg_val = SPEED_SEL_1GBPS | AUTONEG_EN | DPLX_MODE_FD | RESTART_ANEG;
@@ -194,10 +194,10 @@ HAL_StatusTypeDef ADIN1300_SubSysReset(adin1300_Object_t *pPhy)
 {
     HAL_StatusTypeDef error = HAL_OK;
     // Write Subsystem reset
-    error |= ADIN1300_WriteExtReg(pPhy, GE_SFT_RST_CFG_EN, 1);
     error |= ADIN1300_WriteExtReg(pPhy, GE_SFT_RST, 1);
 
     HAL_Delay(9);
     // TODO: Check if this actually succeeded instead of waiting
     return error;
 }
+

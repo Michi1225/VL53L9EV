@@ -1,5 +1,14 @@
 {
     "version": "0.2.0",
+    
+    "setupCommands": [
+    {
+        "description": "Set global output format to Hexadecimal",
+        "text": "-exec set output-radix 16",
+        "ignoreFailures": true
+    }
+    ],
+
 
     "configurations": [
         {

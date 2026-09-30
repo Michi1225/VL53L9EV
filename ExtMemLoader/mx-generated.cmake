@@ -32,6 +32,7 @@ set(MX_Include_Dirs
 set(MX_Application_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/gpio.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/extmem_manager.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/i2c.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/xspi.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/xspim.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_hal_msp.c
@@ -54,6 +55,8 @@ set(STM32_Drivers_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_exti.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_ll_rcc.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_ll_utils.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_i2c.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_i2c_ex.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_xspi.c
 )
 

@@ -29,7 +29,7 @@ extern "C" {
 #include "main.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "ADIN1300.h"
 /* USER CODE END Includes */
 
 extern ETH_HandleTypeDef heth1;

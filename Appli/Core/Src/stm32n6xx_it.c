@@ -57,8 +57,11 @@
 
 /* External variables --------------------------------------------------------*/
 extern DCMIPP_HandleTypeDef hdcmipp;
+extern ETH_HandleTypeDef heth1;
 extern I3C_HandleTypeDef hi3c2;
 extern PCD_HandleTypeDef hpcd_USB_OTG_HS2;
+extern TIM_HandleTypeDef htim6;
+
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -245,6 +248,20 @@ void I3C2_ER_IRQHandler(void)
 }
 
 /**
+  * @brief This function handles TIM6 global interrupt.
+  */
+void TIM6_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM6_IRQn 0 */
+
+  /* USER CODE END TIM6_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim6);
+  /* USER CODE BEGIN TIM6_IRQn 1 */
+
+  /* USER CODE END TIM6_IRQn 1 */
+}
+
+/**
   * @brief This function handles UCPD1 global interrupt.
   */
 void UCPD1_IRQHandler(void)
@@ -271,6 +288,20 @@ void USB2_OTG_HS_IRQHandler(void)
   /* USER CODE BEGIN USB2_OTG_HS_IRQn 1 */
 
   /* USER CODE END USB2_OTG_HS_IRQn 1 */
+}
+
+/**
+  * @brief This function handles ETH1 global interrupt.
+  */
+void ETH1_IRQHandler(void)
+{
+  /* USER CODE BEGIN ETH1_IRQn 0 */
+
+  /* USER CODE END ETH1_IRQn 0 */
+  HAL_ETH_IRQHandler(&heth1);
+  /* USER CODE BEGIN ETH1_IRQn 1 */
+
+  /* USER CODE END ETH1_IRQn 1 */
 }
 
 /**
