@@ -95,7 +95,7 @@ typedef enum
 #define PHY_CTRL_1_RSRVD        ((uint16_t)(1 << 1))
 #define DIAG_CLK_EN             ((uint16_t)(1 << 2))
 #define MAN_MDIX                ((uint16_t)(1 << 9))
-#define AUTO_MDI_EN             ((uint16_t)(1 << 10))
+#define AUTO_MDI_EN             ((uint16_t)(1 << 10)) 
 
 
 // PHY_CTRL_2
@@ -123,6 +123,15 @@ typedef enum
 #define GE_REF_CLK_EN           ((uint16_t)(1 << 3))
 #define GE_CLK_FREE_125_EN      ((uint16_t)(1 << 4))
 #define GE_CLK_RCVR_125_EN      ((uint16_t)(1 << 5))
+
+
+// GE_PHY_BASE_CFG
+#define GE_PHY_BASE_CFG_RSRVD   ((uint16_t)(0x0106))
+#define GE_PHY_SFT_PD_CFG       ((uint16_t)(1 << 3))
+#define GE_MAN_MDI_FLIP_CFG     ((uint16_t)(1 << 4))
+#define GE_FLD_100_EN_CFG       ((uint16_t)(1 << 10))
+#define GE_FLD_1000_EN_CFG      ((uint16_t)(1 << 11))
+#define GE_RTRN_EN_CFG          ((uint16_t)(1 << 12))
 
 
 // PHY_STATUS_1

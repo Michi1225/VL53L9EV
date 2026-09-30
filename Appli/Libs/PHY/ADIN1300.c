@@ -92,6 +92,8 @@ HAL_StatusTypeDef ADIN1300_Init(adin1300_Object_t *pPhy)
     error = HAL_OK;
     error |= ADIN1300_Reset(pPhy);
 
+    //TODO: Possibly enter Powerdown
+
     // AUTONEG_DEV
     uint16_t reg_val = SELECTOR_ADV | FD_10_ADV | FD_100_ADV | PAUSE_ADV | APAUSE_ADV;
     error |= ADIN1300_WriteReg(pPhy, AUTONEG_ADV, reg_val);
@@ -120,9 +122,17 @@ HAL_StatusTypeDef ADIN1300_Init(adin1300_Object_t *pPhy)
     reg_val = GE_CLK_FREE_125_EN;
     error |= ADIN1300_WriteExtReg(pPhy, GE_CLK_CFG, reg_val);
 
+    // Write GE_PHY_BASE_CFG
+    reg_val = GE_PHY_BASE_CFG_RSRVD | GE_MAN_MDI_FLIP_CFG | GE_FLD_100_EN_CFG | GE_FLD_1000_EN_CFG;
+    error |= ADIN1300_WriteExtReg(pPhy, GE_PHY_BASE_CFG, reg_val);
+
+    // Subsystem Reset
+    error |= ADIN1300_SubSysReset(pPhy);
+
     // Set MII_CONTROL register
     reg_val = SPEED_SEL_1GBPS | AUTONEG_EN | DPLX_MODE_FD | RESTART_ANEG;
     error |= ADIN1300_WriteReg(pPhy, MII_CONTROL, reg_val);
+
 
     return error;
 }
@@ -176,5 +186,18 @@ HAL_StatusTypeDef ADIN1300_Reset(adin1300_Object_t *pPhy)
     }while((reg_val & 0x8000) && timeout < ADIN1300_RST_TIMEOUT);
 
     if(timeout >= ADIN1300_RST_TIMEOUT) return HAL_TIMEOUT;
+    return error;
+}
+
+
+HAL_StatusTypeDef ADIN1300_SubSysReset(adin1300_Object_t *pPhy)
+{
+    HAL_StatusTypeDef error = HAL_OK;
+    // Write Subsystem reset
+    error |= ADIN1300_WriteExtReg(pPhy, GE_SFT_RST_CFG_EN, 1);
+    error |= ADIN1300_WriteExtReg(pPhy, GE_SFT_RST, 1);
+
+    HAL_Delay(9);
+    // TODO: Check if this actually succeeded instead of waiting
     return error;
 }
