@@ -53,7 +53,17 @@ void MX_USB2_OTG_HS_PCD_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN USB2_OTG_HS_Init 2 */
+  /* Shared RX FIFO */
+  HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_HS2, 0x200);
 
+  /* EP0 control IN: 64 bytes */
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS2, 0, 0x10);
+
+  /* EP1 CDC notification IN */
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS2, 1, 0x10);
+
+  /* EP2 CDC bulk IN: 512 bytes */
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS2, 2, 0x80);
   /* USER CODE END USB2_OTG_HS_Init 2 */
 
 }

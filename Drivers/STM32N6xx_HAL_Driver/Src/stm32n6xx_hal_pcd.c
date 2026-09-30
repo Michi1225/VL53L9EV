@@ -1860,7 +1860,15 @@ HAL_StatusTypeDef HAL_PCD_EP_Transmit(PCD_HandleTypeDef *hpcd, uint8_t ep_addr, 
   {
     ep->dma_addr = (uint32_t)pBuf;
   }
+  uint32_t USBx_BASE = (uint32_t)USB2_OTG_HS;
+volatile uint32_t dtxfsts =
+    USBx_INEP(2)->DTXFSTS;
 
+volatile uint32_t diepctl =
+    USBx_INEP(2)->DIEPCTL;
+
+volatile uint32_t dieptsiz =
+    USBx_INEP(2)->DIEPTSIZ;
   (void)USB_EPStartXfer(hpcd->Instance, ep, (uint8_t)hpcd->Init.dma_enable);
 
   return HAL_OK;

@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include <math.h>
 
+#include "ux_device_cdc_acm.h"
 #include "ux_device_class_cdc_acm.h"
 /* USER CODE END Includes */
 
@@ -213,6 +214,15 @@ UINT MX_USBX_Device_Stack_Init(void)
   return ret;
 }
 
+
+static UCHAR txbuf[512];
+
+volatile UINT  usb_write_status = 0;
+volatile ULONG usb_write_actual = 0;
+volatile ULONG usb_write_ok = 0;
+volatile ULONG usb_write_err = 0;
+volatile ULONG usb_cdc_ready = 0;
+
 /**
   * @brief  Function implementing usbx_app_thread_entry.
   * @param  thread_input: User thread input parameter.
@@ -221,101 +231,46 @@ UINT MX_USBX_Device_Stack_Init(void)
 static VOID usbx_app_thread_entry(ULONG thread_input)
 {
   /* USER CODE BEGIN usbx_app_thread_entry */
+    for (uint32_t i = 0; i < sizeof(txbuf); i++)
+    {
+        txbuf[i] = (UCHAR)i;
+    }
 
     HAL_StatusTypeDef status = HAL_PCD_Start(&hpcd_USB_OTG_HS2);
 
-    ULONG actual_length;
-    /* Generate one sine-wave LUT once */
-    for (uint32_t i = 0; i < STREAM_LUT_SIZE; i++)
+    for (;;)
     {
-        float phase = 2.0f * 3.14159265358979323846f *
-                      ((float)i / (float)STREAM_LUT_SIZE);
+        UX_SLAVE_CLASS_CDC_ACM *cdc = cdc_acm;
 
-        sine_lut[i] = (int16_t)(32767.0f * sinf(phase));
+
+        if (cdc == UX_NULL)
+        {
+            usb_cdc_ready = 0;
+            tx_thread_sleep(10);
+            continue;
+        }
+
+        usb_cdc_ready = 1;
+
+        usb_write_actual = 0;
+        
+        usb_write_status =
+            ux_device_class_cdc_acm_write(
+                cdc,
+                txbuf,
+                sizeof(txbuf),
+                &usb_write_actual);
+
+        if (usb_write_status == UX_SUCCESS)
+        {
+            usb_write_ok++;
+        }
+        else
+        {
+            usb_write_err++;
+            tx_thread_sleep(10);
+        }
     }
-
-    uint32_t phase_index = 0;
-
-    for(;;)
-    {
-
-      /*
-      * Wait until:
-      *  - USB enumeration has completed
-      *  - CDC ACM class has been activated
-      */
-      if ((cdc_acm == UX_NULL) ||
-          (_ux_system_slave->ux_system_slave_device.ux_slave_device_state
-              != UX_DEVICE_CONFIGURED))
-      {
-          tx_thread_sleep(10);
-          continue;
-      }
-  
-      /*
-        * Fill a large block.
-        *
-        * This produces 8 complete sine periods per block:
-        *     8192 samples / 1024 samples per period = 8 periods
-        */
-      for (uint32_t i = 0; i < STREAM_SAMPLES_PER_BLOCK; i++)
-      {
-          stream_buffer[i] = sine_lut[phase_index];
-  
-          phase_index++;
-          if (phase_index >= STREAM_LUT_SIZE)
-          {
-              phase_index = 0;
-          }
-      }
-  
-      /*
-        * Send binary int16_t samples.
-        *
-        * 8192 samples * 2 bytes = 16384 bytes/write.
-        */
-      status = ux_device_class_cdc_acm_write(
-                    cdc_acm,
-                    (UCHAR *)stream_buffer,
-                    sizeof(stream_buffer),
-                    &actual_length);
-  
-      if (status != UX_SUCCESS)
-      {
-          /*
-            * Most likely host disconnected / interface no longer configured.
-            * Don't hammer USBX continuously.
-            */
-          tx_thread_sleep(10);
-      }
-    }
-
-    // ULONG events;
-
-    // TX_PARAMETER_NOT_USED(thread_input);
-
-    // for (;;)
-    // {
-    //     if (tx_event_flags_get(&usb_device_events,
-    //                            USB_DEVICE_EVENT_START |
-    //                            USB_DEVICE_EVENT_STOP,
-    //                            TX_OR_CLEAR,
-    //                            &events,
-    //                            TX_WAIT_FOREVER) != TX_SUCCESS)
-    //     {
-    //         continue;
-    //     }
-
-    //     if (events & USB_DEVICE_EVENT_STOP)
-    //     {
-    //         HAL_PCD_Stop(&hpcd_USB_OTG_HS2);
-    //     }
-
-    //     if (events & USB_DEVICE_EVENT_START)
-    //     {
-    //         HAL_PCD_Start(&hpcd_USB_OTG_HS2);
-    //     }
-    // }
   /* USER CODE END usbx_app_thread_entry */
 }
 
