@@ -100,8 +100,9 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
   /* USER CODE END MX_USBX_Device_Init 1 */
 
   /* Allocate the stack for device application main thread */
-  if (tx_byte_allocate(byte_pool, (VOID **) &pointer, UX_DEVICE_APP_THREAD_STACK_SIZE,
-                       TX_NO_WAIT) != TX_SUCCESS)
+  UINT status = tx_byte_allocate(byte_pool, (VOID **) &pointer, UX_DEVICE_APP_THREAD_STACK_SIZE,
+                       TX_NO_WAIT);
+  if (status != TX_SUCCESS)
   {
     /* USER CODE BEGIN MAIN_THREAD_ALLOCATE_STACK_ERROR */
     return TX_POOL_ERROR;
@@ -216,6 +217,7 @@ UINT MX_USBX_Device_Stack_Init(void)
 
 
 static UCHAR txbuf[512];
+static float sine_phase = 0.0f;
 
 volatile UINT  usb_write_status = 0;
 volatile ULONG usb_write_actual = 0;
@@ -233,7 +235,12 @@ static VOID usbx_app_thread_entry(ULONG thread_input)
   /* USER CODE BEGIN usbx_app_thread_entry */
     for (uint32_t i = 0; i < sizeof(txbuf); i++)
     {
-        txbuf[i] = (UCHAR)i;
+        txbuf[i] = (uint8_t)(127.0f * (sinf(sine_phase) + 1.0f));
+        sine_phase += 2.0f * 3.14159f * 440.0f / 48000.0f; // 440 Hz tone at 48 kHz sample rate
+        if (sine_phase >= 2.0f * 3.14159f)
+        {
+            sine_phase -= 2.0f * 3.14159f;
+        }
     }
 
     HAL_StatusTypeDef status = HAL_PCD_Start(&hpcd_USB_OTG_HS2);
@@ -265,11 +272,11 @@ static VOID usbx_app_thread_entry(ULONG thread_input)
         {
             usb_write_ok++;
         }
-        else
-        {
-            usb_write_err++;
-            tx_thread_sleep(10);
-        }
+        // else
+        // {
+        //     usb_write_err++;
+        //     tx_thread_sleep(10);
+        // }
     }
   /* USER CODE END usbx_app_thread_entry */
 }

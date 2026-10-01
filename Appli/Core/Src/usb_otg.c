@@ -47,7 +47,7 @@ void MX_USB2_OTG_HS_PCD_Init(void)
   hpcd_USB_OTG_HS2.Init.lpm_enable = DISABLE;
   hpcd_USB_OTG_HS2.Init.use_dedicated_ep1 = DISABLE;
   hpcd_USB_OTG_HS2.Init.vbus_sensing_enable = DISABLE;
-  hpcd_USB_OTG_HS2.Init.dma_enable = DISABLE;
+  hpcd_USB_OTG_HS2.Init.dma_enable = ENABLE;
   if (HAL_PCD_Init(&hpcd_USB_OTG_HS2) != HAL_OK)
   {
     Error_Handler();
@@ -60,10 +60,10 @@ void MX_USB2_OTG_HS_PCD_Init(void)
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS2, 0, 0x10);
 
   /* EP1 CDC notification IN */
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS2, 1, 0x10);
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS2, 1, 0x80);
 
   /* EP2 CDC bulk IN: 512 bytes */
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS2, 2, 0x80);
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS2, 2, 0x100);
   /* USER CODE END USB2_OTG_HS_Init 2 */
 
 }
