@@ -22,7 +22,7 @@
 #include "csi.h"
 #include "dcmipp.h"
 #include "eth.h"
-#include "hpdma.h"
+#include "gpdma.h"
 #include "i2c.h"
 #include "i3c.h"
 #include "spi.h"
@@ -95,7 +95,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_HPDMA1_Init();
+  MX_GPDMA1_Init();
   MX_DCMIPP_Init();
   MX_ETH1_Init();
   MX_UCPD1_Init();
@@ -170,20 +170,20 @@ void PeriphCommonClock_Config(void)
 
   /* RIF-Aware IPs Config */
 
-  /* set up HPDMA configuration */
-  /* set HPDMA1 channel 0 used by UCPD1 */
-  LL_DMA_EnableChannelSecure(HPDMA1, LL_DMA_CHANNEL_0);
-  LL_DMA_EnableChannelPrivilege(HPDMA1, LL_DMA_CHANNEL_0);
-  LL_DMA_EnableChannelSrcSecure(HPDMA1, LL_DMA_CHANNEL_0);
-  LL_DMA_EnableChannelDestSecure(HPDMA1, LL_DMA_CHANNEL_0);
-  /* set HPDMA1 channel 1 used by UCPD1 */
-  LL_DMA_EnableChannelSecure(HPDMA1, LL_DMA_CHANNEL_1);
-  LL_DMA_EnableChannelPrivilege(HPDMA1, LL_DMA_CHANNEL_1);
-  LL_DMA_EnableChannelSrcSecure(HPDMA1, LL_DMA_CHANNEL_1);
-  LL_DMA_EnableChannelDestSecure(HPDMA1, LL_DMA_CHANNEL_1);
-
   /* set up PWR configuration */
   HAL_PWR_ConfigAttributes(PWR_ITEM_0,PWR_SEC_NPRIV);
+
+  /* set up GPDMA configuration */
+  /* set GPDMA1 channel 0 used by UCPD1 */
+  LL_DMA_EnableChannelSecure(GPDMA1, LL_DMA_CHANNEL_0);
+  LL_DMA_EnableChannelPrivilege(GPDMA1, LL_DMA_CHANNEL_0);
+  LL_DMA_EnableChannelSrcSecure(GPDMA1, LL_DMA_CHANNEL_0);
+  LL_DMA_EnableChannelDestSecure(GPDMA1, LL_DMA_CHANNEL_0);
+  /* set GPDMA1 channel 1 used by UCPD1 */
+  LL_DMA_EnableChannelSecure(GPDMA1, LL_DMA_CHANNEL_1);
+  LL_DMA_EnableChannelPrivilege(GPDMA1, LL_DMA_CHANNEL_1);
+  LL_DMA_EnableChannelSrcSecure(GPDMA1, LL_DMA_CHANNEL_1);
+  LL_DMA_EnableChannelDestSecure(GPDMA1, LL_DMA_CHANNEL_1);
 
   /* set up GPIO configuration */
   HAL_GPIO_ConfigPinAttributes(GPIOA,GPIO_PIN_6,GPIO_PIN_SEC|GPIO_PIN_NPRIV);

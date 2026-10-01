@@ -1,9 +1,9 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    hpdma.c
+  * @file    gpdma.c
   * @brief   This file provides code for the configuration
-  *          of the HPDMA instances.
+  *          of the GPDMA instances.
   ******************************************************************************
   * @attention
   *
@@ -18,26 +18,29 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-#include "hpdma.h"
+#include "gpdma.h"
 
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
 
-/* HPDMA1 init function */
-void MX_HPDMA1_Init(void)
+/* GPDMA1 init function */
+void MX_GPDMA1_Init(void)
 {
 
-  /* USER CODE BEGIN HPDMA1_Init 0 */
+  /* USER CODE BEGIN GPDMA1_Init 0 */
 
-  /* USER CODE END HPDMA1_Init 0 */
+  /* USER CODE END GPDMA1_Init 0 */
 
-  /* USER CODE BEGIN HPDMA1_Init 1 */
+  /* Peripheral clock enable */
+  __HAL_RCC_GPDMA1_CLK_ENABLE();
 
-  /* USER CODE END HPDMA1_Init 1 */
-  /* USER CODE BEGIN HPDMA1_Init 2 */
+  /* USER CODE BEGIN GPDMA1_Init 1 */
 
-  /* USER CODE END HPDMA1_Init 2 */
+  /* USER CODE END GPDMA1_Init 1 */
+  /* USER CODE BEGIN GPDMA1_Init 2 */
+
+  /* USER CODE END GPDMA1_Init 2 */
 
 }
 

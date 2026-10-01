@@ -57,7 +57,7 @@ set(MX_Application_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/csi.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/dcmipp.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/eth.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/hpdma.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/gpdma.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/i2c.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/i3c.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/spi.c

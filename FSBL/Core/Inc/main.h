@@ -37,6 +37,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32n6xx_hal.h"
 
+#include "stm32n6xx_ll_ucpd.h"
 #include "stm32n6xx_ll_bus.h"
 #include "stm32n6xx_ll_cortex.h"
 #include "stm32n6xx_ll_rcc.h"

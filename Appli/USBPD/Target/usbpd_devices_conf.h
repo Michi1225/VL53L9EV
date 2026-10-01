@@ -57,26 +57,26 @@ extern "C" {
                                                 __HAL_RCC_GPDMA1_CLK_ENABLE();      \
                                               }while(0)
 
-#define UCPDDMA_INSTANCE0_DMA_RX  HPDMA1
+#define UCPDDMA_INSTANCE0_DMA_RX  GPDMA1
 
-#define UCPDDMA_INSTANCE0_REQUEST_RX   LL_HPDMA1_REQUEST_UCPD1_RX
+#define UCPDDMA_INSTANCE0_REQUEST_RX   LL_GPDMA1_REQUEST_UCPD1_RX
 
-#define UCPDDMA_INSTANCE0_LL_CHANNEL_RX   LL_DMA_CHANNEL_1
+#define UCPDDMA_INSTANCE0_LL_CHANNEL_RX   LL_DMA_CHANNEL_0
 
-#define UCPDDMA_INSTANCE0_CHANNEL_RX   HPDMA1_Channel1
+#define UCPDDMA_INSTANCE0_CHANNEL_RX   GPDMA1_Channel0
 
 /* defined used to configure function : USBPD_HW_Init_DMATxInstance, USBPD_HW_DeInit_DMATxInstance */
 #define UCPDDMA_INSTANCE0_CLOCKENABLE_TX    do{                                      \
                                                 __HAL_RCC_GPDMA1_CLK_ENABLE();       \
                                               }while(0)
 
-#define UCPDDMA_INSTANCE0_DMA_TX  HPDMA1
+#define UCPDDMA_INSTANCE0_DMA_TX  GPDMA1
 
-#define UCPDDMA_INSTANCE0_REQUEST_TX   LL_HPDMA1_REQUEST_UCPD1_TX
+#define UCPDDMA_INSTANCE0_REQUEST_TX   LL_GPDMA1_REQUEST_UCPD1_TX
 
-#define UCPDDMA_INSTANCE0_LL_CHANNEL_TX   LL_DMA_CHANNEL_0
+#define UCPDDMA_INSTANCE0_LL_CHANNEL_TX   LL_DMA_CHANNEL_1
 
-#define UCPDDMA_INSTANCE0_CHANNEL_TX   HPDMA1_Channel0
+#define UCPDDMA_INSTANCE0_CHANNEL_TX   GPDMA1_Channel1
 
 /* defined used to configure  USBPD_HW_SetFRSSignalling */
 #define UCPDFRS_INSTANCE0_FRSCC1

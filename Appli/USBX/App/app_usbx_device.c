@@ -100,9 +100,8 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
   /* USER CODE END MX_USBX_Device_Init 1 */
 
   /* Allocate the stack for device application main thread */
-  UINT status = tx_byte_allocate(byte_pool, (VOID **) &pointer, UX_DEVICE_APP_THREAD_STACK_SIZE,
-                       TX_NO_WAIT);
-  if (status != TX_SUCCESS)
+  if (tx_byte_allocate(byte_pool, (VOID **) &pointer, UX_DEVICE_APP_THREAD_STACK_SIZE,
+                       TX_NO_WAIT) != TX_SUCCESS)
   {
     /* USER CODE BEGIN MAIN_THREAD_ALLOCATE_STACK_ERROR */
     return TX_POOL_ERROR;
@@ -215,16 +214,6 @@ UINT MX_USBX_Device_Stack_Init(void)
   return ret;
 }
 
-
-static UCHAR txbuf[512];
-static float sine_phase = 0.0f;
-
-volatile UINT  usb_write_status = 0;
-volatile ULONG usb_write_actual = 0;
-volatile ULONG usb_write_ok = 0;
-volatile ULONG usb_write_err = 0;
-volatile ULONG usb_cdc_ready = 0;
-
 /**
   * @brief  Function implementing usbx_app_thread_entry.
   * @param  thread_input: User thread input parameter.
@@ -233,6 +222,10 @@ volatile ULONG usb_cdc_ready = 0;
 static VOID usbx_app_thread_entry(ULONG thread_input)
 {
   /* USER CODE BEGIN usbx_app_thread_entry */
+
+    uint8_t txbuf[128];
+    float sine_phase = 0;
+
     for (uint32_t i = 0; i < sizeof(txbuf); i++)
     {
         txbuf[i] = (uint8_t)(127.0f * (sinf(sine_phase) + 1.0f));
@@ -252,16 +245,15 @@ static VOID usbx_app_thread_entry(ULONG thread_input)
 
         if (cdc == UX_NULL)
         {
-            usb_cdc_ready = 0;
+            // usb_cdc_ready = 0;
             tx_thread_sleep(10);
             continue;
         }
 
-        usb_cdc_ready = 1;
 
-        usb_write_actual = 0;
+        uint32_t usb_write_actual = 0;
         
-        usb_write_status =
+        int usb_write_status =
             ux_device_class_cdc_acm_write(
                 cdc,
                 txbuf,
@@ -270,7 +262,7 @@ static VOID usbx_app_thread_entry(ULONG thread_input)
 
         if (usb_write_status == UX_SUCCESS)
         {
-            usb_write_ok++;
+            // usb_write_ok++;
         }
         // else
         // {

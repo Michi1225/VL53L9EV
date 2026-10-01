@@ -471,7 +471,7 @@ __weak int32_t BSP_USBPD_PWR_VBUSGetVoltage(uint32_t Instance, uint32_t *pVoltag
   /* USER CODE BEGIN BSP_USBPD_PWR_VBUSGetVoltage */
   /* Check if instance is valid       */
   int32_t ret;
-  uint32_t val = 0U;
+  uint32_t val = 5000U;
 
   if ((Instance >= USBPD_PWR_INSTANCES_NBR) || (NULL == pVoltage))
   {
