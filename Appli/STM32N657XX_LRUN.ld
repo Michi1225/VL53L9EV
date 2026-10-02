@@ -248,5 +248,19 @@ SECTIONS
     libgcc.a:* ( * )
   }
 
+  .RxDecripSection (NOLOAD) :
+  {
+      . = ALIGN(32);
+      KEEP(*(.RxDecripSection))
+      . = ALIGN(32);
+  } >RAM
+
+  .TxDecripSection (NOLOAD) :
+  {
+      . = ALIGN(32);
+      KEEP(*(.TxDecripSection))
+      . = ALIGN(32);
+  } >RAM
+
   .ARM.attributes 0 : { *(.ARM.attributes) }
 }

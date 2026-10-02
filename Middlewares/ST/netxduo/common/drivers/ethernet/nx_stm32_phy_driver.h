@@ -18,6 +18,7 @@
 extern   "C" {
 #endif
 #include <stdint.h>
+#define ETH_PHY_1000MBITS_SUPPORTED
 
 
 #define  ETH_PHY_STATUS_ERROR                 ((int32_t)-1)

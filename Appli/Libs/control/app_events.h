@@ -8,6 +8,6 @@
 #define APP_EVT_ETH_LINK_UP           (1UL << 0)
 #define APP_EVT_ETH_IP_READY          (1UL << 1)
 
-static TX_EVENT_FLAGS_GROUP app_events;
+extern TX_EVENT_FLAGS_GROUP app_events;
 
 #endif

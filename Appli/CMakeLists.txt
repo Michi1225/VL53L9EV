@@ -88,6 +88,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ./Libs/control/control_server.c
     ./Libs/control/housekeeping.c
     ./Libs/control/stream_manager.c
+    ./Libs/control/app_events.c
     ../common/led/LEDController.c
     ./Core/Src/app_clock.c
 )

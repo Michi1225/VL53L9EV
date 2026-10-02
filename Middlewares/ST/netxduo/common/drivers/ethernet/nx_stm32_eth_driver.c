@@ -563,6 +563,7 @@ static VOID  _nx_driver_enable(NX_IP_DRIVER *driver_req_ptr)
   {
     switch (PHYLinkState)
     {
+#define ETH_PHY_1000MBITS_SUPPORTED
 #if defined(ETH_PHY_1000MBITS_SUPPORTED)
     case ETH_PHY_STATUS_1000MBITS_FULLDUPLEX:
       duplex = ETH_FULLDUPLEX_MODE;
@@ -1817,9 +1818,6 @@ static UINT  _nx_driver_hardware_enable(NX_IP_DRIVER *driver_req_ptr)
 {
 
   /* Call STM32 library to start Ethernet operation.  */
-  HAL_ETH_Start_IT(&eth_handle);
-
-  /* Return success!  */
   return(NX_SUCCESS);
 }
 

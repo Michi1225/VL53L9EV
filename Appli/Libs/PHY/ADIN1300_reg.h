@@ -40,6 +40,7 @@ typedef enum
     GE_IRQ_EN            = 0xFF1D,
     GE_IRQ_LAT           = 0xFF1E,
     GE_CLK_CFG           = 0xFF1F,
+    ADIN_MAGIC_REG       = 0xFF20,
     GE_RGMII_CFG         = 0xFF23,
     GE_RMII_CFG          = 0xFF24,
     GE_PHY_BASE_CFG      = 0xFF26,
@@ -126,7 +127,7 @@ typedef enum
 
 
 // GE_PHY_BASE_CFG
-#define GE_PHY_BASE_CFG_RSRVD   ((uint16_t)(0x0106))
+#define GE_PHY_BASE_CFG_RSRVD   ((uint16_t)(0x0086))
 #define GE_PHY_SFT_PD_CFG       ((uint16_t)(1 << 3))
 #define GE_MAN_MDI_FLIP_CFG     ((uint16_t)(1 << 4))
 #define GE_FLD_100_EN_CFG       ((uint16_t)(1 << 10))

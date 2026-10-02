@@ -56,7 +56,7 @@ int32_t nx_eth_phy_init(void)
     int32_t ret = ETH_PHY_STATUS_OK;
 
 /* USER CODE BEGIN PHY_INIT_1 */
-    if(ADIN1300_Init(&phy) != HAL_OK) ret = ETH_PHY_STATUS_ERROR;
+    // if(ADIN1300_Init(&phy) != HAL_OK) ret = ETH_PHY_STATUS_ERROR;
 
 /* USER CODE END PHY_INIT_1 */
     return ret;

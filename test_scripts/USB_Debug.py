@@ -75,7 +75,7 @@ def usb_monitor():
 
     # Matches e.g.
     # cdc_acm 1-3:1.0: ttyACM1: USB ACM device
-    pattern = re.compile(r"(ttyACM\d+): USB ACM device")
+    pattern = re.compile(r"(ttyACM1+): USB ACM device")
 
     print("[USB] Waiting for CDC ACM device...")
 

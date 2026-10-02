@@ -82,7 +82,6 @@ void control_thread_entry(ULONG thread_input)
         /*
          * Wait until Ethernet is usable.
          */
-         tx_thread_sleep(1E15);
         tx_event_flags_get(
             &app_events,
             APP_EVT_ETH_IP_READY,
@@ -112,12 +111,19 @@ void control_thread_entry(ULONG thread_input)
          */
         while (1)
         {
-            tx_event_flags_get(
+            ULONG events = 0;
+            UINT status;
+
+            status = tx_event_flags_get(
                 &app_events,
                 APP_EVT_ETH_IP_READY,
                 TX_AND,
                 &events,
                 TX_NO_WAIT);
+
+            volatile UINT dbg_status = status;
+            volatile ULONG dbg_events = events;
+            volatile ULONG dbg_mask = APP_EVT_ETH_IP_READY;
 
             // Ethernet link disappeared
             if ((events & APP_EVT_ETH_IP_READY) == 0U)
