@@ -7,3 +7,4 @@ cmake_install.cmake
 Appli/build/*
 FSBL/build/*
 ExtMemLoader/build/*
+.vscode/c_cpp_properties.json
