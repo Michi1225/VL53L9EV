@@ -121,19 +121,34 @@ find_stm32_gcc_bin()
     done
 
     if (( ${#existing[@]} > 0 )); then
+        local newest=""
+        local newest_ver="0"
         local gcc
-        gcc="$(
+        while IFS= read -r gcc; do
+            [[ -z "${gcc}" ]] && continue
+
+            local ver="0"
+            if [[ "${gcc}" =~ .*gnu-tools-for-stm32.*/([0-9]+(\.[0-9]+)+)/.* ]]; then
+                ver="${BASH_REMATCH[1]}"
+            elif [[ "${gcc}" =~ .*STM32Cube.*([0-9]+(\.[0-9]+)+).* ]]; then
+                ver="${BASH_REMATCH[1]}"
+            fi
+
+            if [[ -z "${newest}" ]] || \
+               [[ "$(printf '%s\n%s\n' "${ver}" "${newest_ver}" | sort -V | tail -n 1)" == "${ver}" ]]; then
+                newest="${gcc}"
+                newest_ver="${ver}"
+            fi
+        done < <(
             find "${existing[@]}" \
                 -type f \
                 -name arm-none-eabi-gcc \
                 -perm -u+x \
                 2>/dev/null \
-            | sort -V \
-            | tail -n 1
-        )"
+        )
 
-        if [[ -n "${gcc}" ]]; then
-            dirname "${gcc}"
+        if [[ -n "${newest}" ]]; then
+            dirname "${newest}"
             return 0
         fi
     fi
@@ -150,9 +165,9 @@ find_signing_tool()
         return 0
     fi
 
+    local candidates=()
     if command -v STM32_SigningTool_CLI >/dev/null 2>&1; then
-        command -v STM32_SigningTool_CLI
-        return 0
+        candidates+=("$(command -v STM32_SigningTool_CLI)")
     fi
 
     local roots=(
@@ -163,31 +178,42 @@ find_signing_tool()
         "/usr/local/STMicroelectronics"
     )
 
-    local existing=()
     local root
     for root in "${roots[@]}"; do
-        [[ -d "${root}" ]] && existing+=("${root}")
-    done
-
-    if (( ${#existing[@]} > 0 )); then
-        local found
-        found="$(
-            find "${existing[@]}" \
+        [[ -d "${root}" ]] || continue
+        while IFS= read -r found; do
+            [[ -n "${found}" ]] && candidates+=("${found}")
+        done < <(
+            find "${root}" \
                 -type f \
                 -name STM32_SigningTool_CLI \
                 -perm -u+x \
-                2>/dev/null \
-            | sort -V \
-            | tail -n 1
-        )"
+                2>/dev/null
+        )
+    done
 
-        if [[ -n "${found}" ]]; then
-            printf '%s\n' "${found}"
-            return 0
-        fi
+    if (( ${#candidates[@]} == 0 )); then
+        return 1
     fi
 
-    return 1
+    local newest=""
+    local newest_ver="0"
+    local candidate
+    for candidate in "${candidates[@]}"; do
+        local ver="0"
+        if [[ "${candidate}" =~ stm32cubeclt_([0-9]+(\.[0-9]+)+) ]]; then
+            ver="${BASH_REMATCH[1]}"
+        fi
+
+        if [[ -z "${newest}" ]] || \
+           [[ "$(printf '%s\n%s\n' "${ver}" "${newest_ver}" | sort -V | tail -n 1)" == "${ver}" ]]; then
+            newest="${candidate}"
+            newest_ver="${ver}"
+        fi
+    done
+
+    printf '%s\n' "${newest}"
+    return 0
 }
 
 while [[ $# -gt 0 ]]; do
@@ -305,7 +331,6 @@ package_fsbl()
         -of 0x80000000 \
         -t fsbl \
         -hv 2.3 \
-        --align \
         -o "${FSBL_SIGNED}"
 
     [[ -f "${FSBL_SIGNED}" ]] || die "Failed to create ${FSBL_SIGNED}"
@@ -324,7 +349,6 @@ package_appli()
         -nk \
         -t ssbl \
         -hv 2.3 \
-        --align \
         -o "${APPLI_SIGNED}"
 
     [[ -f "${APPLI_SIGNED}" ]] || die "Failed to create ${APPLI_SIGNED}"
