@@ -49,6 +49,12 @@ extern "C" {
 /* USER CODE BEGIN EC */
 #define USB_DEVICE_EVENT_START    (1UL << 0)
 #define USB_DEVICE_EVENT_STOP     (1UL << 1)
+#define USB_DEVICE_EVENT_TX_READY (1UL << 2)
+#define USB_DEVICE_EVENT_TX_RETRY (1UL << 3)
+
+#ifndef USB_CDC_TX_BUFFER_SIZE
+#define USB_CDC_TX_BUFFER_SIZE    512U
+#endif
 extern TX_EVENT_FLAGS_GROUP usb_device_events;
 
 /* USER CODE END EC */

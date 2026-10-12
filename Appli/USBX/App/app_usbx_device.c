@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <math.h>
+#include "main.h"
 
 #include "ux_device_cdc_acm.h"
 #include "ux_device_class_cdc_acm.h"
@@ -61,11 +62,41 @@ TX_EVENT_FLAGS_GROUP usb_device_events;
 static int16_t stream_buffer[STREAM_SAMPLES_PER_BLOCK];
 static int16_t sine_lut[STREAM_LUT_SIZE];
 
+/* Debugger-visible telemetry; keep logging out of the streaming path. */
+volatile ULONG usb_write_ok;
+volatile ULONG usb_write_err;
+volatile ULONG usb_write_short;
+volatile ULONG usb_write_bytes;
+volatile ULONG usb_write_actual;
+volatile UINT usb_write_status;
+volatile UINT usb_write_in_progress;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 static VOID usbx_app_thread_entry(ULONG thread_input);
 /* USER CODE BEGIN PFP */
+
+static UINT usb_cdc_write_complete(
+    UX_SLAVE_CLASS_CDC_ACM *instance,
+    UINT status,
+    ULONG length)
+{
+    UX_PARAMETER_NOT_USED(instance);
+
+    usb_write_in_progress = 0U;
+    usb_write_status = status;
+    usb_write_actual = length;
+
+    tx_event_flags_set(
+        &usb_device_events,
+        status == UX_SUCCESS
+            ? USB_DEVICE_EVENT_TX_READY
+            : USB_DEVICE_EVENT_TX_RETRY,
+        TX_OR);
+
+    return UX_SUCCESS;
+}
 
 /* USER CODE END PFP */
 
@@ -223,7 +254,7 @@ static VOID usbx_app_thread_entry(ULONG thread_input)
 {
   /* USER CODE BEGIN usbx_app_thread_entry */
 
-    uint8_t txbuf[128];
+    uint8_t txbuf[512];
     float sine_phase = 0;
 
     for (uint32_t i = 0; i < sizeof(txbuf); i++)
@@ -236,7 +267,23 @@ static VOID usbx_app_thread_entry(ULONG thread_input)
         }
     }
 
-    HAL_StatusTypeDef status = HAL_PCD_Start(&hpcd_USB_OTG_HS2);
+    UX_SLAVE_CLASS_CDC_ACM_CALLBACK_PARAMETER callbacks = {
+      .ux_device_class_cdc_acm_parameter_write_callback =
+          usb_cdc_write_complete,
+      .ux_device_class_cdc_acm_parameter_read_callback = UX_NULL
+    };
+
+    ux_device_class_cdc_acm_ioctl(
+        cdc_acm,
+        UX_SLAVE_CLASS_CDC_ACM_IOCTL_TRANSMISSION_START,
+    &callbacks);
+
+    UX_PARAMETER_NOT_USED(thread_input);
+
+    if (HAL_PCD_Start(&hpcd_USB_OTG_HS2) != HAL_OK)
+    {
+        Error_Handler();
+    }
 
     for (;;)
     {
@@ -250,25 +297,22 @@ static VOID usbx_app_thread_entry(ULONG thread_input)
             continue;
         }
 
+        ULONG flags;
 
-        uint32_t usb_write_actual = 0;
+        tx_event_flags_get(
+            &usb_device_events,
+            USB_DEVICE_EVENT_TX_READY | USB_DEVICE_EVENT_TX_RETRY,
+            TX_OR_CLEAR,
+            &flags,
+            TX_WAIT_FOREVER);
+
+
+        ULONG actual_length = 0;
+
+        usb_write_in_progress = 1U;
         
-        int usb_write_status =
-            ux_device_class_cdc_acm_write(
-                cdc,
-                txbuf,
-                sizeof(txbuf),
-                &usb_write_actual);
-
-        if (usb_write_status == UX_SUCCESS)
-        {
-            // usb_write_ok++;
-        }
-        // else
-        // {
-        //     usb_write_err++;
-        //     tx_thread_sleep(10);
-        // }
+        UINT write_status = ux_device_class_cdc_acm_write_with_callback(
+            cdc, txbuf, sizeof(txbuf));
     }
   /* USER CODE END usbx_app_thread_entry */
 }

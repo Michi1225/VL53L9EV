@@ -113,7 +113,8 @@
 #define UX_USER_H
 
 /* USER CODE BEGIN 1 */
-
+/* Terminate packet-aligned CDC writes so host reads can complete promptly. */
+#define UX_DEVICE_CLASS_CDC_ACM_WRITE_AUTO_ZLP
 /* USER CODE END 1 */
 
 /* Define various build options for the USBX port.  The application should either make changes
@@ -425,7 +426,7 @@
 
 /* Defined, this macro disables CDC ACM non-blocking transmission support. */
 
-#define UX_DEVICE_CLASS_CDC_ACM_TRANSMISSION_DISABLE
+/* #define UX_DEVICE_CLASS_CDC_ACM_TRANSMISSION_DISABLE */
 
 /* Defined, this macro enables device audio feedback endpoint support.  */
 
