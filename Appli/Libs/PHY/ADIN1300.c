@@ -13,7 +13,7 @@ adin1300_Object_t phy =
 };
 
 
-static HAL_StatusTypeDef ADIN1300_ReadReg(adin1300_Object_t *pPhy, adin1300_RegTypeDef_t reg, uint16_t *retval)
+HAL_StatusTypeDef ADIN1300_ReadReg(adin1300_Object_t *pPhy, adin1300_RegTypeDef_t reg, uint16_t *retval)
 {
     uint32_t temp = 0;
 
@@ -24,7 +24,7 @@ static HAL_StatusTypeDef ADIN1300_ReadReg(adin1300_Object_t *pPhy, adin1300_RegT
     return error;
 }
 
-static HAL_StatusTypeDef ADIN1300_WriteReg(adin1300_Object_t *pPhy, adin1300_RegTypeDef_t reg, uint16_t val)
+HAL_StatusTypeDef ADIN1300_WriteReg(adin1300_Object_t *pPhy, adin1300_RegTypeDef_t reg, uint16_t val)
 {
     uint32_t tx_val = val;
     HAL_StatusTypeDef error = HAL_ETH_WritePHYRegister(ADIN_ETH_HANDLE, pPhy->PHY_ADDR, (uint32_t)reg, tx_val);
@@ -32,7 +32,7 @@ static HAL_StatusTypeDef ADIN1300_WriteReg(adin1300_Object_t *pPhy, adin1300_Reg
     return error;
 }
 
-static HAL_StatusTypeDef ADIN1300_WriteExtReg(adin1300_Object_t *pPhy, adin1300_RegTypeDef_t reg, uint16_t val)
+HAL_StatusTypeDef ADIN1300_WriteExtReg(adin1300_Object_t *pPhy, adin1300_RegTypeDef_t reg, uint16_t val)
 {
     uint32_t tx_val = (uint16_t)reg;
     HAL_StatusTypeDef error = HAL_ETH_WritePHYRegister(ADIN_ETH_HANDLE, pPhy->PHY_ADDR, (uint32_t)EXT_REG_PTR, tx_val);
@@ -43,7 +43,7 @@ static HAL_StatusTypeDef ADIN1300_WriteExtReg(adin1300_Object_t *pPhy, adin1300_
     return error;
 }
 
-static HAL_StatusTypeDef ADIN1300_ReadExtReg(adin1300_Object_t *pPhy, adin1300_RegTypeDef_t reg, uint32_t *val)
+HAL_StatusTypeDef ADIN1300_ReadExtReg(adin1300_Object_t *pPhy, adin1300_RegTypeDef_t reg, uint32_t *val)
 {
     uint32_t tx_val = (uint16_t)reg;
     HAL_StatusTypeDef error = HAL_ETH_WritePHYRegister(ADIN_ETH_HANDLE, pPhy->PHY_ADDR, (uint32_t)EXT_REG_PTR, tx_val);
@@ -103,15 +103,21 @@ HAL_StatusTypeDef ADIN1300_Init(adin1300_Object_t *pPhy)
     error = HAL_OK;
     error |= ADIN1300_Reset(pPhy);
 
-    //Enter Powerdown
-    uint16_t reg_val = SFT_PD;
-    error |= ADIN1300_WriteReg(pPhy, MII_CONTROL, reg_val);
 
     // Write GE_PHY_BASE_CFG
-    reg_val = GE_PHY_BASE_CFG_RSRVD | GE_MAN_MDI_FLIP_CFG | GE_FLD_100_EN_CFG | GE_FLD_1000_EN_CFG;
+    uint16_t reg_val = GE_PHY_BASE_CFG_RSRVD | GE_MAN_MDI_FLIP_CFG | GE_FLD_100_EN_CFG | GE_FLD_1000_EN_CFG;
     error |= ADIN1300_WriteExtReg(pPhy, GE_PHY_BASE_CFG, reg_val);
     // Magic Register as seen in ADI Blog post...
     error |= ADIN1300_WriteExtReg(pPhy, ADIN_MAGIC_REG, 0x01);
+    // uint32_t ff20 = 0;
+    // do{
+    //     error |= ADIN1300_ReadExtReg(pPhy, ADIN_MAGIC_REG, &ff20);
+    //     HAL_Delay(100);
+    // }while(ff20 == 0x01);
+
+    //Enter Powerdown
+     reg_val = SFT_PD;
+    error |= ADIN1300_WriteReg(pPhy, MII_CONTROL, reg_val);
 
     // AUTONEG_DEV
     reg_val = SELECTOR_ADV | FD_10_ADV | FD_100_ADV | PAUSE_ADV | APAUSE_ADV;
@@ -122,11 +128,12 @@ HAL_StatusTypeDef ADIN1300_Init(adin1300_Object_t *pPhy)
     error |= ADIN1300_WriteReg(pPhy, MSTR_SLV_CONTROL, reg_val);
 
     // PHY_CTRL_1
-    reg_val = PHY_CTRL_1_RSRVD | DIAG_CLK_EN | AUTO_MDI_EN;
-    error |= ADIN1300_WriteReg(pPhy, PHY_CTRL_1, reg_val);
+    // reg_val = ADIN1300_ReadReg(pPhy, PHY_CTRL_1, &reg_val);
+    // reg_val |= DIAG_CLK_EN;
+    // error |= ADIN1300_WriteReg(pPhy, PHY_CTRL_1, reg_val);
 
     // PHY_CTRL_1
-    reg_val = CLK_CNTRL_DEFAULT | PHY_CTRL_2_RSRVD | DN_SPEED_TO_10_EN | DN_SPEED_TO_100_EN;
+    reg_val = CLK_CNTRL_DEFAULT | PHY_CTRL_2_RSRVD;
     error |= ADIN1300_WriteReg(pPhy, PHY_CTRL_2, reg_val);
 
     // // LED_CTRL_1
@@ -138,19 +145,31 @@ HAL_StatusTypeDef ADIN1300_Init(adin1300_Object_t *pPhy)
     // error |= ADIN1300_WriteReg(pPhy, LED_CTRL_2, reg_val);
     
     // GE_CLK_CFG
-    reg_val = GE_CLK_FREE_125_EN;
+    reg_val = GE_CLK_RCVR_125_EN;
     error |= ADIN1300_WriteExtReg(pPhy, GE_CLK_CFG, reg_val);
 
     // Set MII_CONTROL register
-    reg_val = SPEED_SEL_1GBPS | AUTONEG_EN | DPLX_MODE_FD | RESTART_ANEG;
+    reg_val = SPEED_SEL_10MBPS | DPLX_MODE_FD; //DEBUG: Enable Autoneg later.
     error |= ADIN1300_WriteReg(pPhy, MII_CONTROL, reg_val);
+    
 
-    uint32_t value = 0;
-    error |= ADIN1300_ReadExtReg(pPhy, GE_RGMII_CFG, &value);
 
     return error;
 }
 
+
+HAL_StatusTypeDef ADIN1300_StartAutoNeg(adin1300_Object_t *pPhy)
+{
+    HAL_StatusTypeDef error = HAL_OK;
+    uint16_t reg_val = 0;
+
+    // Set MII_CONTROL register
+    // error |= ADIN1300_ReadReg(pPhy, MII_CONTROL, &reg_val);
+    // reg_val |= RESTART_ANEG;
+    // error |= ADIN1300_WriteReg(pPhy, MII_CONTROL, reg_val);
+
+    return error;
+}
 
 
 int32_t ADIN1300_GetLinkStatus(adin1300_Object_t *pPhy)
@@ -164,6 +183,7 @@ int32_t ADIN1300_GetLinkStatus(adin1300_Object_t *pPhy)
     uint16_t autoneg_done = phy_stat & AUTONEG_STAT_MASK;
     // We have to return LINK_DOWN, otherwise link is interpreted as 100MBit...
     if(autoneg_done == 0) return ETH_PHY_STATUS_LINK_DOWN;
+
 
     uint16_t speed = phy_stat & HCD_TECH_MASK;
     switch (speed >> 7) {

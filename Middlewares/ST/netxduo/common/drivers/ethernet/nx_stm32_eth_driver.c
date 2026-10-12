@@ -1818,6 +1818,9 @@ static UINT  _nx_driver_hardware_enable(NX_IP_DRIVER *driver_req_ptr)
 {
 
   /* Call STM32 library to start Ethernet operation.  */
+  HAL_ETH_Start_IT(&eth_handle);
+
+  /* Return success!  */
   return(NX_SUCCESS);
 }
 

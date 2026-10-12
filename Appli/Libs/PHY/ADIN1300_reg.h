@@ -35,6 +35,8 @@ typedef enum
 
     PHY_STATUS_2         = 0x001F,
 
+    FC_EN                = 0x9403,   
+
     GE_SFT_RST           = 0xFF0C,
     GE_SFT_RST_CFG_EN    = 0xFF0D,
     GE_IRQ_EN            = 0xFF1D,
@@ -53,6 +55,7 @@ typedef enum
     GE_IO_GP_OUT_OR_CNTRL= 0xFF3E,
     GE_IO_INT_N_OR_CNTRL = 0xFF3F,
     GE_IO_LED_A_OR_CNTRL = 0xFF41,
+
 
 } adin1300_RegTypeDef_t;
 

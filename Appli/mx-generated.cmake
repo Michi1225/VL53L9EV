@@ -905,17 +905,14 @@ set(threadx_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_timer_delete.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/src/txe_timer_info_get.c
 )
-
 # Link directories setup
 set(MX_LINK_DIRS
 
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_USBPD_Library/Core/lib
 )
 # Project libraries
-set (MX_LINK_LIBS 
- "-Wl,--start-group" 
+set (MX_LINK_LIBS  
 	:USBPDCORE_PD3_FULL_CM55_wc32.a
- "-Wl,--end-group"
     STM32_Drivers
     ${TOOLCHAIN_LINK_LIBRARIES}
     usbx	netxduo	STM32_USBPD_Library	threadx	

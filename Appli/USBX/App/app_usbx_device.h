@@ -43,7 +43,7 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 
-#define UX_DEVICE_APP_THREAD_STACK_SIZE   8192
+#define UX_DEVICE_APP_THREAD_STACK_SIZE   16384
 #define UX_DEVICE_APP_THREAD_PRIO         10
 
 /* USER CODE BEGIN EC */

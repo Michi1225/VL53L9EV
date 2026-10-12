@@ -1,6 +1,7 @@
 #include "control_server.h"
 #include "tx_api.h"
 #include "tx_port.h"
+#include "ADIN1300.h"
 
 
 
@@ -47,7 +48,66 @@ static void Control_HandleClient(NX_TCP_SOCKET *socket)
     }
 }
 
+static UINT Ethernet_TxTest(void)
+{
+    NX_UDP_SOCKET udp_socket;
+    NX_PACKET *packet_ptr = NX_NULL;
+    NX_PACKET_POOL *pool = nx_get_app_pool();
+    NX_IP *ip = nx_get_ip();
+    UINT status;
 
+    status = nx_udp_socket_create(
+        ip,
+        &udp_socket,
+        "TX Test",
+        NX_IP_NORMAL,
+        NX_FRAGMENT_OKAY,
+        NX_IP_TIME_TO_LIVE,
+        512);
+
+    if (status != NX_SUCCESS)
+        return status;
+
+    status = nx_udp_socket_bind(
+        &udp_socket,
+        NX_ANY_PORT,
+        TX_NO_WAIT);
+
+    if (status != NX_SUCCESS)
+        return status;
+
+    status = nx_packet_allocate(
+        pool,
+        &packet_ptr,
+        NX_UDP_PACKET,
+        TX_NO_WAIT);
+
+    if (status != NX_SUCCESS)
+        return status;
+
+    static const char msg[] = "STM32 TX TEST";
+
+    status = nx_packet_data_append(
+        packet_ptr,
+        (VOID *)msg,
+        sizeof(msg) - 1,
+        pool,
+        TX_NO_WAIT);
+
+    if (status != NX_SUCCESS)
+    {
+        nx_packet_release(packet_ptr);
+        return status;
+    }
+
+    status = nx_udp_socket_send(
+        &udp_socket,
+        packet_ptr,
+        IP_ADDRESS(192, 168, 1, 10),
+        5001);
+
+    return status;
+}
 
 
 void control_thread_entry(ULONG thread_input)
@@ -88,6 +148,7 @@ void control_thread_entry(ULONG thread_input)
             TX_AND,
             &flags,
             TX_WAIT_FOREVER);
+            
 
 
         /*
@@ -120,16 +181,39 @@ void control_thread_entry(ULONG thread_input)
                 TX_AND,
                 &events,
                 TX_NO_WAIT);
-
-            volatile UINT dbg_status = status;
-            volatile ULONG dbg_events = events;
-            volatile ULONG dbg_mask = APP_EVT_ETH_IP_READY;
+            volatile UINT tx_test_status = Ethernet_TxTest();
 
             // Ethernet link disappeared
             if ((events & APP_EVT_ETH_IP_READY) == 0U)
             {
                 break;
             }
+
+            volatile uint32_t dmamr      = ETH1->DMAMR;
+            volatile uint32_t dmasbmr    = ETH1->DMASBMR;
+            volatile uint32_t mtlrxmap   = ETH1->MTLRXQDMAMR;
+
+            volatile uint32_t q0rxomr =
+                ETH1->MTL_QUEUE[0].MTLRXQOMR;
+
+            volatile uint32_t q1rxomr =
+                ETH1->MTL_QUEUE[1].MTLRXQOMR;
+
+            volatile uint32_t ch0_rxcr =
+                ETH1->DMA_CH[0].DMACRXCR;
+
+            volatile uint32_t ch1_rxcr =
+                ETH1->DMA_CH[1].DMACRXCR;
+
+            volatile uint32_t ch0_sr =
+                ETH1->DMA_CH[0].DMACSR;
+
+            volatile uint32_t ch1_sr =
+                ETH1->DMA_CH[1].DMACSR;
+
+            volatile uint32_t dmad_sr =
+                ETH1->DMADSR;
+            
 
             status = nx_tcp_server_socket_accept(
                 &control_socket,

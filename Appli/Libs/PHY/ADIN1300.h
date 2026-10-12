@@ -27,9 +27,14 @@ typedef enum
     ADIN1300_STATUS_OK = 0,
 }adin1300_Status_t;
 
+HAL_StatusTypeDef ADIN1300_StartAutoNeg(adin1300_Object_t *pPhy);
 HAL_StatusTypeDef ADIN1300_Init(adin1300_Object_t *pPhy);
 HAL_StatusTypeDef ADIN1300_Reset(adin1300_Object_t *pPhy);
 HAL_StatusTypeDef ADIN1300_SubSysReset(adin1300_Object_t *pPhy);
+HAL_StatusTypeDef ADIN1300_WriteReg(adin1300_Object_t *pPhy, adin1300_RegTypeDef_t reg, uint16_t val);
+HAL_StatusTypeDef ADIN1300_ReadReg(adin1300_Object_t *pPhy, adin1300_RegTypeDef_t reg, uint16_t *retval);
+HAL_StatusTypeDef ADIN1300_WriteExtReg(adin1300_Object_t *pPhy, adin1300_RegTypeDef_t reg, uint16_t val);
+HAL_StatusTypeDef ADIN1300_ReadExtReg(adin1300_Object_t *pPhy, adin1300_RegTypeDef_t reg, uint32_t *val);
 int32_t ADIN1300_GetLinkStatus(adin1300_Object_t *pPhy);
 
 
