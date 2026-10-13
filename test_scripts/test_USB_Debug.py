@@ -130,6 +130,41 @@ class StreamingTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             usb.decode_depth(usb.Packet(1, 100, 149, bytes(14900)))
 
+    def test_ethernet_reader_reconnects_and_resets_partial_packets(self):
+        connections = []
+        wire = camera(9) + inertial(10)
+        class Connection:
+            def __init__(self, second):
+                self.parts = ([camera(1) + b'VL9'] if not second else
+                              [wire[:5], wire[5:19], wire[19:]])
+                self.second = second
+                self.closed = False
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                self.closed = True
+            def settimeout(self, timeout):
+                pass
+            def recv(self, count):
+                if self.parts:
+                    return self.parts.pop(0)
+                if self.second:
+                    usb.stop_event.set()
+                return b''
+        def connect(*args, **kwargs):
+            connection = Connection(bool(connections))
+            connections.append(connection)
+            return connection
+        import socket
+        with patch.object(socket, 'create_connection', side_effect=connect), \
+                patch.object(usb.stop_event, 'wait', return_value=False):
+            usb.ethernet_monitor('192.168.8.20', 50002)
+        self.assertEqual(len(connections), 2)
+        self.assertTrue(all(c.closed for c in connections))
+        self.assertEqual(usb.latest_packet.sequence, 9)
+        self.assertEqual(usb.latest_imu_packet.sequence, 10)
+        self.assertFalse(usb.connected)
+
 
 if __name__ == "__main__":
     unittest.main()

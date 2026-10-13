@@ -87,11 +87,13 @@ NX_PACKET_POOL *nx_get_app_pool();
 #define NX_APP_INSTANCE_PRIORITY             NX_APP_THREAD_PRIORITY
 #endif
 
-#define NX_APP_DEFAULT_IP_ADDRESS                   IP_ADDRESS(192, 168, 1, 20)
+#define NX_APP_DEFAULT_IP_ADDRESS                   IP_ADDRESS(192, 168, 8, 20)
 
 #define NX_APP_DEFAULT_NET_MASK                     IP_ADDRESS(255, 255, 255, 0)
 
 /* USER CODE BEGIN 1 */
+#undef NX_APP_PACKET_POOL_SIZE
+#define NX_APP_PACKET_POOL_SIZE ((DEFAULT_PAYLOAD_SIZE + sizeof(NX_PACKET)) * 64U)
 
 /* USER CODE END 1 */
 

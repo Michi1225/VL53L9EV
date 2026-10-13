@@ -45,6 +45,13 @@ set(CMAKE_CXX_COMPILER_FORCED "true")
 
 # Add project symbols (macros)
 option(DEV_MODE "Build application for direct SRAM development" OFF)
+# Optimize the complete application and network stack in Release builds.
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    foreach(release_target ${CMAKE_PROJECT_NAME} STM32_Drivers netxduo threadx usbx STM32_USBPD_Library)
+        target_compile_options(${release_target} PRIVATE $<$<COMPILE_LANGUAGE:C>:-O3>)
+    endforeach()
+endif()
+
 option(VL53L9_SENSOR_ONLY "Run VL53L9 without DCMIPP capture for fault isolation" OFF)
 if(VL53L9_SENSOR_ONLY)
     target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE VL53L9_SENSOR_ONLY)
@@ -94,6 +101,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ./Libs/control/housekeeping.c
     ./Libs/control/stream_manager.c
     ./Libs/control/imu_stream.c
+    ./Libs/control/ethernet_stream.c
     ./Libs/control/app_events.c
     ../common/led/LEDController.c
     ./Core/Src/app_clock.c

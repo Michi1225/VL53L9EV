@@ -1,4 +1,17 @@
-The application sends camera and IMU packets through one USB CDC connection. Run:
+The application sends identical camera and IMU packets over USB CDC and Ethernet
+TCP. To view depth, acceleration, gyro and SFLP over Ethernet, run:
+
+```bash
+python3 test_scripts/Ethernet_Debug.py --host 192.168.8.20
+```
+
+TCP port defaults to 50002 (`--tcp-port` changes the client port). The server
+starts streaming when one client connects; no command/handshake is required.
+The viewer reconnects automatically and resets partial packets on reconnect.
+The existing control server remains on port 50000; the throughput server and its
+benchmark scripts have been removed. The normal full application remains Release.
+
+For USB, run:
 
 ```bash
 python3 test_scripts/USB_Debug.py --port /dev/ttyACM1
@@ -32,25 +45,31 @@ Camera capture uses DCMIPP PIPE0's dump path to preserve RAW8 bytes without ISP
 processing or padded row pitch. Watch `hdcmipp.PipeState[0]` for this capture.
 PIPE0 setup lives in `DCMIPP_Init 2`'s CubeMX USER CODE block in `dcmipp.c`,
 so it survives regeneration even while CubeMX also configures PIPE1.
-`vl53_capture_counter` preserves the hardware counter, `vl53_capture_bytes`
-reports that count without multiplying by four, and `vl53_frame_nonzero_bytes` counts nonzero
-bytes in the last payload.
 
 IMU packets are 60 bytes total. Acc, gyro, and SFLP run at 120 Hz; the thread
 publishes the latest readings at 100 Hz after all three have produced data. The
 timestamp records host acquisition time, not an IMU hardware timestamp. SFLP is
-the game rotation quaternion, so it does not provide a compass heading. USB uses
-a bounded 16-packet queue: sampling continues during USB backpressure and full
+the game rotation quaternion, so it does not provide a compass heading. Transports use
+a bounded 16-packet queue: sampling continues during backpressure and full
 queues drop samples. Sequence gaps expose lost samples at the host.
 
-Watch `imu_stream_status` (0 = OK), `imu_samples_published`,
-`imu_packets_dropped`, and `imu_deadlines_missed`. When stationary, acceleration
+When stationary, acceleration
 magnitude should be about 1000 mg, gyro near zero, and quaternion magnitude near
-one. The host should report about 100 IMU packets/s when USB keeps up. IMU
+one. The host should report about 100 IMU packets/s when the transport keeps up. IMU
 streaming continues after a VL53L9 sensor fault.
-IMU sampling has priority over the USB application thread. FIFO overruns increment
-`imu_fifo_overruns`, flush the FIFO, and resume after fresh acc/gyro/SFLP readings;
+IMU sampling has priority over the USB application thread. FIFO overruns
+flush the FIFO and resume after fresh acc/gyro/SFLP readings;
 they no longer terminate streaming. A sequence gap flags the discontinuity.
+
+A single transport thread owns packet consumption and sends complete packets to
+USB (if CDC/DTR is active) and the TCP client (if connected). With neither active,
+frames are discarded and capture is rearmed. This avoids two threads competing
+for the same camera buffer or splitting IMU packets between clients. Both
+connections can be used together; slow readers can reduce camera capture rate.
+TCP allocation/send waits are bounded to 250 ms per segment; a failed/partial
+write closes that session so a future connection starts at a fresh packet.
+USB writes retain their existing one-second timeout. Sampling is not blocked by
+the queue, so backpressure can drop IMU samples. One TCP client is supported.
 
 The following comparisons can isolate an intermittent VL53L9 fault using one
 board. Reset/reboot the sensor between attempts and record its firmware code and

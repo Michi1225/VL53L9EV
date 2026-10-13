@@ -29,6 +29,7 @@
 #include "app_events.h"
 #include "stream_manager.h"
 #include "imu_stream.h"
+#include "ethernet_stream.h"
 #include "app_netxduo.h"
 #include "tx_api.h"
 /* USER CODE END Includes */
@@ -53,6 +54,7 @@ TX_THREAD tx_app_thread;
 TX_THREAD control_thread;
 TX_THREAD stream_thread;
 TX_THREAD imu_stream_thread;
+TX_THREAD ethernet_stream_thread;
 // TX_THREAD housekeeping_thread;
 
 /* USER CODE END PV */
@@ -152,6 +154,14 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   if (tx_thread_create(&imu_stream_thread, "IMU stream", imu_stream_thread_entry, 0,
                        imu_stack, IMU_STREAM_STACK_SIZE, IMU_STREAM_PRIO,
                        IMU_STREAM_PRIO, TX_NO_TIME_SLICE, TX_AUTO_START) != TX_SUCCESS)
+      return TX_THREAD_ERROR;
+  CHAR *ethernet_stream_stack = TX_NULL;
+  if (tx_byte_allocate(byte_pool, (VOID **)&ethernet_stream_stack,
+                       ETHERNET_STREAM_STACK_SIZE, TX_NO_WAIT) != TX_SUCCESS)
+      return TX_POOL_ERROR;
+  if (tx_thread_create(&ethernet_stream_thread, "Ethernet sensor stream", ethernet_stream_thread_entry, 0,
+                       ethernet_stream_stack, ETHERNET_STREAM_STACK_SIZE, ETHERNET_STREAM_PRIO,
+                       ETHERNET_STREAM_PRIO, TX_NO_TIME_SLICE, TX_AUTO_START) != TX_SUCCESS)
       return TX_THREAD_ERROR;
   /* USER CODE END App_ThreadX_Init */
 

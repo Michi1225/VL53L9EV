@@ -6,23 +6,10 @@
 #include <stdbool.h>
 #include <string.h>
 
-volatile vl53_init_step_t vl53_init_step;
-volatile int vl53_init_error;
-volatile int vl53_start_result;
-volatile uint32_t vl53_start_step; /* 1 = enable event, 2 = arm capture, 3 = sensor start, 4 = done */
-
-#define INIT_CALL(step, call) do { \
-    vl53_init_step = (step); \
-    vl53_init_error = (call); \
-    if (vl53_init_error != 0) return HAL_ERROR; \
-} while (0)
+#define INIT_CALL(call) do { if ((call) != 0) return HAL_ERROR; } while (0)
 
 void VL53L9_prepare_capture(VL53L9_TypeDef_t *tof)
 {
-    /* Snapshot is idle here. A marker distinguishes untouched RAM from
-     * zeros actually written by capture; it is diagnostic, not sensor data. */
-    memset((void *)tof->g_csi_output_buffer, CSI_CAPTURE_MARKER,
-           sizeof(tof->g_csi_output_buffer));
     if (SCB->CCR & SCB_CCR_DC_Msk)
         SCB_CleanInvalidateDCache_by_Addr((uint32_t *)tof->g_csi_output_buffer,
                                          sizeof(tof->g_csi_output_buffer));
@@ -34,16 +21,14 @@ HAL_StatusTypeDef VL53L9_init(VL53L9_TypeDef_t *tof)
     tof->p_profile = &g_ranging_profiles[CONF_USECASE];
     memset(&(tof->frame), 0, sizeof(tof->frame));
 
-    vl53_init_error = 0;
-    INIT_CALL(VL53_INIT_RESOLUTION,
-              vl53l9_utils_get_csi_resolution(tof->p_profile->binning, &tof->csi_width, &tof->csi_height));
-    INIT_CALL(VL53_INIT_POWER_RESET, platform_power_reset(CONF_DEVICE_ID));
-    INIT_CALL(VL53_INIT_DYNAMIC_ADDRESS, platform_assign_dynamic_address());
-    INIT_CALL(VL53_INIT_CORE, vl53l9_init(tof->p_dev));
-    INIT_CALL(VL53_INIT_PROFILE, vl53l9_utils_set_profile(tof->p_dev, tof->p_profile));
+    INIT_CALL(vl53l9_utils_get_csi_resolution(tof->p_profile->binning, &tof->csi_width, &tof->csi_height));
+    INIT_CALL(platform_power_reset(CONF_DEVICE_ID));
+    INIT_CALL(platform_assign_dynamic_address());
+    INIT_CALL(vl53l9_init(tof->p_dev));
+    INIT_CALL(vl53l9_utils_set_profile(tof->p_dev, tof->p_profile));
 
     /* retrieve and override output interface parameters */
-    INIT_CALL(VL53_INIT_GET_HW_CONFIG, vl53l9_get_hw_config(tof->p_dev, &tof->hw_config));
+    INIT_CALL(vl53l9_get_hw_config(tof->p_dev, &tof->hw_config));
 
     tof->hw_config.output_interface = VL53L9_OUTPUT_CSI2;
     tof->hw_config.signaling_mode = true;
@@ -55,34 +40,30 @@ HAL_StatusTypeDef VL53L9_init(VL53L9_TypeDef_t *tof)
     tof->hw_config.csi_frame_height = tof->csi_height - 1; /* no need to consider last row containing status line */
     tof->hw_config.csi_frame_width = tof->csi_width;
 
-    INIT_CALL(VL53_INIT_SET_HW_CONFIG, vl53l9_set_hw_config(tof->p_dev, tof->hw_config));
-    INIT_CALL(VL53_INIT_READBACK_HW_CONFIG, vl53l9_get_hw_config(tof->p_dev, &tof->hw_config));
-    INIT_CALL(VL53_INIT_VC_CONFIG,
-              HAL_DCMIPP_CSI_SetVCConfig(&hdcmipp, DCMIPP_VIRTUAL_CHANNEL0, DCMIPP_CSI_DT_BPP8));
+    INIT_CALL(vl53l9_set_hw_config(tof->p_dev, tof->hw_config));
+    INIT_CALL(vl53l9_get_hw_config(tof->p_dev, &tof->hw_config));
+    INIT_CALL(HAL_DCMIPP_CSI_SetVCConfig(&hdcmipp, DCMIPP_VIRTUAL_CHANNEL0, DCMIPP_CSI_DT_BPP8));
 
-    vl53_init_step = VL53_INIT_COMPLETE;
     return HAL_OK;
 }
 
 #undef INIT_CALL
 
-
 HAL_StatusTypeDef VL53L9_start_ranging(VL53L9_TypeDef_t *tof)
 {
-    vl53_start_step = 1;
-    vl53_start_result = platform_enable_event(PLATFORM_CAM_PIPE_FRAME_EVT);
-    if (vl53_start_result != 0) return HAL_ERROR;
+    int result = platform_enable_event(PLATFORM_CAM_PIPE_FRAME_EVT);
+    if (result != 0) return HAL_ERROR;
 #ifndef VL53L9_SENSOR_ONLY
     /* Clear events before arming the snapshot, so an early callback survives. */
-    vl53_start_step = 2;
+
     VL53L9_prepare_capture(tof);
-    vl53_start_result = platform_start_csi_pipe((uint8_t *)tof->g_csi_output_buffer);
-    if (vl53_start_result != 0) return HAL_ERROR;
+    result = platform_start_csi_pipe((uint8_t *)tof->g_csi_output_buffer);
+    if (result != 0) return HAL_ERROR;
 #endif
-    vl53_start_step = 3;
-    vl53_start_result = vl53l9_start(tof->p_dev);
-    if (vl53_start_result != 0) return HAL_ERROR;
-    vl53_start_step = 4;
+
+    result = vl53l9_start(tof->p_dev);
+    if (result != 0) return HAL_ERROR;
+
     return HAL_OK;
 }
 

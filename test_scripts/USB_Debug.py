@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Receive VL9F camera and IMUF inertial packets on one USB CDC stream."""
+"""Plot VL9F depth and IMUF inertial packets over USB CDC or Ethernet TCP."""
 
 import argparse
 from collections import deque
@@ -125,39 +125,25 @@ lock = threading.Lock()
 stop_event = threading.Event()
 
 
-def serial_reader(port):
-    import serial
-
+def stream_reader(read_chunk, label):
     global rx_total, connected, latest_packet, packet_count, sequence_gaps
-    global parser_discarded, parser_invalid
-    global latest_imu_packet, imu_packet_count
+    global parser_discarded, parser_invalid, latest_imu_packet, imu_packet_count
     parser = PacketParser()
     previous_sequence = {}
     previous_imu_timestamp = None
     imu_elapsed_ms = 0
-    print(f"[USB] Opening {port}")
-    try:
-        ser = serial.Serial(port, BAUDRATE, timeout=0.1)
-    except Exception as exc:
-        print(f"[USB] Failed to open {port}: {exc}")
-        return
     with lock:
         latest_packet = None
         latest_imu_packet = None
         parser_discarded = parser_invalid = 0
         imu_plot_buffer.clear()
         connected = True
-    print(f"[USB] Connected to {port}")
+    print(f"[STREAM] Connected to {label}")
     try:
         while not stop_event.is_set():
-            # Wait for a byte, then drain available bytes immediately. Asking
-            # for 4096 bytes at once delayed IMU-only traffic by the timeout.
-            data = ser.read(1)
+            data = read_chunk()
             if not data:
                 continue
-            available = ser.in_waiting
-            if available:
-                data += ser.read(min(available, READ_SIZE - 1))
             packets = parser.feed(data)
             with lock:
                 rx_total += len(data)
@@ -188,13 +174,55 @@ def serial_reader(port):
                         imu_plot_buffer.append((elapsed, values))
                         while imu_plot_buffer and elapsed - imu_plot_buffer[0][0] > IMU_PLOT_SECONDS:
                             imu_plot_buffer.popleft()
-    except (serial.SerialException, OSError) as exc:
-        print(f"[USB] Serial error: {exc}")
+    except OSError as exc:
+        print(f"[STREAM] Connection error: {exc}")
     finally:
         connected = False
-        ser.close()
-        print(f"[USB] {port} disconnected")
+        print(f"[STREAM] {label} disconnected")
 
+
+
+def serial_reader(port):
+    import serial
+    print(f"[USB] Opening {port}")
+    try:
+        ser = serial.Serial(port, BAUDRATE, timeout=0.1)
+    except OSError as exc:
+        print(f"[USB] Failed to open {port}: {exc}")
+        return
+    def read_chunk():
+        data = ser.read(1)
+        if data and ser.in_waiting:
+            data += ser.read(min(ser.in_waiting, READ_SIZE - 1))
+        return data
+    try:
+        stream_reader(read_chunk, port)
+    except serial.SerialException as exc:
+        print(f"[USB] Serial error: {exc}")
+    finally:
+        ser.close()
+
+
+def ethernet_monitor(host, tcp_port):
+    import socket
+    global port_name
+    port_name = f"{host}:{tcp_port}"
+    while not stop_event.is_set():
+        try:
+            with socket.create_connection((host, tcp_port), timeout=3) as connection:
+                connection.settimeout(0.2)
+                def read_chunk():
+                    try:
+                        data = connection.recv(65536)
+                    except socket.timeout:
+                        return b''
+                    if not data:
+                        raise ConnectionError('TCP peer closed the stream')
+                    return data
+                stream_reader(read_chunk, port_name)
+        except OSError as exc:
+            print(f"[ETH] Cannot connect to {port_name}: {exc}")
+        stop_event.wait(1.0)
 
 def usb_monitor(requested_port=None):
     """Keep exactly one reader active, retrying after unplug or open failure."""
@@ -363,12 +391,15 @@ def create_plots(refresh_hz=PLOT_FPS, depth_max=4000):
     return fig, animation
 
 
-def main():
+def main(default_host=None):
     import matplotlib.pyplot as plt
 
     global port_name
     args_parser = argparse.ArgumentParser(description=__doc__)
-    args_parser.add_argument("--port", help="Serial device to retry, e.g. /dev/ttyACM1; default: rescan /dev/ttyACM*")
+    transport = args_parser.add_mutually_exclusive_group()
+    transport.add_argument("--port", help="Serial device to retry, e.g. /dev/ttyACM1; default: rescan /dev/ttyACM*")
+    transport.add_argument("--host", default=default_host, help="Stream over Ethernet from this host")
+    args_parser.add_argument("--tcp-port", type=int, default=50002)
     args_parser.add_argument("--fps", type=int, default=PLOT_FPS,
                              help="Plot refresh target, 1–120 (default: 30)")
     args_parser.add_argument("--depth-max", type=float, default=4000,
@@ -378,9 +409,16 @@ def main():
         args_parser.error("--fps must be between 1 and 120")
     if not 0 < args.depth_max <= 32767:
         args_parser.error("--depth-max must be between 0 and 32767 mm")
+    if not 1 <= args.tcp_port <= 65535:
+        args_parser.error("--tcp-port must be 1..65535")
+    if args.port:
+        args.host = None
     port_name = args.port
     stop_event.clear()
-    threading.Thread(target=usb_monitor, args=(args.port,), daemon=True).start()
+    if args.host:
+        threading.Thread(target=ethernet_monitor, args=(args.host, args.tcp_port), daemon=True).start()
+    else:
+        threading.Thread(target=usb_monitor, args=(args.port,), daemon=True).start()
     threading.Thread(target=status_thread, daemon=True).start()
 
     fig, animation = create_plots(args.fps, args.depth_max)

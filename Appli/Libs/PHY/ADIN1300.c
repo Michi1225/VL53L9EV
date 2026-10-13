@@ -6,12 +6,10 @@
 #include "stm32n6xx_hal_eth.h"
 #include <stdint.h>
 
-
 adin1300_Object_t phy = 
 {
     .PHY_ADDR = ADIN1300_PHY_ADDR
 };
-
 
 HAL_StatusTypeDef ADIN1300_ReadReg(adin1300_Object_t *pPhy, adin1300_RegTypeDef_t reg, uint16_t *retval)
 {
@@ -53,11 +51,8 @@ HAL_StatusTypeDef ADIN1300_ReadExtReg(adin1300_Object_t *pPhy, adin1300_RegTypeD
     return error;
 }
 
-
-
 HAL_StatusTypeDef ADIN1300_GetPhyID(adin1300_Object_t *pPhy, uint32_t *id)
 {
-
     uint16_t phy_id_msb = 0;
     uint16_t phy_id_lsb = 0;
 
@@ -71,7 +66,6 @@ HAL_StatusTypeDef ADIN1300_GetPhyID(adin1300_Object_t *pPhy, uint32_t *id)
 
     return HAL_OK;
 }
-
 
 HAL_StatusTypeDef ADIN1300_Init(adin1300_Object_t *pPhy)
 {
@@ -102,7 +96,6 @@ HAL_StatusTypeDef ADIN1300_Init(adin1300_Object_t *pPhy)
     //SW reset PHY
     error = HAL_OK;
     error |= ADIN1300_Reset(pPhy);
-
 
     // Write GE_PHY_BASE_CFG
     uint16_t reg_val = GE_PHY_BASE_CFG_RSRVD | GE_MAN_MDI_FLIP_CFG | GE_FLD_100_EN_CFG | GE_FLD_1000_EN_CFG;
@@ -149,14 +142,11 @@ HAL_StatusTypeDef ADIN1300_Init(adin1300_Object_t *pPhy)
     error |= ADIN1300_WriteExtReg(pPhy, GE_CLK_CFG, reg_val);
 
     // Set MII_CONTROL register
-    reg_val = SPEED_SEL_10MBPS | DPLX_MODE_FD; //DEBUG: Enable Autoneg later.
+    reg_val = SPEED_SEL_1GBPS | DPLX_MODE_FD; //DEBUG: Enable Autoneg later.
     error |= ADIN1300_WriteReg(pPhy, MII_CONTROL, reg_val);
-    
-
 
     return error;
 }
-
 
 HAL_StatusTypeDef ADIN1300_StartAutoNeg(adin1300_Object_t *pPhy)
 {
@@ -171,7 +161,6 @@ HAL_StatusTypeDef ADIN1300_StartAutoNeg(adin1300_Object_t *pPhy)
     return error;
 }
 
-
 int32_t ADIN1300_GetLinkStatus(adin1300_Object_t *pPhy)
 {
     uint16_t phy_stat = 0;
@@ -183,7 +172,6 @@ int32_t ADIN1300_GetLinkStatus(adin1300_Object_t *pPhy)
     uint16_t autoneg_done = phy_stat & AUTONEG_STAT_MASK;
     // We have to return LINK_DOWN, otherwise link is interpreted as 100MBit...
     if(autoneg_done == 0) return ETH_PHY_STATUS_LINK_DOWN;
-
 
     uint16_t speed = phy_stat & HCD_TECH_MASK;
     switch (speed >> 7) {
@@ -204,7 +192,6 @@ int32_t ADIN1300_GetLinkStatus(adin1300_Object_t *pPhy)
     }
 }
 
-
 HAL_StatusTypeDef ADIN1300_Reset(adin1300_Object_t *pPhy)
 {
     HAL_StatusTypeDef error = HAL_OK;
@@ -223,7 +210,6 @@ HAL_StatusTypeDef ADIN1300_Reset(adin1300_Object_t *pPhy)
     if(timeout >= ADIN1300_RST_TIMEOUT) return HAL_TIMEOUT;
     return error;
 }
-
 
 HAL_StatusTypeDef ADIN1300_SubSysReset(adin1300_Object_t *pPhy)
 {

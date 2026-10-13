@@ -46,7 +46,6 @@ TX_THREAD      NxAppThread;
 NX_PACKET_POOL NxAppPool;
 NX_IP          NetXDuoEthIpInstance;
 /* USER CODE BEGIN PV */
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -273,7 +272,6 @@ static VOID netXduo_app_thread_entry (ULONG thread_input)
 
 }
 /* USER CODE BEGIN 1 */
-
 
 NX_IP *nx_get_ip() {return &NetXDuoEthIpInstance;}
 NX_PACKET_POOL *nx_get_app_pool() {return &NxAppPool;}

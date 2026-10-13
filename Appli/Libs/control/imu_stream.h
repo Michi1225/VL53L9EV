@@ -15,26 +15,6 @@
  * Payload <I10f: MCU milliseconds, acc xyz (mg), gyro xyz (mdps),
  * SFLP game-rotation quaternion xyzw. All fields are little-endian. */
 extern TX_QUEUE imu_packet_queue;
-extern volatile HAL_StatusTypeDef imu_stream_status;
-extern volatile ULONG imu_samples_published;
-extern volatile ULONG imu_packets_dropped;
-extern volatile ULONG imu_deadlines_missed;
-typedef enum {
-    IMU_STREAM_NOT_STARTED,
-    IMU_STREAM_INITIALIZING,
-    IMU_STREAM_SAMPLING,
-    IMU_STREAM_WAITING_DATA,
-    IMU_STREAM_RUNNING,
-    IMU_STREAM_FAULT
-} imu_stream_phase_t;
-extern volatile imu_stream_phase_t imu_stream_phase;
-extern volatile ULONG imu_valid_data;
-extern volatile ULONG imu_fifo_level;
-extern volatile ULONG imu_fifo_overrun;
-extern volatile ULONG imu_fifo_overruns;
-extern volatile ULONG imu_usb_packets_sent;
-extern volatile ULONG imu_usb_packets_dropped;
-extern volatile ULONG imu_fault_during_init;
 
 UINT imu_stream_queue_init(void);
 void imu_stream_thread_entry(ULONG argument);

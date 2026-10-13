@@ -57,22 +57,12 @@ extern PCD_HandleTypeDef           hpcd_USB_OTG_HS2;
 TX_EVENT_FLAGS_GROUP usb_device_events;
 
 
-
-
-/* Debugger-visible telemetry; keep logging out of the streaming path. */
-volatile ULONG usb_write_ok;
-volatile ULONG usb_write_err;
-volatile ULONG usb_write_short;
-volatile ULONG usb_write_bytes;
-volatile ULONG usb_write_actual;
-volatile UINT usb_write_status;
-volatile UINT usb_write_in_progress;
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 static VOID usbx_app_thread_entry(ULONG thread_input);
 /* USER CODE BEGIN PFP */
+UINT stream_usb_write(UCHAR *packet, ULONG length);
 
 static UINT usb_cdc_write_complete(
     UX_SLAVE_CLASS_CDC_ACM *instance,
@@ -80,10 +70,6 @@ static UINT usb_cdc_write_complete(
     ULONG length)
 {
     UX_PARAMETER_NOT_USED(instance);
-
-    usb_write_in_progress = 0U;
-    usb_write_status = status;
-    usb_write_actual = length;
 
     tx_event_flags_set(
         &usb_device_events,
@@ -247,34 +233,6 @@ UINT MX_USBX_Device_Stack_Init(void)
   * @param  thread_input: User thread input parameter.
   * @retval none
   */
-/* Only the USB thread calls this, so complete camera/IMU packets cannot interleave. */
-static UINT usb_stream_write(UCHAR *packet, ULONG length)
-{
-    UX_SLAVE_CLASS_CDC_ACM *cdc = cdc_acm;
-    if (cdc == UX_NULL || !cdc->ux_slave_class_cdc_acm_data_dtr_state)
-        return UX_ERROR;
-    ULONG actual = 0;
-    usb_write_in_progress = 1U;
-    UINT status = ux_device_class_cdc_acm_ioctl(cdc,
-        UX_SLAVE_CLASS_CDC_ACM_IOCTL_SET_WRITE_TIMEOUT,
-        (VOID *)(ALIGN_TYPE)TX_TIMER_TICKS_PER_SECOND);
-    if (status == UX_SUCCESS)
-        status = ux_device_class_cdc_acm_write(cdc, packet, length, &actual);
-    usb_write_status = status;
-    usb_write_actual = actual;
-    usb_write_bytes += actual;
-    usb_write_in_progress = 0U;
-    if (status == UX_SUCCESS && actual == length)
-        ++usb_write_ok;
-    else
-    {
-        ++usb_write_err;
-        if (actual != length)
-            ++usb_write_short;
-    }
-    return status == UX_SUCCESS && actual == length ? UX_SUCCESS : UX_ERROR;
-}
-
 static VOID usbx_app_thread_entry(ULONG thread_input)
 {
   /* USER CODE BEGIN usbx_app_thread_entry */
@@ -283,29 +241,9 @@ static VOID usbx_app_thread_entry(ULONG thread_input)
     if (HAL_PCD_Start(&hpcd_USB_OTG_HS2) != HAL_OK)
         Error_Handler();
 
+    /* The transport thread owns packet consumption for USB and Ethernet. */
     for (;;)
-    {
-        ULONG flags;
-        tx_event_flags_get(&stream_events, STREAM_PACKET_READY | STREAM_IMU_READY,
-                           TX_OR_CLEAR, &flags, TX_WAIT_FOREVER);
-        if (flags & STREAM_PACKET_READY)
-        {
-            usb_stream_write(stream_packet, stream_packet_length);
-            /* Release the camera buffer even if disconnected or write failed. */
-            tx_event_flags_set(&stream_events, STREAM_PACKET_CONSUMED, TX_OR);
-        }
-        /* Bound each drain so camera frames also get serviced under load. */
-        ULONG imu_packet[IMU_PACKET_WORDS];
-        for (UINT i = 0; i < IMU_QUEUE_DEPTH; ++i)
-        {
-            if (tx_queue_receive(&imu_packet_queue, imu_packet, TX_NO_WAIT) != TX_SUCCESS)
-                break;
-            if (usb_stream_write((UCHAR *)imu_packet, IMU_PACKET_SIZE) == UX_SUCCESS)
-                ++imu_usb_packets_sent;
-            else
-                ++imu_usb_packets_dropped;
-        }
-    }
+        tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND);
   /* USER CODE END usbx_app_thread_entry */
 }
 
@@ -353,5 +291,23 @@ UINT MX_USBX_Device_Stack_DeInit(void)
 }
 
 /* USER CODE BEGIN 1 */
+/* Only the shared transport thread calls this; packets cannot interleave. */
+UINT stream_usb_write(UCHAR *packet, ULONG length)
+{
+    UX_SLAVE_CLASS_CDC_ACM *cdc = cdc_acm;
+    if (cdc == UX_NULL || !cdc->ux_slave_class_cdc_acm_data_dtr_state)
+        return UX_ERROR;
+    ULONG actual = 0;
+
+    UINT status = ux_device_class_cdc_acm_ioctl(cdc,
+        UX_SLAVE_CLASS_CDC_ACM_IOCTL_SET_WRITE_TIMEOUT,
+        (VOID *)(ALIGN_TYPE)TX_TIMER_TICKS_PER_SECOND);
+    if (status == UX_SUCCESS)
+        status = ux_device_class_cdc_acm_write(cdc, packet, length, &actual);
+
+    return status == UX_SUCCESS && actual == length ? UX_SUCCESS : UX_ERROR;
+}
+
+
 
 /* USER CODE END 1 */

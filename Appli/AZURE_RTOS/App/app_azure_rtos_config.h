@@ -51,6 +51,8 @@ extern "C" {
 #define USBPD_DEVICE_APP_MEM_POOL_SIZE              8192
 
 /* USER CODE BEGIN EC */
+#undef NX_APP_MEM_POOL_SIZE
+#define NX_APP_MEM_POOL_SIZE 131072U
 
 /* USER CODE END EC */
 

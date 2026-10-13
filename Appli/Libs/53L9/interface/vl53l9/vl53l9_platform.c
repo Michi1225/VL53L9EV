@@ -24,14 +24,6 @@
 
 #include <string.h>
 
-/* Preserve the first failing write's HAL details for debugger inspection. */
-volatile uint32_t vl53_i3c_write_phase; /* 1 = descriptor, 2 = transmit, 3 = done */
-volatile uint32_t vl53_i3c_hal_status;
-volatile uint32_t vl53_i3c_hal_error;
-volatile uint32_t vl53_i3c_write_size;
-volatile uint32_t vl53_i3c_tx_remaining;
-volatile uint32_t vl53_i3c_write_elapsed_ms;
-
 static int _i3c_read(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescriptor, I3C_XferTypeDef *aContextBuffers);
 static int _i3c_read_async(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescriptor, I3C_XferTypeDef *aContextBuffers);
 static int _i3c_write(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescriptor, I3C_XferTypeDef *aContextBuffers);
@@ -50,7 +42,6 @@ static int _i3c_wait_ready(I3C_HandleTypeDef *hi3c) {
 }
 
 int vl53l9_read(void *const p_dev, uint16_t address, uint8_t *p_values, uint32_t size) {
-
     int ret = VL53L9_ERROR_NONE;
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
 
@@ -78,7 +69,6 @@ int vl53l9_read(void *const p_dev, uint16_t address, uint8_t *p_values, uint32_t
 }
 
 int vl53l9_read_async(void *const p_dev, uint16_t address, volatile uint8_t *p_values, uint32_t size) {
-
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
 
     if (p_device == NULL || p_values == NULL || size == 0) {
@@ -106,7 +96,6 @@ int vl53l9_read_async(void *const p_dev, uint16_t address, volatile uint8_t *p_v
 }
 
 int vl53l9_read8(void *const p_dev, uint16_t address, uint8_t *p_value) {
-
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
 
     if (p_device == NULL || p_value == NULL) {
@@ -133,7 +122,6 @@ int vl53l9_read8(void *const p_dev, uint16_t address, uint8_t *p_value) {
 }
 
 int vl53l9_read16(void *const p_dev, uint16_t address, uint16_t *p_value) {
-
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
 
     if (p_device == NULL || p_value == NULL) {
@@ -162,7 +150,6 @@ int vl53l9_read16(void *const p_dev, uint16_t address, uint16_t *p_value) {
 }
 
 int vl53l9_read32(void *const p_dev, uint16_t address, uint32_t *p_value) {
-
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
 
     if (p_device == NULL || p_value == NULL) {
@@ -191,7 +178,6 @@ int vl53l9_read32(void *const p_dev, uint16_t address, uint32_t *p_value) {
 }
 
 int vl53l9_write(void *const p_dev, uint16_t address, uint8_t *p_values, uint32_t size) {
-
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
     uint8_t data_write[2 + size];
 
@@ -219,7 +205,6 @@ int vl53l9_write(void *const p_dev, uint16_t address, uint8_t *p_values, uint32_
 }
 
 int vl53l9_write8(void *const p_dev, uint16_t address, uint8_t value) {
-
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
 
     if (p_device == NULL) {
@@ -246,7 +231,6 @@ int vl53l9_write8(void *const p_dev, uint16_t address, uint8_t value) {
 }
 
 int vl53l9_write16(void *const p_dev, uint16_t address, uint16_t value) {
-
     int ret = VL53L9_ERROR_NONE;
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
 
@@ -275,7 +259,6 @@ int vl53l9_write16(void *const p_dev, uint16_t address, uint16_t value) {
 }
 
 int vl53l9_write32(void *const p_dev, uint16_t address, uint32_t value) {
-
     int ret = VL53L9_ERROR_NONE;
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
 
@@ -306,7 +289,6 @@ int vl53l9_write32(void *const p_dev, uint16_t address, uint32_t value) {
 }
 
 static int _i3c_read(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescriptor, I3C_XferTypeDef *aContextBuffers) {
-
     int ret = VL53L9_ERROR_NONE;
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
 
@@ -349,7 +331,6 @@ static int _i3c_read(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescriptor, 
 
 static int _i3c_read_async(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescriptor,
                            I3C_XferTypeDef *aContextBuffers) {
-
     int ret = VL53L9_ERROR_NONE;
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
 
@@ -393,14 +374,11 @@ static int _i3c_read_async(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescri
 static int _i3c_write(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescriptor, I3C_XferTypeDef *aContextBuffers) {
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
     I3C_HandleTypeDef *p_hi3c = (I3C_HandleTypeDef *)p_device->bus;
-    uint32_t start = HAL_GetTick();
-    vl53_i3c_write_size = aContextBuffers[0].TxBuf.Size;
-    vl53_i3c_write_phase = 1;
+
     HAL_StatusTypeDef status = HAL_I3C_AddDescToFrame(p_hi3c, NULL, &aPrivateDescriptor[0],
                                  &aContextBuffers[0], aContextBuffers[0].CtrlBuf.Size,
                                  I3C_PRIVATE_WITHOUT_ARB_STOP);
     if (status == HAL_OK) {
-        vl53_i3c_write_phase = 2;
         uint32_t previous_threshold = LL_I3C_GetTxFIFOThreshold(p_hi3c->Instance);
         /* This helper sends one descriptor: word FIFO mode is allowed and
          * services four bytes per write instead of one. */
@@ -420,25 +398,19 @@ static int _i3c_write(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescriptor,
             protected = true;
         }
         status = HAL_I3C_Ctrl_Transmit(p_hi3c, &aContextBuffers[0], 100);
-        /* Save HAL diagnostics before restoring preemption permits a switch. */
-        vl53_i3c_hal_status = status;
-        vl53_i3c_hal_error = p_hi3c->ErrorCode;
-        vl53_i3c_tx_remaining = p_hi3c->TxXferCount;
+
         LL_I3C_SetTxFIFOThreshold(p_hi3c->Instance, previous_threshold);
         if (protected) {
             UINT ignored;
             (void)tx_thread_preemption_change(thread, previous_preemption, &ignored);
         }
     }
-    vl53_i3c_hal_status = status;
-    vl53_i3c_hal_error = p_hi3c->ErrorCode;
-    vl53_i3c_tx_remaining = p_hi3c->TxXferCount;
-    vl53_i3c_write_elapsed_ms = (uint32_t)(HAL_GetTick() - start);
+
     if (status == HAL_TIMEOUT)
         return VL53L9_ERROR_TIMEOUT;
     if (status != HAL_OK)
         return VL53L9_ERROR_PLATFORM;
-    vl53_i3c_write_phase = 3;
+
     return VL53L9_ERROR_NONE;
 }
 

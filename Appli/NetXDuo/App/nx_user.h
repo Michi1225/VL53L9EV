@@ -2423,7 +2423,11 @@
 #endif
 
 /* USER CODE BEGIN 2 */
-
+/* Match the actual 1 kHz ThreadX time base. */
+#undef NX_IP_PERIODIC_RATE
+#define NX_IP_PERIODIC_RATE 1000U
+/* Keep in-flight TCP data consistent with the 64-packet application pool. */
+#define NX_TCP_MAXIMUM_TX_QUEUE 40U
 /* USER CODE END 2 */
 
 #endif /* NX_USER_H */
