@@ -204,7 +204,7 @@ SECTIONS
 
   .stm32_device_info :
   {
-    KEEP(*stm32_device_info.o ( .rodata* ))
+    KEEP(*(.rodata.StorageInfo))
   }:SgInfo
 
   /* Constant data goes into FLASH */

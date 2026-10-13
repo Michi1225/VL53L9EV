@@ -313,6 +313,8 @@ int32_t S28HS512T_Resume(XSPI_HandleTypeDef *Ctx, S28HS512T_Interface_t Mode, S2
 
 /* Register/Setting Commands **************************************************/
 int32_t S28HS512T_WriteEnable(XSPI_HandleTypeDef *Ctx, S28HS512T_Interface_t Mode, S28HS512T_Transfer_t Rate);
+int32_t S28HS512T_WriteEnableWithLatency(XSPI_HandleTypeDef *Ctx, S28HS512T_Interface_t Mode,
+                                       S28HS512T_Transfer_t Rate, uint32_t SpiDummyCycles);
 int32_t S28HS512T_WriteDisable(XSPI_HandleTypeDef *Ctx, S28HS512T_Interface_t Mode, S28HS512T_Transfer_t Rate);
 int32_t S28HS512T_ReadStatusRegister1(XSPI_HandleTypeDef *Ctx, S28HS512T_Interface_t Mode,
                                          S28HS512T_Transfer_t Rate, uint8_t *Value);

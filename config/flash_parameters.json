@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "device": {
+    "product": "VL53L9EV",
+    "serial_number": null,
+    "hardware_revision": null,
+    "pcb_revision": null,
+    "assembly_revision": null
+  },
+  "firmware": {
+    "version": "0.1.0",
+    "release_number": null,
+    "protocol_version": 1
+  },
+  "manufacturing": {
+    "date": null,
+    "batch": null
+  },
+  "repository": {
+    "git_hash": null,
+    "git_dirty": null
+  }
+}

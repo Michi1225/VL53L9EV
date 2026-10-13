@@ -15,6 +15,7 @@ set -euo pipefail
 TARGET=""
 CONFIG="Debug"
 BUILD_FIRST=0
+PARAMETERS=""
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -26,6 +27,8 @@ APPLI_IMAGE="${ROOT_DIR}/Appli/build/VL53L9_eval_Appli-signed.bin"
 FSBL_ADDR="0x90040000"
 APPLI_A_ADDR="0x90100000"
 APPLI_B_ADDR="0x90900000"
+PARAMETERS_ADDR="0x90000000"
+PARAMETERS_IMAGE="${ROOT_DIR}/build/flash_parameters.bin"
 
 CONNECT_MODE="${STM32_CONNECT_MODE:-HOTPLUG}"
 
@@ -39,7 +42,8 @@ usage()
 {
     cat <<EOF
 Usage:
-  $0 --target fsbl|appli-a|appli-b|all [--build] [--config Debug|Release]
+  $0 --target fsbl|appli-a|appli-b|parameters|all [--build] [--config Debug|Release]
+     [--parameters /path/to/parameters.json]
 EOF
 }
 
@@ -93,6 +97,11 @@ while [[ $# -gt 0 ]]; do
             CONFIG="$2"
             shift 2
             ;;
+        --parameters)
+            [[ $# -ge 2 ]] || die "Missing value after $1"
+            PARAMETERS="$2"
+            shift 2
+            ;;
         --build)
             BUILD_FIRST=1
             shift
@@ -108,8 +117,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "${TARGET}" in
-    fsbl|appli-a|appli-b|all) ;;
-    *) usage; die "Target must be fsbl, appli-a, appli-b or all" ;;
+    fsbl|appli-a|appli-b|parameters|all) ;;
+    *) usage; die "Target must be fsbl, appli-a, appli-b, parameters or all" ;;
 esac
 
 case "${CONFIG}" in
@@ -119,6 +128,13 @@ esac
 
 if [[ "${BUILD_FIRST}" -eq 1 ]]; then
     "${SCRIPT_DIR}/build.sh" --target all --config "${CONFIG}"
+fi
+
+# Pack after building so provenance describes the images being flashed.
+if [[ "${TARGET}" == "all" || "${TARGET}" == "parameters" || -n "${PARAMETERS}" ]]; then
+    PARAMETERS="${PARAMETERS:-${ROOT_DIR}/config/flash_parameters.json}"
+    python3 "${SCRIPT_DIR}/pack_parameters.py" "${PARAMETERS}" "${PARAMETERS_IMAGE}" \
+        --fsbl "${FSBL_IMAGE}" --application "${APPLI_IMAGE}"
 fi
 
 [[ -f "${LOADER}" ]] || die "External loader not found: ${LOADER}"
@@ -150,7 +166,12 @@ program()
         -v
 }
 
+if [[ -n "${PARAMETERS}" ]]; then
+    program "${PARAMETERS_IMAGE}" "${PARAMETERS_ADDR}" "Parameters (reserved first 256 KiB)"
+fi
+
 case "${TARGET}" in
+    parameters) ;;
     fsbl)
         program "${FSBL_IMAGE}" "${FSBL_ADDR}" "FSBL"
         ;;

@@ -712,6 +712,13 @@ int32_t S28HS512T_Resume(XSPI_HandleTypeDef *Ctx, S28HS512T_Interface_t Mode, S2
   */
 int32_t S28HS512T_WriteEnable(XSPI_HandleTypeDef *Ctx, S28HS512T_Interface_t Mode, S28HS512T_Transfer_t Rate)
 {
+  return S28HS512T_WriteEnableWithLatency(Ctx, Mode, Rate, 0U);
+}
+
+/* SPI status-read latency changes when CFR3V is written during mode entry. */
+int32_t S28HS512T_WriteEnableWithLatency(XSPI_HandleTypeDef *Ctx, S28HS512T_Interface_t Mode,
+                                       S28HS512T_Transfer_t Rate, uint32_t SpiDummyCycles)
+{
   XSPI_RegularCmdTypeDef s_command = {0};
   XSPI_AutoPollingTypeDef s_config = {0};
 
@@ -763,7 +770,7 @@ int32_t S28HS512T_WriteEnable(XSPI_HandleTypeDef *Ctx, S28HS512T_Interface_t Mod
   s_command.DataMode = (Mode == S28HS512T_SPI_MODE) ? HAL_XSPI_DATA_1_LINE : HAL_XSPI_DATA_8_LINES;
   s_command.DataDTRMode = (Rate == S28HS512T_DTR_TRANSFER) ? HAL_XSPI_DATA_DTR_ENABLE : HAL_XSPI_DATA_DTR_DISABLE;
   s_command.DummyCycles = (Mode == S28HS512T_SPI_MODE)
-                              ? 0U
+                              ? SpiDummyCycles
                               : ((Rate == S28HS512T_DTR_TRANSFER)
                                      ? DUMMY_CYCLES_REG_OCTAL_DTR
                                      : DUMMY_CYCLES_REG_OCTAL);

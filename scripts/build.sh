@@ -303,12 +303,75 @@ echo "Objcopy      : ${OBJCOPY}"
 
 cd "${ROOT_DIR}"
 
+# CMake keeps absolute compiler paths even after PATH changes. Refresh only
+# generated configuration for selected projects when the toolchain changes.
+refresh_compiler_cache()
+{
+    local build_dir="$1"
+    local compiler_file cached_compiler
+    [[ -d "${build_dir}/CMakeFiles" ]] || return 0
+    while IFS= read -r compiler_file; do
+        cached_compiler="$(sed -n 's/^set(CMAKE_C_COMPILER "\([^"]*\)").*/\1/p' "${compiler_file}")"
+        if [[ -n "${cached_compiler}" && "${cached_compiler}" != "${ARM_GCC}" ]]; then
+            echo "Refreshing compiler configuration: ${build_dir}"
+            rm -f "${build_dir}/CMakeCache.txt"
+            rm -rf "${build_dir}/CMakeFiles"
+            break
+        fi
+    done < <(find "${build_dir}/CMakeFiles" -name CMakeCCompiler.cmake -type f)
+}
+
+refresh_compiler_cache "${ROOT_DIR}/build/${CONFIG}"
+case "${TARGET}" in
+    appli) refresh_compiler_cache "${ROOT_DIR}/Appli/build" ;;
+    fsbl) refresh_compiler_cache "${ROOT_DIR}/FSBL/build" ;;
+    extmem) refresh_compiler_cache "${ROOT_DIR}/ExtMemLoader/build" ;;
+    all)
+        refresh_compiler_cache "${ROOT_DIR}/Appli/build"
+        refresh_compiler_cache "${ROOT_DIR}/FSBL/build"
+        refresh_compiler_cache "${ROOT_DIR}/ExtMemLoader/build"
+        ;;
+esac
+
 info "Configuring CMake"
 if [[ "${DEV_MODE}" -eq 1 ]]; then
     "${CMAKE}" --preset "${CONFIG}" -DDEV_MODE=ON
 else
     "${CMAKE}" --preset "${CONFIG}" -DDEV_MODE=OFF
 fi
+
+# ExternalProject configure stamps live in build/Debug and build/Release,
+# while both configurations share each project's build directory. Configure
+# selected projects explicitly so stale stamps cannot skip a missing cache or
+# leave the project using the other configuration.
+configure_project()
+{
+    local project_dir="$1"
+    local options=()
+    if [[ "${project_dir}" == "Appli" ]]; then
+        if [[ "${DEV_MODE}" -eq 1 ]]; then
+            options+=(-DDEV_MODE=ON)
+        else
+            options+=(-DDEV_MODE=OFF)
+        fi
+    fi
+    "${CMAKE}" -S "${ROOT_DIR}/${project_dir}" \
+        -B "${ROOT_DIR}/${project_dir}/build" -G Ninja \
+        -DCMAKE_TOOLCHAIN_FILE="${ROOT_DIR}/gcc-arm-none-eabi.cmake" \
+        -DCMAKE_BUILD_TYPE="${CONFIG}" \
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON "${options[@]}"
+}
+
+case "${TARGET}" in
+    appli) configure_project Appli ;;
+    fsbl) configure_project FSBL ;;
+    extmem) configure_project ExtMemLoader ;;
+    all)
+        configure_project FSBL
+        configure_project Appli
+        configure_project ExtMemLoader
+        ;;
+esac
 
 build_target()
 {
@@ -331,9 +394,11 @@ package_fsbl()
         -of 0x80000000 \
         -t fsbl \
         -hv 2.3 \
+        --align \
         -o "${FSBL_SIGNED}"
 
     [[ -f "${FSBL_SIGNED}" ]] || die "Failed to create ${FSBL_SIGNED}"
+    python3 "${SCRIPT_DIR}/build_provenance.py" "${FSBL_SIGNED}" "${CONFIG}"
 }
 
 package_appli()
@@ -349,9 +414,11 @@ package_appli()
         -nk \
         -t ssbl \
         -hv 2.3 \
+        --align \
         -o "${APPLI_SIGNED}"
 
     [[ -f "${APPLI_SIGNED}" ]] || die "Failed to create ${APPLI_SIGNED}"
+    python3 "${SCRIPT_DIR}/build_provenance.py" "${APPLI_SIGNED}" "${CONFIG}"
 }
 
 package_extmem()

@@ -270,6 +270,46 @@ void PeriphCommonClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+/* STM32 header v2.3 is 0x240 bytes. --align adds padding to its payload
+   so the application's vector table starts at EXTMEM_HEADER_OFFSET. */
+uint32_t BOOT_GetApplicationSize(uint32_t img_addr)
+{
+  const uint32_t header_size = 0x240U;
+  const uint32_t maximum_size = 0x80000U; /* Application code ends at 0x34080000. */
+  const volatile uint32_t *header = (const volatile uint32_t *)img_addr;
+  uint32_t payload_size = header[0x6CU / 4U];
+
+  if (header[0] != 0x324D5453U || header[0x68U / 4U] != 0x00020300U ||
+      payload_size < EXTMEM_HEADER_OFFSET - header_size + 8U ||
+      payload_size > maximum_size - header_size)
+  {
+    Error_Handler();
+    return 0U;
+  }
+
+  uint32_t image_size = header_size + payload_size;
+  const volatile uint8_t *payload = (const volatile uint8_t *)(img_addr + header_size);
+  uint32_t checksum = 0U;
+  for (uint32_t i = 0U; i < payload_size; ++i)
+  {
+    checksum += payload[i];
+  }
+  const volatile uint32_t *vectors =
+      (const volatile uint32_t *)(img_addr + EXTMEM_HEADER_OFFSET);
+  uint32_t reset = vectors[1];
+  uint32_t reset_address = reset & ~1U;
+  if (checksum != header[0x64U / 4U] ||
+      vectors[0] <= 0x34080000U || vectors[0] > 0x34200000U ||
+      (vectors[0] & 7U) != 0U || (reset & 1U) == 0U ||
+      reset_address < EXTMEM_LRUN_DESTINATION_ADDRESS + EXTMEM_HEADER_OFFSET ||
+      reset_address >= EXTMEM_LRUN_DESTINATION_ADDRESS + image_size)
+  {
+    Error_Handler();
+    return 0U;
+  }
+  return image_size;
+}
+
 
 /* USER CODE END 4 */
 

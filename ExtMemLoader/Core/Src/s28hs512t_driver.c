@@ -85,15 +85,12 @@ EXTMEM_DRIVER_USER_StatusTypeDef EXTMEM_DRIVER_USER_Read(EXTMEM_DRIVER_USER_Obje
 {
   EXTMEM_DRIVER_USER_StatusTypeDef retr = EXTMEM_DRIVER_USER_OK;
   //TODO: validate address
-  if ((Address < STM32EXTLOADER_DEVICE_ADDR) ||
-      (Address >= STM32EXTLOADER_DEVICE_ADDR +
-                  STM32EXTLOADER_DEVICE_SIZE))
+  /* The ST memory wrapper already converts mapped addresses to offsets. */
+  if ((Address >= STM32EXTLOADER_DEVICE_SIZE) ||
+      (Size > STM32EXTLOADER_DEVICE_SIZE - Address))
   {
       return EXTMEM_DRIVER_USER_ERROR_1;
   }
-
-  uint32_t addr =
-      Address - STM32EXTLOADER_DEVICE_ADDR;
   __IO uint8_t *memAddr;
 
   SEMPER_Handle_t *pHandle = UserObject->PtrUserDriver;
@@ -127,15 +124,12 @@ EXTMEM_DRIVER_USER_StatusTypeDef EXTMEM_DRIVER_USER_Write(EXTMEM_DRIVER_USER_Obj
                                                                  uint32_t Address, const uint8_t *Data, uint32_t Size)
 {
   EXTMEM_DRIVER_USER_StatusTypeDef retr = EXTMEM_DRIVER_USER_OK;
-  if ((Address < STM32EXTLOADER_DEVICE_ADDR) ||
-      (Address >= STM32EXTLOADER_DEVICE_ADDR +
-                  STM32EXTLOADER_DEVICE_SIZE))
+  /* The ST memory wrapper already converts mapped addresses to offsets. */
+  if ((Address >= STM32EXTLOADER_DEVICE_SIZE) ||
+      (Size > STM32EXTLOADER_DEVICE_SIZE - Address))
   {
       return EXTMEM_DRIVER_USER_ERROR_1;
   }
-
-  uint32_t addr =
-      Address - STM32EXTLOADER_DEVICE_ADDR;
 
   SEMPER_Handle_t *pHandle = UserObject->PtrUserDriver;
 
@@ -169,15 +163,12 @@ EXTMEM_DRIVER_USER_StatusTypeDef EXTMEM_DRIVER_USER_EraseSector(EXTMEM_DRIVER_US
                                                                        uint32_t Address, uint32_t Size)
 {
   EXTMEM_DRIVER_USER_StatusTypeDef retr = EXTMEM_DRIVER_USER_OK;
-  if ((Address < STM32EXTLOADER_DEVICE_ADDR) ||
-      (Address >= STM32EXTLOADER_DEVICE_ADDR +
-                  STM32EXTLOADER_DEVICE_SIZE))
+  /* The ST memory wrapper already converts mapped addresses to offsets. */
+  if ((Address >= STM32EXTLOADER_DEVICE_SIZE) ||
+      (Size > STM32EXTLOADER_DEVICE_SIZE - Address))
   {
       return EXTMEM_DRIVER_USER_ERROR_1;
   }
-
-  uint32_t addr =
-      Address - STM32EXTLOADER_DEVICE_ADDR;
 
   SEMPER_Handle_t *pHandle = UserObject->PtrUserDriver;
 
@@ -210,6 +201,7 @@ EXTMEM_DRIVER_USER_StatusTypeDef EXTMEM_DRIVER_USER_EraseSector(EXTMEM_DRIVER_US
 		{
 			retr = EXTMEM_DRIVER_USER_ERROR_3;
 		}
+    if (retr != EXTMEM_DRIVER_USER_OK) return retr;
     uint32_t start = HAL_GetTick();
     while(1)
     {
@@ -217,8 +209,8 @@ EXTMEM_DRIVER_USER_StatusTypeDef EXTMEM_DRIVER_USER_EraseSector(EXTMEM_DRIVER_US
 
       if(status == SEMPER_OK) return EXTMEM_DRIVER_USER_OK;
 
-      // 100ms Timeout
-      if(HAL_GetTick() - start > 100) return EXTMEM_DRIVER_USER_ERROR_1;
+      // Use the advertised sector erase timeout.
+      if(HAL_GetTick() - start > STM32EXTLOADER_DEVICE_SECTOR_TIMEOUT) return EXTMEM_DRIVER_USER_ERROR_1;
 
       // SEMPER Still Busy
       if(status == SEMPER_BUSY) continue;
@@ -257,6 +249,7 @@ EXTMEM_DRIVER_USER_StatusTypeDef EXTMEM_DRIVER_USER_MassErase(EXTMEM_DRIVER_USER
   	{
   		retr = EXTMEM_DRIVER_USER_ERROR_2;
   	}
+    if (retr != EXTMEM_DRIVER_USER_OK) return retr;
     uint32_t start = HAL_GetTick();
     while(1)
     {
@@ -264,8 +257,8 @@ EXTMEM_DRIVER_USER_StatusTypeDef EXTMEM_DRIVER_USER_MassErase(EXTMEM_DRIVER_USER
 
       if(status == SEMPER_OK) return EXTMEM_DRIVER_USER_OK;
 
-      // 100ms Timeout
-      if(HAL_GetTick() - start > 100) return EXTMEM_DRIVER_USER_ERROR_1;
+      // Bulk erase has a separate, much longer maximum duration.
+      if(HAL_GetTick() - start > S28HS512T_BULK_ERASE_MAX_TIME) return EXTMEM_DRIVER_USER_ERROR_1;
 
       // SEMPER Still Busy
       if(status == SEMPER_BUSY) continue;

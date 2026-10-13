@@ -1,6 +1,5 @@
 {
     "version": "2.0.0",
-
     "tasks": [
         {
             "label": "Build",
@@ -19,7 +18,6 @@
             "problemMatcher": "$gcc",
             "detail": "Build Debug/Release and select Appli, FSBL, ExtMemLoader or all."
         },
-
         {
             "label": "Internal: Build Appli Debug",
             "type": "process",
@@ -34,7 +32,6 @@
             "problemMatcher": "$gcc",
             "hide": true
         },
-
         {
             "label": "Internal: Build FSBL Debug",
             "type": "process",
@@ -48,7 +45,6 @@
             "problemMatcher": "$gcc",
             "hide": true
         },
-
         {
             "label": "Dev: Load + Run SRAM (detach)",
             "type": "process",
@@ -65,7 +61,6 @@
             "problemMatcher": [],
             "detail": "BOOT1=1: build, load selected ELF into SRAM, run and detach."
         },
-
         {
             "label": "Flash: Build + Program",
             "type": "process",
@@ -80,7 +75,6 @@
             "problemMatcher": [],
             "detail": "Build/sign the selected configuration and program external SEMPER flash."
         },
-
         {
             "label": "Flash: Program Existing Images",
             "type": "process",
@@ -91,9 +85,21 @@
             ],
             "problemMatcher": [],
             "detail": "Program already-built signed images without rebuilding."
+        },
+        {
+            "label": "Flash: Program Parameters",
+            "type": "process",
+            "command": "${workspaceFolder}/scripts/flash.sh",
+            "args": [
+                "--target",
+                "parameters",
+                "--parameters",
+                "${workspaceFolder}/config/flash_parameters.json"
+            ],
+            "problemMatcher": [],
+            "detail": "Generate JSON parameters with Git hash/dirty state and existing image provenance; replace the reserved first 256 KiB flash block. Requires previously packaged images and manifests."
         }
     ],
-
     "inputs": [
         {
             "id": "buildConfig",
@@ -105,7 +111,6 @@
             ],
             "default": "Debug"
         },
-
         {
             "id": "buildTarget",
             "type": "pickString",
@@ -118,7 +123,6 @@
             ],
             "default": "all"
         },
-
         {
             "id": "devConfig",
             "type": "pickString",
@@ -129,7 +133,6 @@
             ],
             "default": "Debug"
         },
-
         {
             "id": "devTarget",
             "type": "pickString",
@@ -140,7 +143,6 @@
             ],
             "default": "appli"
         },
-
         {
             "id": "flashConfig",
             "type": "pickString",
@@ -151,7 +153,6 @@
             ],
             "default": "Debug"
         },
-
         {
             "id": "flashTarget",
             "type": "pickString",
@@ -160,7 +161,8 @@
                 "all",
                 "fsbl",
                 "appli-a",
-                "appli-b"
+                "appli-b",
+                "parameters"
             ],
             "default": "all"
         }

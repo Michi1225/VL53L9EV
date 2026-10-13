@@ -1,5 +1,6 @@
 #include "semper_flash.h"
 #include "s28hs512t.h"
+#include <string.h>
 
 
 static SEMPER_Status_t SEMPER_Reset(SEMPER_Handle_t *dev)
@@ -63,6 +64,10 @@ SEMPER_Status_t SEMPER_Init(
     }
 
 
+    uint8_t jedec_id[3] = {0};
+    uint8_t spi_sample[32];
+    uint8_t opi_sample[32];
+
     dev->hxspi         = hxspi;
     dev->access        = SEMPER_ACCESS_INDIRECT;
     dev->interface     = S28HS512T_SPI_MODE;
@@ -81,14 +86,36 @@ SEMPER_Status_t SEMPER_Init(
     {
         return SEMPER_ERROR;
     }
+    /* A ready status alone cannot distinguish a responding flash from a
+       disconnected input returning zeroes. Check identification in SPI mode. */
+    if (S28HS512T_ReadID(hxspi, dev->interface, dev->transfer, jedec_id) != S28HS512T_OK ||
+        (jedec_id[0] == 0U) || (jedec_id[0] == 0xFFU))
+    {
+        return SEMPER_ERROR;
+    }
+    // if (S28HS512T_ReadSTR(hxspi, S28HS512T_SPI_MODE, S28HS512T_4BYTES_SIZE,
+    //                       spi_sample, 0x00100000U, sizeof(spi_sample)) != S28HS512T_OK)
+    // {
+    //     return SEMPER_ERROR;
+    // }
     // Configure device to OPI mode and DTR transfer for normal operation
-    else if(SEMPER_ConfigDevice(dev, S28HS512T_OPI_MODE, S28HS512T_DTR_TRANSFER) != SEMPER_OK)
+    if(SEMPER_ConfigDevice(dev, S28HS512T_OPI_MODE, S28HS512T_DTR_TRANSFER) != SEMPER_OK)
     {
         return SEMPER_ERROR;
     }
 
     // Set XSPI CLK to 200MHz
-    HAL_XSPI_SetClockPrescaler(dev->hxspi, 0);
+    if (HAL_XSPI_SetClockPrescaler(dev->hxspi, 0) != HAL_OK)
+    {
+        return SEMPER_ERROR;
+    }
+    /* Verify octal data transfer against the same bytes read in SPI mode.
+       This reads existing contents only; no erase or program operation. */
+    // if (S28HS512T_ReadDTR(hxspi, opi_sample, 0x00100000U, sizeof(opi_sample)) != S28HS512T_OK ||
+    //     memcmp(spi_sample, opi_sample, sizeof(spi_sample)) != 0)
+    // {
+    //     return SEMPER_ERROR;
+    // }
 
     return SEMPER_OK;
 }
@@ -218,7 +245,8 @@ SEMPER_Status_t SEMPER_EnterDOPIMode(SEMPER_Handle_t *dev)
     dat[0] = S28HS512T_CR3_VRGLAT_10;
     if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->address_width,
                                        S28HS512T_CR3_ADDR, dat[0]) != S28HS512T_OK) return SEMPER_ERROR;
-    if(S28HS512T_WriteEnable(dev->hxspi, dev->interface, dev->transfer) != S28HS512T_OK) return SEMPER_ERROR;
+    /* CFR3V = 0x80 requires one dummy clock for SPI RDSR1 now. */
+    if(S28HS512T_WriteEnableWithLatency(dev->hxspi, dev->interface, dev->transfer, 1U) != S28HS512T_OK) return SEMPER_ERROR;
     // Write to CR5 to change to OPI mode in DTR
     dat[0] = (S28HS512T_CR5_OPI_IT | S28HS512T_CR5_SDRDDR | CFR5_RSRVD);
     if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->address_width,
@@ -246,14 +274,15 @@ SEMPER_Status_t SEMPER_EnterSOPIMode(SEMPER_Handle_t *dev)
     if( S28HS512T_WriteEnable(dev->hxspi, dev->interface, dev->transfer) != S28HS512T_OK) return SEMPER_ERROR;
     // Write new CR2 configuration
     dat[0] = S28HS512T_CR2_MEMLAT_10_23_CYCLES;
-    if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->transfer,
+    if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->address_width,
                                        S28HS512T_CR2_ADDR, dat[0]) != S28HS512T_OK) return SEMPER_ERROR;
     if(S28HS512T_WriteEnable(dev->hxspi, dev->interface, dev->transfer) != S28HS512T_OK) return SEMPER_ERROR;
     //Write new CR3 configuration
     dat[0] = S28HS512T_CR3_VRGLAT_10;
     if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->address_width,
                                        S28HS512T_CR3_ADDR, dat[0]) != S28HS512T_OK) return SEMPER_ERROR;
-    if(S28HS512T_WriteEnable(dev->hxspi, dev->interface, dev->transfer) != S28HS512T_OK) return SEMPER_ERROR;
+    /* CFR3V = 0x80 requires one dummy clock for SPI RDSR1 now. */
+    if(S28HS512T_WriteEnableWithLatency(dev->hxspi, dev->interface, dev->transfer, 1U) != S28HS512T_OK) return SEMPER_ERROR;
     // Write to CR5 to change to OPI modein STR
     dat[0] = (S28HS512T_CR5_OPI_IT | CFR5_RSRVD);
     if(S28HS512T_WriteAnyRegister(dev->hxspi, dev->interface, dev->transfer, dev->address_width,

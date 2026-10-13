@@ -35,6 +35,8 @@ project(${CMAKE_PROJECT_NAME})
 
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME})
+set_property(TARGET ${CMAKE_PROJECT_NAME} APPEND PROPERTY LINK_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/${STM32_LINKER_SCRIPT}")
 
 # Include mx-generated
 include("mx-generated.cmake")
