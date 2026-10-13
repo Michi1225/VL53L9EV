@@ -22,7 +22,8 @@
 #include "app_usbx_device.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <math.h>
+#include "stream_manager.h"
+#include "imu_stream.h"
 #include "main.h"
 
 #include "ux_device_cdc_acm.h"
@@ -37,8 +38,6 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define STREAM_SAMPLES_PER_BLOCK    8192U
-#define STREAM_LUT_SIZE             1024U
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -59,8 +58,6 @@ TX_EVENT_FLAGS_GROUP usb_device_events;
 
 
 
-static int16_t stream_buffer[STREAM_SAMPLES_PER_BLOCK];
-static int16_t sine_lut[STREAM_LUT_SIZE];
 
 /* Debugger-visible telemetry; keep logging out of the streaming path. */
 volatile ULONG usb_write_ok;
@@ -250,69 +247,64 @@ UINT MX_USBX_Device_Stack_Init(void)
   * @param  thread_input: User thread input parameter.
   * @retval none
   */
+/* Only the USB thread calls this, so complete camera/IMU packets cannot interleave. */
+static UINT usb_stream_write(UCHAR *packet, ULONG length)
+{
+    UX_SLAVE_CLASS_CDC_ACM *cdc = cdc_acm;
+    if (cdc == UX_NULL || !cdc->ux_slave_class_cdc_acm_data_dtr_state)
+        return UX_ERROR;
+    ULONG actual = 0;
+    usb_write_in_progress = 1U;
+    UINT status = ux_device_class_cdc_acm_ioctl(cdc,
+        UX_SLAVE_CLASS_CDC_ACM_IOCTL_SET_WRITE_TIMEOUT,
+        (VOID *)(ALIGN_TYPE)TX_TIMER_TICKS_PER_SECOND);
+    if (status == UX_SUCCESS)
+        status = ux_device_class_cdc_acm_write(cdc, packet, length, &actual);
+    usb_write_status = status;
+    usb_write_actual = actual;
+    usb_write_bytes += actual;
+    usb_write_in_progress = 0U;
+    if (status == UX_SUCCESS && actual == length)
+        ++usb_write_ok;
+    else
+    {
+        ++usb_write_err;
+        if (actual != length)
+            ++usb_write_short;
+    }
+    return status == UX_SUCCESS && actual == length ? UX_SUCCESS : UX_ERROR;
+}
+
 static VOID usbx_app_thread_entry(ULONG thread_input)
 {
   /* USER CODE BEGIN usbx_app_thread_entry */
 
-    uint8_t txbuf[512];
-    float sine_phase = 0;
-
-    for (uint32_t i = 0; i < sizeof(txbuf); i++)
-    {
-        txbuf[i] = (uint8_t)(127.0f * (sinf(sine_phase) + 1.0f));
-        sine_phase += 2.0f * 3.14159f * 440.0f / 48000.0f; // 440 Hz tone at 48 kHz sample rate
-        if (sine_phase >= 2.0f * 3.14159f)
-        {
-            sine_phase -= 2.0f * 3.14159f;
-        }
-    }
-
-    UX_SLAVE_CLASS_CDC_ACM_CALLBACK_PARAMETER callbacks = {
-      .ux_device_class_cdc_acm_parameter_write_callback =
-          usb_cdc_write_complete,
-      .ux_device_class_cdc_acm_parameter_read_callback = UX_NULL
-    };
-
-    ux_device_class_cdc_acm_ioctl(
-        cdc_acm,
-        UX_SLAVE_CLASS_CDC_ACM_IOCTL_TRANSMISSION_START,
-    &callbacks);
-
     UX_PARAMETER_NOT_USED(thread_input);
-
     if (HAL_PCD_Start(&hpcd_USB_OTG_HS2) != HAL_OK)
-    {
         Error_Handler();
-    }
 
     for (;;)
     {
-        UX_SLAVE_CLASS_CDC_ACM *cdc = cdc_acm;
-
-
-        if (cdc == UX_NULL)
-        {
-            // usb_cdc_ready = 0;
-            tx_thread_sleep(10);
-            continue;
-        }
-
         ULONG flags;
-
-        tx_event_flags_get(
-            &usb_device_events,
-            USB_DEVICE_EVENT_TX_READY | USB_DEVICE_EVENT_TX_RETRY,
-            TX_OR_CLEAR,
-            &flags,
-            TX_WAIT_FOREVER);
-
-
-        ULONG actual_length = 0;
-
-        usb_write_in_progress = 1U;
-        
-        UINT write_status = ux_device_class_cdc_acm_write_with_callback(
-            cdc, txbuf, sizeof(txbuf));
+        tx_event_flags_get(&stream_events, STREAM_PACKET_READY | STREAM_IMU_READY,
+                           TX_OR_CLEAR, &flags, TX_WAIT_FOREVER);
+        if (flags & STREAM_PACKET_READY)
+        {
+            usb_stream_write(stream_packet, stream_packet_length);
+            /* Release the camera buffer even if disconnected or write failed. */
+            tx_event_flags_set(&stream_events, STREAM_PACKET_CONSUMED, TX_OR);
+        }
+        /* Bound each drain so camera frames also get serviced under load. */
+        ULONG imu_packet[IMU_PACKET_WORDS];
+        for (UINT i = 0; i < IMU_QUEUE_DEPTH; ++i)
+        {
+            if (tx_queue_receive(&imu_packet_queue, imu_packet, TX_NO_WAIT) != TX_SUCCESS)
+                break;
+            if (usb_stream_write((UCHAR *)imu_packet, IMU_PACKET_SIZE) == UX_SUCCESS)
+                ++imu_usb_packets_sent;
+            else
+                ++imu_usb_packets_dropped;
+        }
     }
   /* USER CODE END usbx_app_thread_entry */
 }

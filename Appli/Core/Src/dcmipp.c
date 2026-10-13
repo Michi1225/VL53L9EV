@@ -72,7 +72,23 @@ void MX_DCMIPP_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN DCMIPP_Init 2 */
-
+  /* CubeMX configures PIPE1. The VL53L9 transport uses the RAW8 dump
+   * pipe instead; keep its configuration here so regeneration preserves it. */
+  DCMIPP_CSI_PIPE_ConfTypeDef dumpCSI = {
+    .DataTypeMode = DCMIPP_DTMODE_DTIDA,
+    .DataTypeIDA = DCMIPP_DT_RAW8,
+    .DataTypeIDB = DCMIPP_DT_RAW8
+  };
+  DCMIPP_PipeConfTypeDef dumpPipe = {
+    .FrameRate = DCMIPP_FRAME_RATE_ALL
+  };
+  if (HAL_DCMIPP_CSI_PIPE_SetConfig(&hdcmipp, DCMIPP_PIPE0, &dumpCSI) != HAL_OK ||
+      HAL_DCMIPP_PIPE_SetConfig(&hdcmipp, DCMIPP_PIPE0, &dumpPipe) != HAL_OK ||
+      HAL_DCMIPP_CSI_SetVCConfig(&hdcmipp, DCMIPP_VIRTUAL_CHANNEL0,
+                                DCMIPP_CSI_DT_BPP8) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE END DCMIPP_Init 2 */
 
 }
@@ -92,7 +108,7 @@ void HAL_DCMIPP_MspInit(DCMIPP_HandleTypeDef* dcmippHandle)
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_DCMIPP|RCC_PERIPHCLK_CSI;
     PeriphClkInitStruct.DcmippClockSelection = RCC_DCMIPPCLKSOURCE_PCLK5;
     PeriphClkInitStruct.ICSelection[RCC_IC18].ClockSelection = RCC_ICCLKSOURCE_PLL4;
-    PeriphClkInitStruct.ICSelection[RCC_IC18].ClockDivider = 1;
+    PeriphClkInitStruct.ICSelection[RCC_IC18].ClockDivider = 80;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
     {
       Error_Handler();

@@ -35,6 +35,14 @@ extern I3C_HandleTypeDef hi3c2;
 
 static volatile platform_event_t g_platform_evt;
 
+/* Debugger counters distinguish CSI reception from PIPE0 completion. */
+volatile uint32_t platform_csi_sof_count;
+volatile uint32_t platform_csi_eof_count;
+volatile uint32_t platform_cam_vsync_count;
+volatile uint32_t platform_cam_frame_count;
+volatile HAL_StatusTypeDef platform_csi_start_status = HAL_BUSY;
+volatile HAL_StatusTypeDef platform_daa_status = HAL_BUSY;
+
 // the following are used during the I3C DAA procedure
 static unsigned int dev_count = 0;
 static uint64_t dev_payload[NB_DEVICES];
@@ -108,6 +116,7 @@ int platform_assign_dynamic_address() {
     if (device[0].bus_type & PLATFORM_BUS_I3C) {
         HAL_StatusTypeDef status;
         uint64_t payload;
+        dev_count = 0;
 
         if (HAL_I3C_DeInit(&hi3c2) != HAL_OK) {
             return -1;
@@ -131,12 +140,19 @@ int platform_assign_dynamic_address() {
         // NOTE: for the moment apply static address as dynamic address
         do {
             status = HAL_I3C_Ctrl_DynAddrAssign(&hi3c2, &payload, I3C_RSTDAA_THEN_ENTDAA, 5000);
+            platform_daa_status = status;
             if (status == HAL_BUSY) {
-                HAL_I3C_Ctrl_SetDynAddr(&hi3c2, address & 0x7F);
+                if (dev_count >= NB_DEVICES)
+                    return -1;
+                platform_daa_status = HAL_I3C_Ctrl_SetDynAddr(&hi3c2, address & 0x7F);
+                if (platform_daa_status != HAL_OK)
+                    return -1;
                 dev_count++;
                 dev_payload[dev_count - 1] = payload;
             }
         } while (status == HAL_BUSY);
+        if (status != HAL_OK || dev_count == 0)
+            return -1;
 
         // set i3c bus frequency to 10 MHz after dynamic address assignement
         if (HAL_I3C_DeInit(&hi3c2) != HAL_OK) {
@@ -372,15 +388,36 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin) {
 
 void HAL_DCMIPP_PIPE_FrameEventCallback(DCMIPP_HandleTypeDef *hdcmipp, uint32_t Pipe) {
     if (Pipe == DCMIPP_PIPE0) {
+        ++platform_cam_frame_count;
         g_platform_evt |= PLATFORM_CAM_PIPE_FRAME_EVT;
     }
+}
+
+void HAL_DCMIPP_PIPE_VsyncEventCallback(DCMIPP_HandleTypeDef *hdcmipp, uint32_t Pipe) {
+    (void)hdcmipp;
+    if (Pipe == DCMIPP_PIPE0)
+        ++platform_cam_vsync_count;
+}
+
+void HAL_DCMIPP_CSI_StartOfFrameEventCallback(DCMIPP_HandleTypeDef *hdcmipp, uint32_t VirtualChannel) {
+    (void)hdcmipp;
+    if (VirtualChannel == DCMIPP_VIRTUAL_CHANNEL0)
+        ++platform_csi_sof_count;
+}
+
+void HAL_DCMIPP_CSI_EndOfFrameEventCallback(DCMIPP_HandleTypeDef *hdcmipp, uint32_t VirtualChannel) {
+    (void)hdcmipp;
+    if (VirtualChannel == DCMIPP_VIRTUAL_CHANNEL0)
+        ++platform_csi_eof_count;
 }
 
 /* csi interface */
 
 int platform_start_csi_pipe(uint8_t *buff_csi) {
-    if (HAL_OK != HAL_DCMIPP_CSI_PIPE_Start(&hdcmipp, DCMIPP_PIPE1, DCMIPP_VIRTUAL_CHANNEL0, (uint32_t)buff_csi,
-                                            DCMIPP_MODE_CONTINUOUS)) {
+    platform_csi_start_status = HAL_DCMIPP_CSI_PIPE_Start(&hdcmipp, DCMIPP_PIPE0,
+                                DCMIPP_VIRTUAL_CHANNEL0, (uint32_t)buff_csi,
+                                DCMIPP_MODE_SNAPSHOT);
+    if (platform_csi_start_status != HAL_OK) {
         return -1;
     }
     return 0;

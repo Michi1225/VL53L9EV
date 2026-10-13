@@ -13,6 +13,10 @@
 #define FIFO_WATERMARK (32)
 
 #define IMU_INIT_TIMEOUT_MS (1000)
+#define IMU_DATA_ACC  (1U << 0)
+#define IMU_DATA_GYRO (1U << 1)
+#define IMU_DATA_SFLP (1U << 2)
+#define IMU_DATA_ALL  (IMU_DATA_ACC | IMU_DATA_GYRO | IMU_DATA_SFLP)
 
 typedef struct 
 {
@@ -29,10 +33,12 @@ typedef struct
     uint32_t timestamp_acc;
     float_t gyro_mdps[3];
     uint32_t timestamp_gyro;
+    uint8_t valid_data;
 } IMU;
 
 HAL_StatusTypeDef imu_init(IMU *imu);
 HAL_StatusTypeDef imu_get_data_blocking(IMU *imu);
+HAL_StatusTypeDef imu_reset_fifo(IMU *imu);
 
 
 #endif //__IMU_H_

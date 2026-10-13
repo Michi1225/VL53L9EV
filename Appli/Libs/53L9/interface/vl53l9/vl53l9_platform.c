@@ -20,12 +20,34 @@
 #include "vl53l9.h"
 #include "vl53l9_interface.h"
 #include "vl53l9_platform.h"
+#include "tx_api.h"
 
 #include <string.h>
+
+/* Preserve the first failing write's HAL details for debugger inspection. */
+volatile uint32_t vl53_i3c_write_phase; /* 1 = descriptor, 2 = transmit, 3 = done */
+volatile uint32_t vl53_i3c_hal_status;
+volatile uint32_t vl53_i3c_hal_error;
+volatile uint32_t vl53_i3c_write_size;
+volatile uint32_t vl53_i3c_tx_remaining;
+volatile uint32_t vl53_i3c_write_elapsed_ms;
 
 static int _i3c_read(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescriptor, I3C_XferTypeDef *aContextBuffers);
 static int _i3c_read_async(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescriptor, I3C_XferTypeDef *aContextBuffers);
 static int _i3c_write(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescriptor, I3C_XferTypeDef *aContextBuffers);
+
+static int _i3c_wait_ready(I3C_HandleTypeDef *hi3c) {
+    uint32_t start = HAL_GetTick();
+    for (;;) {
+        HAL_I3C_StateTypeDef state = HAL_I3C_GetState(hi3c);
+        if (state == HAL_I3C_STATE_READY || state == HAL_I3C_STATE_LISTEN)
+            return VL53L9_ERROR_NONE;
+        if (state == HAL_I3C_STATE_ERROR)
+            return VL53L9_ERROR_PLATFORM;
+        if ((uint32_t)(HAL_GetTick() - start) >= 100U)
+            return VL53L9_ERROR_TIMEOUT;
+    }
+}
 
 int vl53l9_read(void *const p_dev, uint16_t address, uint8_t *p_values, uint32_t size) {
 
@@ -301,8 +323,10 @@ static int _i3c_read(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescriptor, 
         if (HAL_I3C_Ctrl_Transmit(p_hi3c, &aContextBuffers[0], 100) != HAL_OK) {
             ret = VL53L9_ERROR_INTERNAL;
         }
-        while ((HAL_I3C_GetState(p_hi3c) != HAL_I3C_STATE_READY) &&
-               (HAL_I3C_GetState(p_hi3c) != HAL_I3C_STATE_LISTEN)) {
+        if (ret == VL53L9_ERROR_NONE) {
+            ret = _i3c_wait_ready(p_hi3c);
+            if (ret != VL53L9_ERROR_NONE)
+                return ret;
         }
     }
     if (ret == VL53L9_ERROR_NONE) {
@@ -342,8 +366,10 @@ static int _i3c_read_async(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescri
         if (HAL_I3C_Ctrl_Transmit(p_hi3c, &aContextBuffers[0], 100) != HAL_OK) {
             ret = VL53L9_ERROR_INTERNAL;
         }
-        while ((HAL_I3C_GetState(p_hi3c) != HAL_I3C_STATE_READY) &&
-               (HAL_I3C_GetState(p_hi3c) != HAL_I3C_STATE_LISTEN)) {
+        if (ret == VL53L9_ERROR_NONE) {
+            ret = _i3c_wait_ready(p_hi3c);
+            if (ret != VL53L9_ERROR_NONE)
+                return ret;
         }
     }
     if (ret == VL53L9_ERROR_NONE) {
@@ -365,27 +391,55 @@ static int _i3c_read_async(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescri
 }
 
 static int _i3c_write(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescriptor, I3C_XferTypeDef *aContextBuffers) {
-
-    int ret = VL53L9_ERROR_NONE;
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
-
     I3C_HandleTypeDef *p_hi3c = (I3C_HandleTypeDef *)p_device->bus;
-
-    if (ret == VL53L9_ERROR_NONE) {
-        if (HAL_I3C_AddDescToFrame(p_hi3c, NULL, &aPrivateDescriptor[0], &aContextBuffers[0],
-                                   aContextBuffers[0].CtrlBuf.Size, I3C_PRIVATE_WITHOUT_ARB_STOP) != HAL_OK) {
-            ret = VL53L9_ERROR_INTERNAL;
+    uint32_t start = HAL_GetTick();
+    vl53_i3c_write_size = aContextBuffers[0].TxBuf.Size;
+    vl53_i3c_write_phase = 1;
+    HAL_StatusTypeDef status = HAL_I3C_AddDescToFrame(p_hi3c, NULL, &aPrivateDescriptor[0],
+                                 &aContextBuffers[0], aContextBuffers[0].CtrlBuf.Size,
+                                 I3C_PRIVATE_WITHOUT_ARB_STOP);
+    if (status == HAL_OK) {
+        vl53_i3c_write_phase = 2;
+        uint32_t previous_threshold = LL_I3C_GetTxFIFOThreshold(p_hi3c->Instance);
+        /* This helper sends one descriptor: word FIFO mode is allowed and
+         * services four bytes per write instead of one. */
+        LL_I3C_SetTxFIFOThreshold(p_hi3c->Instance, LL_I3C_TXFIFO_THRESHOLD_4_4);
+        TX_THREAD *thread = tx_thread_identify();
+        UINT previous_preemption = 0;
+        bool protected = false;
+        /* Long polled writes (notably the patch) cannot tolerate a task switch
+         * while the bus keeps draining the FIFO. IRQs and the HAL tick remain
+         * enabled; restore scheduling before returning, including on errors. */
+        if (aContextBuffers[0].TxBuf.Size > 256U && thread != TX_NULL) {
+            UINT result = tx_thread_preemption_change(thread, 0, &previous_preemption);
+            if (result != TX_SUCCESS) {
+                LL_I3C_SetTxFIFOThreshold(p_hi3c->Instance, previous_threshold);
+                return VL53L9_ERROR_PLATFORM;
+            }
+            protected = true;
+        }
+        status = HAL_I3C_Ctrl_Transmit(p_hi3c, &aContextBuffers[0], 100);
+        /* Save HAL diagnostics before restoring preemption permits a switch. */
+        vl53_i3c_hal_status = status;
+        vl53_i3c_hal_error = p_hi3c->ErrorCode;
+        vl53_i3c_tx_remaining = p_hi3c->TxXferCount;
+        LL_I3C_SetTxFIFOThreshold(p_hi3c->Instance, previous_threshold);
+        if (protected) {
+            UINT ignored;
+            (void)tx_thread_preemption_change(thread, previous_preemption, &ignored);
         }
     }
-    if (ret == VL53L9_ERROR_NONE) {
-        if (HAL_I3C_Ctrl_Transmit(p_hi3c, &aContextBuffers[0], 100) != HAL_OK) {
-            ret = VL53L9_ERROR_INTERNAL;
-        }
-    }
-    if (ret != VL53L9_ERROR_NONE) {
-        ret = VL53L9_ERROR_INVALID_OPERATION;
-    }
-    return ret;
+    vl53_i3c_hal_status = status;
+    vl53_i3c_hal_error = p_hi3c->ErrorCode;
+    vl53_i3c_tx_remaining = p_hi3c->TxXferCount;
+    vl53_i3c_write_elapsed_ms = (uint32_t)(HAL_GetTick() - start);
+    if (status == HAL_TIMEOUT)
+        return VL53L9_ERROR_TIMEOUT;
+    if (status != HAL_OK)
+        return VL53L9_ERROR_PLATFORM;
+    vl53_i3c_write_phase = 3;
+    return VL53L9_ERROR_NONE;
 }
 
 int vl53l9_wait_ms(void *const p_dev, uint32_t delay_ms) {

@@ -1,179 +1,394 @@
 #!/usr/bin/env python3
+"""Receive VL9F camera and IMUF inertial packets on one USB CDC stream."""
 
-import re
-import subprocess
-import threading
-import time
+import argparse
 from collections import deque
+from dataclasses import dataclass
+import glob
+import struct
+import threading
 
-import serial
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-
-
-BAUDRATE = 115200          # Irrelevant for USB CDC, but pyserial requires a value
+BAUDRATE = 115200  # USB CDC ignores baud rate.
 READ_SIZE = 4096
-PLOT_SAMPLES = 4096
+PLOT_FPS = 30
+IMU_PLOT_SECONDS = 10
+IMU_PLOT_SAMPLES = 1000
+HEADER = struct.Struct("<4sIIHH")
+MAGIC = b"VL9F"
+IMU_MAGIC = b"IMUF"
+IMU_PAYLOAD = struct.Struct("<I10f")
+MAX_PAYLOAD = 100 * 149
+RAW_GRID_SIZES = {2: (54, 42), 4: (24, 24), 6: (18, 14),
+                  8: (12, 10), 12: (8, 8), 24: (4, 4)}
 
-data_buffer = deque(maxlen=PLOT_SAMPLES)
 
+@dataclass(frozen=True)
+class Packet:
+    sequence: int
+    width: int
+    height: int
+    payload: bytes
+    kind: bytes = MAGIC
+
+
+def decode_depth(packet):
+    """Decode the raw radial-distance plane and the status row's crop.
+
+    Layout follows vl53l9_utils.h: 100-byte metadata at the payload end,
+    binning in bits 6..10 of offset 58 and crop fields at offset 72.
+    Bit 15 of each distance is the ranging-step selector, not validity.
+    """
+    import numpy as np
+
+    if packet.kind != MAGIC or len(packet.payload) < 100:
+        raise ValueError("missing VL53L9 status row")
+    metadata = packet.payload[-100:]
+    dynamic = struct.unpack_from("<H", metadata, 58)[0]
+    binning = (dynamic >> 6) & 0x1F
+    if binning not in RAW_GRID_SIZES:
+        raise ValueError(f"unsupported metadata binning {binning}")
+    width, height = RAW_GRID_SIZES[binning]
+    zones = width * height
+    if len(packet.payload) < zones * 6 + zones // 2 + 100:
+        raise ValueError("payload is too short for depth/amplitude/ambient/DSS")
+    words = np.frombuffer(packet.payload, dtype="<u2", count=zones)
+    depth = (words & 0x7FFF).astype(float).reshape(height, width)
+    crop = struct.unpack_from("<I", metadata, 72)[0]
+    if crop & (1 << 24):
+        crop_width, crop_height = crop & 0x3F, (crop >> 6) & 0x3F
+        x, y = (crop >> 12) & 0x3F, (crop >> 18) & 0x3F
+        if not (crop_width and crop_height and x + crop_width <= width and
+                y + crop_height <= height):
+            raise ValueError("invalid metadata crop bounds")
+        depth = depth[y:y + crop_height, x:x + crop_width]
+    # Show missing zero-distance returns in gray rather than as a near target.
+    return np.ma.masked_equal(depth, 0), binning
+
+
+class PacketParser:
+    """Handle split/coalesced packets and recover after invalid headers."""
+
+    def __init__(self):
+        self.buffer = bytearray()
+        self.discarded = 0
+        self.invalid_headers = 0
+
+    def feed(self, data):
+        self.buffer.extend(data)
+        packets = []
+        while True:
+            starts = [pos for magic in (MAGIC, IMU_MAGIC)
+                      if (pos := self.buffer.find(magic)) >= 0]
+            start = min(starts) if starts else -1
+            if start < 0:
+                # Preserve a possible partial magic at the next read boundary.
+                count = max(0, len(self.buffer) - (len(MAGIC) - 1))
+                self.discarded += count
+                del self.buffer[:count]
+                break
+            if start:
+                self.discarded += start
+                del self.buffer[:start]
+            if len(self.buffer) < HEADER.size:
+                break
+            kind, sequence, length, width, height = HEADER.unpack_from(self.buffer)
+            valid = ((kind == MAGIC and 0 < width <= 100 and 0 < height <= 149 and
+                      length == width * height and length <= MAX_PAYLOAD) or
+                     (kind == IMU_MAGIC and length == IMU_PAYLOAD.size and
+                      width == 10 and height == 1))
+            if not valid:
+                self.invalid_headers += 1
+                self.discarded += 1
+                del self.buffer[0]
+                continue
+            end = HEADER.size + length
+            if len(self.buffer) < end:
+                break
+            packets.append(Packet(sequence, width, height,
+                                  bytes(self.buffer[HEADER.size:end]), kind))
+            del self.buffer[:end]
+        return packets
+
+
+imu_plot_buffer = deque(maxlen=IMU_PLOT_SAMPLES)
 rx_total = 0
-rx_last = 0
+packet_count = 0
+sequence_gaps = 0
+latest_packet = None
+latest_imu_packet = None
+imu_packet_count = 0
+parser_discarded = 0
+parser_invalid = 0
 port_name = None
 connected = False
-
 lock = threading.Lock()
+stop_event = threading.Event()
 
 
 def serial_reader(port):
-    global rx_total, connected
+    import serial
 
+    global rx_total, connected, latest_packet, packet_count, sequence_gaps
+    global parser_discarded, parser_invalid
+    global latest_imu_packet, imu_packet_count
+    parser = PacketParser()
+    previous_sequence = {}
+    previous_imu_timestamp = None
+    imu_elapsed_ms = 0
     print(f"[USB] Opening {port}")
-
     try:
-        ser = serial.Serial(
-            port=port,
-            baudrate=BAUDRATE,
-            timeout=0.1,
-        )
-    except Exception as e:
-        print(f"[USB] Failed to open {port}: {e}")
+        ser = serial.Serial(port, BAUDRATE, timeout=0.1)
+    except Exception as exc:
+        print(f"[USB] Failed to open {port}: {exc}")
         return
-
-    connected = True
+    with lock:
+        latest_packet = None
+        latest_imu_packet = None
+        parser_discarded = parser_invalid = 0
+        imu_plot_buffer.clear()
+        connected = True
     print(f"[USB] Connected to {port}")
-
     try:
-        while True:
-            data = ser.read(READ_SIZE)
-
-            if data:
-                with lock:
-                    data_buffer.extend(data)
-                    rx_total += len(data)
-
-    except serial.SerialException as e:
-        print(f"[USB] Serial error: {e}")
-
+        while not stop_event.is_set():
+            # Wait for a byte, then drain available bytes immediately. Asking
+            # for 4096 bytes at once delayed IMU-only traffic by the timeout.
+            data = ser.read(1)
+            if not data:
+                continue
+            available = ser.in_waiting
+            if available:
+                data += ser.read(min(available, READ_SIZE - 1))
+            packets = parser.feed(data)
+            with lock:
+                rx_total += len(data)
+                parser_discarded = parser.discarded
+                parser_invalid = parser.invalid_headers
+                for packet in packets:
+                    previous = previous_sequence.get(packet.kind)
+                    if previous is not None and packet.sequence != ((previous + 1) & 0xFFFFFFFF):
+                        sequence_gaps += 1
+                    previous_sequence[packet.kind] = packet.sequence
+                    packet_count += 1
+                    if packet.kind == MAGIC:
+                        latest_packet = packet
+                    else:
+                        latest_imu_packet = packet
+                        imu_packet_count += 1
+                        timestamp, *values = IMU_PAYLOAD.unpack(packet.payload)
+                        if previous_imu_timestamp is not None:
+                            delta = (timestamp - previous_imu_timestamp) & 0xFFFFFFFF
+                            if delta < 0x80000000:
+                                imu_elapsed_ms += delta
+                            else:
+                                # MCU restarted without a USB disconnect.
+                                imu_plot_buffer.clear()
+                                imu_elapsed_ms = 0
+                        previous_imu_timestamp = timestamp
+                        elapsed = imu_elapsed_ms / 1000.0
+                        imu_plot_buffer.append((elapsed, values))
+                        while imu_plot_buffer and elapsed - imu_plot_buffer[0][0] > IMU_PLOT_SECONDS:
+                            imu_plot_buffer.popleft()
+    except (serial.SerialException, OSError) as exc:
+        print(f"[USB] Serial error: {exc}")
     finally:
         connected = False
         ser.close()
         print(f"[USB] {port} disconnected")
 
 
-def usb_monitor():
+def usb_monitor(requested_port=None):
+    """Keep exactly one reader active, retrying after unplug or open failure."""
     global port_name
-
-    # Follow kernel log continuously
-    proc = subprocess.Popen(
-        ["dmesg", "--follow", "--color=never"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-    )
-
-    # Matches e.g.
-    # cdc_acm 1-3:1.0: ttyACM1: USB ACM device
-    pattern = re.compile(r"(ttyACM1+): USB ACM device")
-
     print("[USB] Waiting for CDC ACM device...")
-
-    for line in proc.stdout:
-        print("[dmesg]", line.rstrip())
-
-        match = pattern.search(line)
-
-        if match:
-            new_port = "/dev/" + match.group(1)
-
-            if new_port != port_name or not connected:
-                port_name = new_port
-
-                threading.Thread(
-                    target=serial_reader,
-                    args=(new_port,),
-                    daemon=True,
-                ).start()
+    while not stop_event.is_set():
+        if requested_port:
+            port_name = requested_port
+            serial_reader(port_name)
+        else:
+            ports = sorted(glob.glob("/dev/ttyACM*"))
+            # Prefer the last device if it is still present, but allow a new
+            # ttyACM number after USB re-enumeration.
+            if port_name in ports:
+                ports.remove(port_name)
+                ports.insert(0, port_name)
+            for port in ports:
+                if stop_event.is_set():
+                    break
+                port_name = port
+                serial_reader(port_name)
+        stop_event.wait(1.0)
 
 
 def status_thread():
-    global rx_last
-
-    while True:
-        time.sleep(1.0)
-
+    last_bytes = last_packets = last_imu = 0
+    while not stop_event.wait(1.0):
         with lock:
-            total = rx_total
-
-        rate = total - rx_last
-        rx_last = total
-
-        if connected:
-            print(
-                f"[STATUS] {port_name} | "
-                f"RX total: {total:10d} B | "
-                f"RX rate: {rate:8d} B/s"
-            )
-        else:
+            total, count, packet = rx_total, packet_count, latest_packet
+            gaps, discarded, invalid = sequence_gaps, parser_discarded, parser_invalid
+            imu_count, imu_packet = imu_packet_count, latest_imu_packet
+        rate, fps = total - last_bytes, count - last_packets
+        imu_fps = imu_count - last_imu
+        last_imu = imu_count
+        last_bytes, last_packets = total, count
+        if not connected:
             print("[STATUS] waiting for device...")
+            continue
+        print(f"[STATUS] {port_name} | RX: {total} B | {rate} B/s | "
+              f"packets: {count} | camera: {fps - imu_fps}/s | IMU: {imu_fps}/s | sequence gaps: {gaps} | "
+              f"discarded: {discarded} B | invalid headers: {invalid}")
+        if packet:
+            nonzero = sum(value != 0 for value in packet.payload)
+            print(f"[PACKET] seq={packet.sequence} size={packet.width}x{packet.height} "
+                  f"payload={len(packet.payload)} B nonzero={nonzero} "
+                  f"min={min(packet.payload)} max={max(packet.payload)} "
+                  f"first16={packet.payload[:16].hex(' ')}")
+        if imu_packet:
+            timestamp, *values = IMU_PAYLOAD.unpack(imu_packet.payload)
+            def vector(items):
+                return '(' + ', '.join(f'{value:.4f}' for value in items) + ')'
+            print(f"[IMU] seq={imu_packet.sequence} t={timestamp} ms "
+                  f"acc_mg={vector(values[:3])} gyro_mdps={vector(values[3:6])} "
+                  f"quat_xyzw={vector(values[6:])}")
 
 
-# ----------------------------------------------------------------------
-# Start background threads
-# ----------------------------------------------------------------------
+def create_plots(refresh_hz=PLOT_FPS, depth_max=4000):
+    import matplotlib.pyplot as plt
+    from matplotlib.animation import FuncAnimation
+    import numpy as np
 
-threading.Thread(
-    target=usb_monitor,
-    daemon=True,
-).start()
+    # Compute layout once; constrained layout ran again on every redraw.
+    fig = plt.figure(figsize=(14, 9))
+    layout = fig.add_gridspec(3, 2, width_ratios=(1.2, 1))
+    ax = fig.add_subplot(layout[:, 0])
+    acc_ax, gyro_ax, quat_ax = [fig.add_subplot(layout[row, 1]) for row in range(3)]
+    fig.canvas.manager.set_window_title("VL53L9 and IMU streaming")
+    cmap = plt.get_cmap("turbo_r").copy()
+    cmap.set_bad("#555555")
+    image = ax.imshow(np.ma.masked_all((42, 54)), interpolation="nearest",
+                      origin="upper", cmap=cmap, vmin=0, vmax=depth_max)
+    fig.colorbar(image, ax=ax, label="Raw radial depth (mm)")
+    ax.set_xlabel("Zone column")
+    ax.set_ylabel("Zone row")
+    ax.set_title("VL53L9 depth grid")
+    depth_info = ax.text(0.01, 0.98, "Waiting for a depth frame", transform=ax.transAxes,
+                         va="top", color="white", fontsize=9,
+                         bbox=dict(facecolor="black", alpha=0.6, edgecolor="none"))
 
-threading.Thread(
-    target=status_thread,
-    daemon=True,
-).start()
+    def depth_coordinate(x, y):
+        col, row = int(np.floor(x + 0.5)), int(np.floor(y + 0.5))
+        grid = image.get_array()
+        if 0 <= row < grid.shape[0] and 0 <= col < grid.shape[1]:
+            value = grid[row, col]
+            distance = "no return" if np.ma.is_masked(value) else f"{value:.0f} mm"
+            return f"column={col}, row={row}, depth={distance}"
+        return ""
+    ax.format_coord = depth_coordinate
+
+    imu_axes = (acc_ax, gyro_ax, quat_ax)
+    imu_lines = []
+    for plot_ax, title, ylabel, labels in (
+        (acc_ax, "Acceleration", "Acceleration (mg)", ("x", "y", "z")),
+        (gyro_ax, "Angular velocity", "Gyro (deg/s)", ("x", "y", "z")),
+        (quat_ax, "SFLP game rotation quaternion", "Quaternion component", ("x", "y", "z", "w")),
+    ):
+        imu_lines.append([plot_ax.plot([], [], label=label)[0] for label in labels])
+        plot_ax.set_title(title)
+        plot_ax.set_ylabel(ylabel)
+        plot_ax.set_xlabel("Time relative to latest sample (s)")
+        plot_ax.set_xlim(-IMU_PLOT_SECONDS, 0)
+        plot_ax.grid(True, alpha=0.3)
+        plot_ax.legend(loc="upper right", ncol=len(labels))
+    quat_ax.set_ylim(-1.1, 1.1)
+    acc_ax.set_ylim(-1200, 1200)
+    gyro_ax.set_ylim(-10, 10)
+    fig.tight_layout()
+    artists = (image, depth_info, *(trace for traces in imu_lines for trace in traces))
+    use_blit = fig.canvas.supports_blit
+    previous_packet = None
+
+    def update_plot(_):
+        nonlocal previous_packet
+        with lock:
+            packet = latest_packet
+            imu_samples = list(imu_plot_buffer)
+        changed_limits = False
+        if packet is not previous_packet:
+            previous_packet = packet
+            if packet is None:
+                image.set_data(np.ma.masked_all(image.get_array().shape))
+                depth_info.set_text("Waiting for a depth frame")
+            else:
+                try:
+                    grid, binning = decode_depth(packet)
+                    rows, cols = grid.shape
+                    if grid.shape != image.get_array().shape:
+                        image.set_extent((-0.5, cols - 0.5, rows - 0.5, -0.5))
+                        ax.set_xlim(-0.5, cols - 0.5)
+                        ax.set_ylim(rows - 0.5, -0.5)
+                        changed_limits = True
+                    image.set_data(grid)
+                    depth_info.set_text(f"seq {packet.sequence} | {cols} × {rows} zones | binning {binning}")
+                except ValueError as exc:
+                    image.set_data(np.ma.masked_all(image.get_array().shape))
+                    depth_info.set_text(f"Cannot decode depth: {exc}")
+        times = np.asarray([sample[0] for sample in imu_samples])
+        values = np.asarray([sample[1] for sample in imu_samples]).reshape(-1, 10)
+        if len(times):
+            times = times - times[-1]
+        for plot_ax, traces, offset, scale in zip(
+                imu_axes, imu_lines, (0, 3, 6), (1.0, 0.001, 1.0)):
+            channels = values[:, offset:offset + len(traces)] * scale
+            for component, trace in enumerate(traces):
+                trace.set_data(times, channels[:, component])
+            # Expand only when a new motion exceeds the current range, keeping
+            # axes/ticks stable for blitting instead of autoscaling every frame.
+            if len(times) and plot_ax is not quat_ax:
+                finite = channels[np.isfinite(channels)]
+                if finite.size:
+                    low, high = plot_ax.get_ylim()
+                    peak = float(np.max(np.abs(finite)))
+                    if -peak < low or peak > high:
+                        bound = max(abs(low), abs(high), peak * 1.2)
+                        plot_ax.set_ylim(-bound, bound)
+                        changed_limits = True
+        if changed_limits and use_blit:
+            # Refresh backgrounds/ticks when a range really changes. The
+            # animation detects the new axis view and caches its background.
+            fig.canvas.draw()
+        return artists
+
+    animation = FuncAnimation(fig, update_plot, init_func=lambda: artists,
+                              interval=1000 / refresh_hz, blit=use_blit,
+                              cache_frame_data=False)
+    return fig, animation
 
 
-# ----------------------------------------------------------------------
-# Live plot
-# ----------------------------------------------------------------------
+def main():
+    import matplotlib.pyplot as plt
 
-fig, ax = plt.subplots()
+    global port_name
+    args_parser = argparse.ArgumentParser(description=__doc__)
+    args_parser.add_argument("--port", help="Serial device to retry, e.g. /dev/ttyACM1; default: rescan /dev/ttyACM*")
+    args_parser.add_argument("--fps", type=int, default=PLOT_FPS,
+                             help="Plot refresh target, 1–120 (default: 30)")
+    args_parser.add_argument("--depth-max", type=float, default=4000,
+                             help="Depth colour scale maximum in mm (default: 4000)")
+    args = args_parser.parse_args()
+    if not 1 <= args.fps <= 120:
+        args_parser.error("--fps must be between 1 and 120")
+    if not 0 < args.depth_max <= 32767:
+        args_parser.error("--depth-max must be between 0 and 32767 mm")
+    port_name = args.port
+    stop_event.clear()
+    threading.Thread(target=usb_monitor, args=(args.port,), daemon=True).start()
+    threading.Thread(target=status_thread, daemon=True).start()
 
-line, = ax.plot([], [])
-
-ax.set_ylim(0, 255)
-ax.set_xlim(0, PLOT_SAMPLES)
-
-ax.set_xlabel("Sample")
-ax.set_ylabel("Received byte")
-ax.set_title("USB CDC receive data")
-
-
-def update_plot(_):
-    with lock:
-        data = list(data_buffer)
-
-    if not data:
-        return line,
-
-    x = range(len(data))
-
-    line.set_data(x, data)
-
-    if len(data) > 1:
-        ax.set_xlim(0, len(data))
-
-    return line,
+    fig, animation = create_plots(args.fps, args.depth_max)
+    try:
+        plt.show()
+    finally:
+        stop_event.set()
 
 
-ani = FuncAnimation(
-    fig,
-    update_plot,
-    interval=100,
-    blit=False,
-)
-
-# plt.show()
-while True:
-    time.sleep(1)
+if __name__ == "__main__":
+    main()

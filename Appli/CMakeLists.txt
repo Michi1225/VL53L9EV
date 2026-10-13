@@ -45,6 +45,10 @@ set(CMAKE_CXX_COMPILER_FORCED "true")
 
 # Add project symbols (macros)
 option(DEV_MODE "Build application for direct SRAM development" OFF)
+option(VL53L9_SENSOR_ONLY "Run VL53L9 without DCMIPP capture for fault isolation" OFF)
+if(VL53L9_SENSOR_ONLY)
+    target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE VL53L9_SENSOR_ONLY)
+endif()
 
 if(DEV_MODE)
     target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE DEV_MODE)
@@ -83,11 +87,13 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ./Libs/53L9/interface/vl53l9/vl53l9_device.c
     ./Libs/53L9/interface/vl53l9/vl53l9_platform.c
     ./Libs/53L9/interface/vl53l9/vl53l9_utils.c
+    ./Libs/53L9/vl53l9/vl53l9.c
     ./Libs/53L9/app/VL53L9_process.c
     ./Libs/PHY/ADIN1300.c
     ./Libs/control/control_server.c
     ./Libs/control/housekeeping.c
     ./Libs/control/stream_manager.c
+    ./Libs/control/imu_stream.c
     ./Libs/control/app_events.c
     ../common/led/LEDController.c
     ./Core/Src/app_clock.c

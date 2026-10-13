@@ -69,7 +69,7 @@ vl53l9_profile_t g_ranging_profiles[VL53L9_NB_USECASES] = {
         .sync = VL53L9_SYNC_AUTONOMOUS,
         .power = VL53L9_POWER_REGULAR,
         .context = VL53L9_CONTEXT_LONG,
-        .frame_period_us = FPS_TO_FRAME_PERIOD(100),
+        .frame_period_us = FPS_TO_FRAME_PERIOD(10),
         .binning = 2,
         .exposure_ms = 4,
     }

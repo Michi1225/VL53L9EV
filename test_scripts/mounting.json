@@ -1,0 +1,12 @@
+{
+  "rotation_lidar_to_imu": [[0, -1, 0], [-1, 0, 0], [0, 0, -1]],
+  "translation_lidar_to_imu_m": [0, 0, 0],
+  "mounting_calibrated": false,
+  "rotation_source": "Static gravity observations: upright +IMU X, clockwise 90 degrees +IMU Y, pointing up -IMU Z",
+  "translation_source": "Zero placeholder; PCB-to-IMU axes and Z offset not yet supplied",
+  "imu_position_pcb_mm": [10, 10],
+  "lidar_position_pcb_mm": [33.4, -10],
+  "horizontal_fov_deg": 55,
+  "vertical_fov_deg": 42,
+  "invert_sflp_quaternion": false
+}

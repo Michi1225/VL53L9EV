@@ -588,7 +588,15 @@ int vl53l9_start(void *const p_dev) {
         ret = _is_valid_csi_config(p_dev);
         CHECK_RET(ret);
     }
-    return _write_cmd(p_dev, COMMAND_START_STREAM, 60);
+    ret = _write_cmd(p_dev, COMMAND_START_STREAM, 60);
+    CHECK_RET(ret);
+    /* Command completion alone is not confirmation that ranging started. */
+    uint8_t command_error;
+    ret = vl53l9_read8(p_dev, VL53L9_REGADDR_COMMAND_ERROR, &command_error);
+    CHECK_RET(ret);
+    if (command_error != 0)
+        return VL53L9_ERROR_INVALID_OPERATION;
+    return _wait_for_state(p_dev, FSM_STATE_STREAMING, 60);
 }
 
 int vl53l9_stop(void *const p_dev) {
@@ -821,7 +829,7 @@ int vl53l9_get_status(void *const p_dev, vl53l9_status_t *status) {
     ret = vl53l9_read8(p_dev, VL53L9_REGADDR_ERROR_STATUS, (uint8_t *)&status->error);
     CHECK_RET(ret);
     for (uint16_t i = 0U; i < 5U; i++) {
-        ret = vl53l9_read8(p_dev, VL53L9_REGADDR_LDD_STATUS(i), (uint8_t *)status->laser_driver);
+        ret = vl53l9_read8(p_dev, VL53L9_REGADDR_LDD_STATUS(i), &status->laser_driver[i]);
         CHECK_RET(ret);
     }
 
@@ -867,54 +875,46 @@ int vl53l9_get_raw_buffer_size(uint8_t binning, uint16_t *p_size) {
 /* private functions implementation ******************************************/
 
 static _fsm_state_t _get_fsm_state(void *const p_dev) {
-    _fsm_state_t state;
-    (void)vl53l9_read8(p_dev, VL53L9_REGADDR_SYSTEM_FSM, (uint8_t *)&state);
-    return state;
+    uint8_t state = FSM_STATE_NONE;
+    if (vl53l9_read8(p_dev, VL53L9_REGADDR_SYSTEM_FSM, &state) != 0)
+        return FSM_STATE_NONE;
+    return (_fsm_state_t)state;
 }
 
 static int _wait_for_state(void *const p_dev, _fsm_state_t state, uint32_t timeout_ms) {
-    int ret = VL53L9_ERROR_NONE;
-    uint32_t elapsed_time_ms = 0;
-    _fsm_state_t current_state;
-
     CHECK_NULL_PTR(p_dev);
-    do {
-        (void)vl53l9_wait_ms(p_dev, 1);
-        elapsed_time_ms++;
-        current_state = _get_fsm_state(p_dev);
-    } while ((current_state != state) && (elapsed_time_ms < timeout_ms));
-
-    if (elapsed_time_ms >= timeout_ms) {
-        ret = VL53L9_ERROR_TIMEOUT;
+    for (uint32_t elapsed_time_ms = 0;; ++elapsed_time_ms) {
+        uint8_t current_state;
+        int ret = vl53l9_read8(p_dev, VL53L9_REGADDR_SYSTEM_FSM, &current_state);
+        CHECK_RET(ret);
+        /* Success at the deadline is still success. Check before timeout. */
+        if (current_state == (uint8_t)state)
+            return VL53L9_ERROR_NONE;
+        if (elapsed_time_ms >= timeout_ms)
+            return VL53L9_ERROR_TIMEOUT;
+        ret = vl53l9_wait_ms(p_dev, 1);
+        CHECK_RET(ret);
     }
-
-    return ret;
 }
 
 static int _write_cmd(void *const p_dev, _command_t cmd, uint32_t timeout_ms) {
     int ret;
-    uint32_t elapsed_time_ms = 0;
-    _command_t current_cmd;
 
     CHECK_NULL_PTR(p_dev);
     ret = vl53l9_write8(p_dev, VL53L9_REGADDR_COMMAND, (uint8_t)cmd);
     CHECK_RET(ret);
 
-    do {
-        ret = vl53l9_read8(p_dev, VL53L9_REGADDR_COMMAND, (uint8_t *)&current_cmd);
+    for (uint32_t elapsed_time_ms = 0;; ++elapsed_time_ms) {
+        uint8_t current_cmd;
+        ret = vl53l9_read8(p_dev, VL53L9_REGADDR_COMMAND, &current_cmd);
         CHECK_RET(ret);
-        if (current_cmd == COMMAND_NONE) { // avoid delay if not nessesary
-            break;
-        }
-        (void)vl53l9_wait_ms(p_dev, 1);
-        elapsed_time_ms++;
-    } while ((elapsed_time_ms < timeout_ms));
-
-    if (elapsed_time_ms >= timeout_ms) {
-        return VL53L9_ERROR_TIMEOUT;
+        if (current_cmd == COMMAND_NONE)
+            return VL53L9_ERROR_NONE;
+        if (elapsed_time_ms >= timeout_ms)
+            return VL53L9_ERROR_TIMEOUT;
+        ret = vl53l9_wait_ms(p_dev, 1);
+        CHECK_RET(ret);
     }
-
-    return ret;
 }
 
 static int _init_default_config(void *const p_dev) {
