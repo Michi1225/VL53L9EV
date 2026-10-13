@@ -228,7 +228,15 @@ void PeriphCommonClock_Config(void)
 
 /* USER CODE END RIF_Init 1 */
 /* USER CODE BEGIN RIF_Init 2 */
-
+  /* Ethernet DMA accesses secure SRAM containing descriptors and NetX packets.
+   * Match the secure/privileged memory-access model used by the CPU. */
+  RIMC_MasterConfig_t ethernet_master = {
+    .MasterCID = RIF_CID_1,
+    .SecPriv = RIF_ATTRIBUTE_SEC | RIF_ATTRIBUTE_PRIV
+  };
+  HAL_RIF_RIMC_ConfigMasterAttributes(RIF_MASTER_INDEX_ETH1, &ethernet_master);
+  HAL_RIF_RISC_SetSlaveSecureAttributes(RIF_RISC_PERIPH_INDEX_ETH1,
+                                       RIF_ATTRIBUTE_SEC | RIF_ATTRIBUTE_PRIV);
 /* USER CODE END RIF_Init 2 */
 
 }
