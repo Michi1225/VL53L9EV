@@ -16,6 +16,7 @@ IMU_PLOT_SAMPLES = 1000
 HEADER = struct.Struct("<4sIIHH")
 MAGIC = b"VL9F"
 IMU_MAGIC = b"IMUF"
+PARAM_MAGIC = b"PARM"
 IMU_PAYLOAD = struct.Struct("<I10f")
 MAX_PAYLOAD = 100 * 149
 RAW_GRID_SIZES = {2: (54, 42), 4: (24, 24), 6: (18, 14),
@@ -77,7 +78,7 @@ class PacketParser:
         self.buffer.extend(data)
         packets = []
         while True:
-            starts = [pos for magic in (MAGIC, IMU_MAGIC)
+            starts = [pos for magic in (MAGIC, IMU_MAGIC, PARAM_MAGIC)
                       if (pos := self.buffer.find(magic)) >= 0]
             start = min(starts) if starts else -1
             if start < 0:
@@ -95,7 +96,9 @@ class PacketParser:
             valid = ((kind == MAGIC and 0 < width <= 100 and 0 < height <= 149 and
                       length == width * height and length <= MAX_PAYLOAD) or
                      (kind == IMU_MAGIC and length == IMU_PAYLOAD.size and
-                      width == 10 and height == 1))
+                      width == 10 and height == 1) or
+                     (kind == PARAM_MAGIC and 0 < length <= 16384 and
+                      width == 1 and height == 0))
             if not valid:
                 self.invalid_headers += 1
                 self.discarded += 1
@@ -150,6 +153,8 @@ def stream_reader(read_chunk, label):
                 parser_discarded = parser.discarded
                 parser_invalid = parser.invalid_headers
                 for packet in packets:
+                    if packet.kind == PARAM_MAGIC:
+                        continue
                     previous = previous_sequence.get(packet.kind)
                     if previous is not None and packet.sequence != ((previous + 1) & 0xFFFFFFFF):
                         sequence_gaps += 1

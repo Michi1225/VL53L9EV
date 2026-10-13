@@ -21,7 +21,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "extmem_manager.h"
 #include <string.h>
-#include "main.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -68,10 +67,7 @@ void MX_EXTMEM_MANAGER_Init(void)
   /* EXTMEMORY_1 */
   extmem_list_config[0].MemType = EXTMEM_USER;
 
-  if (EXTMEM_Init(EXTMEMORY_1, 0) != EXTMEM_OK)
-  {
-    Error_Handler();
-  }
+  EXTMEM_Init(EXTMEMORY_1, 0);
 
   /* USER CODE BEGIN MX_EXTMEM_Init_PostTreatment */
 

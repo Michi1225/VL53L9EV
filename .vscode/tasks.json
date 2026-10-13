@@ -98,6 +98,16 @@
             ],
             "problemMatcher": [],
             "detail": "Generate JSON parameters with Git hash/dirty state and existing image provenance; replace the reserved first 256 KiB flash block. Requires previously packaged images and manifests."
+        },
+        {
+            "label": "Monitor: Board Viewer",
+            "type": "process",
+            "command": "python3",
+            "args": [
+                "${workspaceFolder}/test_scripts/Board_Viewer.py"
+            ],
+            "problemMatcher": [],
+            "detail": "Open desktop USB/Ethernet sensor and device-parameter monitor. Requires numpy, matplotlib, pyserial and Tk."
         }
     ],
     "inputs": [

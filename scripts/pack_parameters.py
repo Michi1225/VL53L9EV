@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 
 REGION_SIZE = 0x40000
+MAX_JSON_SIZE = 16384  # App startup reader capacity, including NUL.
 
 
 def pack(source: Path, output: Path, images=()) -> None:
@@ -46,8 +47,8 @@ def pack(source: Path, output: Path, images=()) -> None:
         data['build'] = provenance
     payload = (json.dumps(data, indent=2, ensure_ascii=False, allow_nan=False) + "\n").encode("utf-8")
     # A NUL terminator allows firmware to use it as a bounded C string.
-    if len(payload) + 1 > REGION_SIZE:
-        raise ValueError("Parameters exceed the reserved 256 KiB region")
+    if len(payload) + 1 > MAX_JSON_SIZE:
+        raise ValueError("Parameters exceed the app startup reader limit of 16 KiB")
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_bytes(payload + b"\0" + b"\xff" * (REGION_SIZE - len(payload) - 1))
     print(f"Parameters: {len(payload)} JSON bytes -> {output} ({REGION_SIZE} bytes)")

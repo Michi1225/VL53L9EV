@@ -81,6 +81,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ./Libs/PHY
     ./Libs/control
     ../common/led
+    ../common/s28hs512t
 
 )
 
@@ -101,6 +102,9 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ./Libs/control/housekeeping.c
     ./Libs/control/stream_manager.c
     ./Libs/control/imu_stream.c
+    ../common/s28hs512t/semper_flash.c
+    ../common/s28hs512t/s28hs512t.c
+    ./Libs/control/device_parameters.c
     ./Libs/control/ethernet_stream.c
     ./Libs/control/app_events.c
     ../common/led/LEDController.c

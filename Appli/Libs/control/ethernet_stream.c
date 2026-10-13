@@ -3,6 +3,7 @@
 #include "imu_stream.h"
 #include "app_netxduo.h"
 #include "app_events.h"
+#include "device_parameters.h"
 
 /* This thread exclusively consumes the producer buffers, sends whole packets
  * to each active transport, then returns ownership to the camera producer. */
@@ -50,6 +51,7 @@ void ethernet_stream_thread_entry(ULONG argument)
     bool socket_ready = nx_tcp_socket_create(ip, &stream_socket, "Sensor stream",
         NX_IP_NORMAL, NX_FRAGMENT_OKAY, NX_IP_TIME_TO_LIVE, 8192, NX_NULL, NX_NULL) == NX_SUCCESS;
     bool listening = false;
+    ULONG last_parameters = tx_time_get() - 2U * TX_TIMER_TICKS_PER_SECOND;
     for (;;)
     {
         if (client_connected && stream_socket.nx_tcp_socket_state != NX_TCP_ESTABLISHED)
@@ -73,6 +75,15 @@ void ethernet_stream_thread_entry(ULONG argument)
             if (client_connected) disconnect_client();
             nx_tcp_server_socket_unlisten(ip, ETHERNET_STREAM_PORT);
             listening = false;
+        }
+        /* Repeat metadata for late USB opens and reconnects on either link. */
+        ULONG now = tx_time_get();
+        if ((ULONG)(now - last_parameters) >= 2U * TX_TIMER_TICKS_PER_SECOND)
+        {
+            uint32_t size;
+            UCHAR *parameters = device_parameters_packet(&size);
+            if (size) write_transports(parameters, size);
+            last_parameters = now;
         }
         ULONG flags = 0;
         tx_event_flags_get(&stream_events, STREAM_PACKET_READY | STREAM_IMU_READY,

@@ -28,6 +28,12 @@ set(MX_Include_Dirs
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/CMSIS/Device/ST/STM32N6xx/Include
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Inc/Legacy
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/sal
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/nor_sfdp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/psram
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/sdcard
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/user
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/tsn/inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/drivers/ethernet
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/common/inc
@@ -57,6 +63,7 @@ set(MX_Application_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/csi.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/dcmipp.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/eth.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/extmem_manager.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/gpdma.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/i2c.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/i3c.c
@@ -64,6 +71,8 @@ set(MX_Application_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_threadx.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/ucpd.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/usb_otg.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/xspi.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/xspim.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_it.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_hal_msp.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_hal_timebase_tim.c
@@ -98,6 +107,7 @@ set(STM32_Drivers_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_ll_utils.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_i2c.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_i2c_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_xspi.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_tim.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_tim_ex.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_dcmipp.c
@@ -732,6 +742,16 @@ set(STM32_USBPD_Library_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_pwr_hw_if.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_USBPD_Library/Devices/STM32N6XX/src/usbpd_timersserver.c
 )
+set(STM32_ExtMem_Manager_Src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/stm32_extmem.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/sal/stm32_sal_xspi.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/sal/stm32_sal_sd.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/nor_sfdp/stm32_sfdp_data.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/nor_sfdp/stm32_sfdp_driver.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/psram/stm32_psram_driver.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/sdcard/stm32_sdcard_driver.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/user/stm32_user_driver.c
+)
 set(threadx_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/ports/cortex_m55/gnu/src/tx_thread_secure_stack_initialize.S
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/ports/cortex_m55/gnu/src/tx_thread_secure_stack_allocate.S
@@ -918,7 +938,7 @@ set (MX_LINK_LIBS
  "-Wl,--end-group"
     STM32_Drivers
     ${TOOLCHAIN_LINK_LIBRARIES}
-    usbx	netxduo	STM32_USBPD_Library	threadx	
+    usbx	netxduo	STM32_USBPD_Library	STM32_ExtMem_Manager	threadx	
     
 )
 # Interface library for includes and symbols
@@ -945,6 +965,11 @@ target_link_libraries(netxduo PUBLIC stm32cubemx)
 add_library(STM32_USBPD_Library OBJECT)
 target_sources(STM32_USBPD_Library PRIVATE ${STM32_USBPD_Library_Src})
 target_link_libraries(STM32_USBPD_Library PUBLIC stm32cubemx)
+
+# Create STM32_ExtMem_Manager static library
+add_library(STM32_ExtMem_Manager OBJECT)
+target_sources(STM32_ExtMem_Manager PRIVATE ${STM32_ExtMem_Manager_Src})
+target_link_libraries(STM32_ExtMem_Manager PUBLIC stm32cubemx)
 
 # Create threadx static library
 add_library(threadx OBJECT)
