@@ -27,6 +27,7 @@ typedef struct
 {
     ALIGNED32 volatile uint8_t g_csi_output_buffer[CSI_OUTPUT_BUFFER_SIZE];
     vl53l9_device_t *p_dev;
+    vl53l9_profile_t profile;
     vl53l9_profile_t *p_profile;
     vl53l9_hw_config_t hw_config;
     vl53l9_frame_t frame;
@@ -37,6 +38,8 @@ typedef struct
 } VL53L9_TypeDef_t;
 
 HAL_StatusTypeDef VL53L9_init(VL53L9_TypeDef_t *tof);
+HAL_StatusTypeDef VL53L9_configure(VL53L9_TypeDef_t *tof, const vl53l9_profile_t *profile);
+HAL_StatusTypeDef VL53L9_power_down(VL53L9_TypeDef_t *tof);
 void VL53L9_prepare_capture(VL53L9_TypeDef_t *tof);
 HAL_StatusTypeDef VL53L9_start_ranging(VL53L9_TypeDef_t *tof);
 HAL_StatusTypeDef VL53L9_process(VL53L9_TypeDef_t *tof);

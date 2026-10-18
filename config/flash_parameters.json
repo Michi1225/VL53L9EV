@@ -1,7 +1,9 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "device": {
     "product": "VL53L9EV",
+    "name": null,
+    "description": null,
     "serial_number": null,
     "hardware_revision": null,
     "pcb_revision": null,
@@ -14,10 +16,8 @@
   },
   "manufacturing": {
     "date": null,
-    "batch": null
+    "batch": null,
+    "tested_at_utc": null
   },
-  "repository": {
-    "git_hash": null,
-    "git_dirty": null
-  }
+  "calibration": {}
 }

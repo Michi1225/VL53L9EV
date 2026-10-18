@@ -28,6 +28,7 @@
 #include "housekeeping.h"
 #include "app_events.h"
 #include "stream_manager.h"
+#include "tof_control.h"
 #include "imu_stream.h"
 #include "ethernet_stream.h"
 #include "app_netxduo.h"
@@ -135,6 +136,8 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   {
       return TX_THREAD_ERROR;
   }
+  if (tof_control_init() != TX_SUCCESS)
+      return TX_QUEUE_ERROR;
   CHAR *stream_stack = TX_NULL;
   if (tx_event_flags_create(&stream_events, "sensor stream") != TX_SUCCESS)
       return TX_GROUP_ERROR;

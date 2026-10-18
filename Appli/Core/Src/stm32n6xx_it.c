@@ -23,6 +23,7 @@
 #include "usbpd.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "thread_profiler.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -185,10 +186,12 @@ void DebugMon_Handler(void)
 void DCMIPP_IRQHandler(void)
 {
   /* USER CODE BEGIN DCMIPP_IRQn 0 */
+  _tx_execution_isr_enter();
 
   /* USER CODE END DCMIPP_IRQn 0 */
   HAL_DCMIPP_IRQHandler(&hdcmipp);
   /* USER CODE BEGIN DCMIPP_IRQn 1 */
+  _tx_execution_isr_exit();
 
   /* USER CODE END DCMIPP_IRQn 1 */
 }
@@ -199,9 +202,11 @@ void DCMIPP_IRQHandler(void)
 void GPDMA1_Channel0_IRQHandler(void)
 {
   /* USER CODE BEGIN GPDMA1_Channel0_IRQn 0 */
+  _tx_execution_isr_enter();
 
   /* USER CODE END GPDMA1_Channel0_IRQn 0 */
   /* USER CODE BEGIN GPDMA1_Channel0_IRQn 1 */
+  _tx_execution_isr_exit();
 
   /* USER CODE END GPDMA1_Channel0_IRQn 1 */
 }
@@ -212,9 +217,11 @@ void GPDMA1_Channel0_IRQHandler(void)
 void GPDMA1_Channel1_IRQHandler(void)
 {
   /* USER CODE BEGIN GPDMA1_Channel1_IRQn 0 */
+  _tx_execution_isr_enter();
 
   /* USER CODE END GPDMA1_Channel1_IRQn 0 */
   /* USER CODE BEGIN GPDMA1_Channel1_IRQn 1 */
+  _tx_execution_isr_exit();
 
   /* USER CODE END GPDMA1_Channel1_IRQn 1 */
 }
@@ -225,10 +232,12 @@ void GPDMA1_Channel1_IRQHandler(void)
 void I3C2_EV_IRQHandler(void)
 {
   /* USER CODE BEGIN I3C2_EV_IRQn 0 */
+  _tx_execution_isr_enter();
 
   /* USER CODE END I3C2_EV_IRQn 0 */
   HAL_I3C_EV_IRQHandler(&hi3c2);
   /* USER CODE BEGIN I3C2_EV_IRQn 1 */
+  _tx_execution_isr_exit();
 
   /* USER CODE END I3C2_EV_IRQn 1 */
 }
@@ -239,10 +248,12 @@ void I3C2_EV_IRQHandler(void)
 void I3C2_ER_IRQHandler(void)
 {
   /* USER CODE BEGIN I3C2_ER_IRQn 0 */
+  _tx_execution_isr_enter();
 
   /* USER CODE END I3C2_ER_IRQn 0 */
   HAL_I3C_ER_IRQHandler(&hi3c2);
   /* USER CODE BEGIN I3C2_ER_IRQn 1 */
+  _tx_execution_isr_exit();
 
   /* USER CODE END I3C2_ER_IRQn 1 */
 }
@@ -253,10 +264,12 @@ void I3C2_ER_IRQHandler(void)
 void TIM6_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM6_IRQn 0 */
+  _tx_execution_isr_enter();
 
   /* USER CODE END TIM6_IRQn 0 */
   HAL_TIM_IRQHandler(&htim6);
   /* USER CODE BEGIN TIM6_IRQn 1 */
+  _tx_execution_isr_exit();
 
   /* USER CODE END TIM6_IRQn 1 */
 }
@@ -267,11 +280,13 @@ void TIM6_IRQHandler(void)
 void UCPD1_IRQHandler(void)
 {
   /* USER CODE BEGIN UCPD1_IRQn 0 */
+  _tx_execution_isr_enter();
 
   /* USER CODE END UCPD1_IRQn 0 */
   USBPD_PORT0_IRQHandler();
 
   /* USER CODE BEGIN UCPD1_IRQn 1 */
+  _tx_execution_isr_exit();
 
   /* USER CODE END UCPD1_IRQn 1 */
 }
@@ -282,10 +297,12 @@ void UCPD1_IRQHandler(void)
 void USB2_OTG_HS_IRQHandler(void)
 {
   /* USER CODE BEGIN USB2_OTG_HS_IRQn 0 */
+  _tx_execution_isr_enter();
 
   /* USER CODE END USB2_OTG_HS_IRQn 0 */
   HAL_PCD_IRQHandler(&hpcd_USB_OTG_HS2);
   /* USER CODE BEGIN USB2_OTG_HS_IRQn 1 */
+  _tx_execution_isr_exit();
 
   /* USER CODE END USB2_OTG_HS_IRQn 1 */
 }
@@ -296,10 +313,12 @@ void USB2_OTG_HS_IRQHandler(void)
 void ETH1_IRQHandler(void)
 {
   /* USER CODE BEGIN ETH1_IRQn 0 */
+  _tx_execution_isr_enter();
 
   /* USER CODE END ETH1_IRQn 0 */
   HAL_ETH_IRQHandler(&heth1);
   /* USER CODE BEGIN ETH1_IRQn 1 */
+  _tx_execution_isr_exit();
 
   /* USER CODE END ETH1_IRQn 1 */
 }
@@ -310,10 +329,12 @@ void ETH1_IRQHandler(void)
 void CSI_IRQHandler(void)
 {
   /* USER CODE BEGIN CSI_IRQn 0 */
+  _tx_execution_isr_enter();
 
   /* USER CODE END CSI_IRQn 0 */
   HAL_DCMIPP_CSI_IRQHandler(&hdcmipp);
   /* USER CODE BEGIN CSI_IRQn 1 */
+  _tx_execution_isr_exit();
 
   /* USER CODE END CSI_IRQn 1 */
 }

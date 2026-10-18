@@ -2,16 +2,21 @@
 #include "tx_api.h"
 #include "tx_port.h"
 #include "ADIN1300.h"
+#include "ethernet_link.h"
 
 static NX_TCP_SOCKET control_socket;
 
-static void Control_HandleClient(NX_TCP_SOCKET *socket)
+static void Control_HandleClient(NX_TCP_SOCKET *socket, uint32_t generation)
 {
     UINT status;
     NX_PACKET *packet;
 
     while (1)
     {
+        ULONG events = 0;
+        tx_event_flags_get(&app_events, APP_EVT_ETH_IP_READY, TX_AND, &events, TX_NO_WAIT);
+        if (!(events & APP_EVT_ETH_IP_READY) || generation != ethernet_link_generation())
+            break;
         status = nx_tcp_socket_receive(
             socket,
             &packet,
@@ -84,6 +89,8 @@ void control_thread_entry(ULONG thread_input)
             &flags,
             TX_WAIT_FOREVER);
 
+        uint32_t generation = ethernet_link_generation();
+
         /*
          * Start listening.
          */
@@ -116,7 +123,7 @@ void control_thread_entry(ULONG thread_input)
                 TX_NO_WAIT);
 
             // Ethernet link disappeared
-            if ((events & APP_EVT_ETH_IP_READY) == 0U)
+            if ((events & APP_EVT_ETH_IP_READY) == 0U || generation != ethernet_link_generation())
             {
                 break;
             }
@@ -130,7 +137,7 @@ void control_thread_entry(ULONG thread_input)
                 /*
                  * Client connected.
                  */
-                Control_HandleClient(&control_socket);
+                Control_HandleClient(&control_socket, generation);
 
                 /*
                  * Cleanly return the socket to listening state.
@@ -152,6 +159,9 @@ void control_thread_entry(ULONG thread_input)
         /*
          * Ethernet disappeared.
          */
+        /* Cancel half-open accepts as well as established clients. */
+        nx_tcp_socket_disconnect(&control_socket, NX_NO_WAIT);
+        nx_tcp_server_socket_unaccept(&control_socket);
         nx_tcp_server_socket_unlisten(
             ip,
             CONTROL_SERVER_PORT);

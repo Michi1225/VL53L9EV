@@ -1,3 +1,6 @@
+For exact byte offsets, command/response formats and examples, see the
+[wire protocol README](../protocol/README.md).
+
 The application sends identical camera and IMU packets over USB CDC and Ethernet
 TCP. To view depth, acceleration, gyro and SFLP over Ethernet, run:
 
@@ -6,9 +9,18 @@ python3 test_scripts/Ethernet_Debug.py --host 192.168.8.20
 ```
 
 TCP port defaults to 50002 (`--tcp-port` changes the client port). The server
-starts streaming when one client connects; no command/handshake is required.
+forwards telemetry when one client connects; no handshake is required. ToF starts
+at boot, and can be stopped/restarted from the Device Monitor on USB or TCP 50002.
 The viewer reconnects automatically and resets partial packets on reconnect.
-The existing control server remains on port 50000; the throughput server and its
+Ethernet can be plugged in after boot or unplugged/replugged while running.
+The network thread polls the PHY every 200 ms, retries MAC/DMA enable when link
+appears, and publishes IP readiness only after enable succeeds. Link removal
+withdraws readiness and stops MAC/DMA. Negotiation time is additional to polling.
+TCP listeners discard old sessions and incomplete handshakes on a cable cycle;
+the Device Monitor reconnects automatically. ToF/IMU operation and USB continue.
+The IPv4 address remains static: configure the PC's Ethernet adapter on
+`192.168.8.0/24` with a different host address (for example `192.168.8.10/24`).
+The legacy echo server remains on port 50000; the throughput server and its
 benchmark scripts have been removed. The normal full application remains Release.
 
 For USB, run:
@@ -40,6 +52,22 @@ length, and two type-specific fields. Sequence numbers are independent per senso
 | --- | --- | --- |
 | `VL9F` | width / height | width × height RAW8 bytes, including sensor status row |
 | `IMUF` | 10 float channels / format version 1 | `<I10f`: MCU timestamp in milliseconds, acc xyz in mg, gyro xyz in mdps, SFLP quaternion xyzw |
+| `PARM` | format version 1 / reserved 0 | UTF-8 device/firmware parameter JSON, repeated every two seconds |
+| `PROF` | format version 1 / thread count | CPU profiling interval, sent about once per second |
+| `TOFS` | format version 2 / acknowledged operation (0 for periodic) | 36-byte sensor configuration/state, DSS flags and command result; PC also accepts v1 (32 bytes) |
+| `CTRL` (host → board) | format version 1 or 2 / operation | Empty for Get/Start/Stop/Reset/Power down; 12-byte settings for Set (v2 adds DSS flags) |
+
+`PROF` has its own sequence counter. Its payload starts with `<IIQQQQHH`:
+MCU timestamp (ms), core clock (Hz), interval cycles, idle cycles, interrupt
+cycles, scheduler cycles, thread count, flags. Each thread record is `<IIQ32s`:
+thread ID (control-block address), priority, interval CPU cycles and a
+NUL-terminated UTF-8 name (up to 31 bytes). All numbers are little-endian.
+Up to 64 threads are reported; flags bit 0 indicates a truncated thread list.
+Unreported/removed-thread cycles appear as `Other / removed threads` on the PC.
+CPU time in ms is `cycles * 1000 / core_clock`; CPU percentage is
+`cycles * 100 / interval_cycles`. Report windows continue across connections,
+so receiving one complete report is enough to display usage. See the
+[desktop viewer](BOARD_VIEWER.md) for the CPU profiler tab.
 
 Camera capture uses DCMIPP PIPE0's dump path to preserve RAW8 bytes without ISP
 processing or padded row pitch. Watch `hdcmipp.PipeState[0]` for this capture.
@@ -68,6 +96,14 @@ for the same camera buffer or splitting IMU packets between clients. Both
 connections can be used together; slow readers can reduce camera capture rate.
 TCP allocation/send waits are bounded to 250 ms per segment; a failed/partial
 write closes that session so a future connection starts at a fresh packet.
+
+To check cable recovery on hardware, boot without Ethernet, wait more than five
+seconds, then insert the cable. Once link negotiates, verify `ping 192.168.8.20`
+and connect the monitor to TCP 50002. Unplug during streaming, reinsert, and
+confirm that the monitor reconnects without resetting the board. Also exercise
+unplugging while the PC is attempting a connection. Native regressions cover
+late insertion, failed enable/disable retries, an already enabled link at boot,
+half-open TCP cleanup and a full cable cycle during a blocked transport write.
 USB writes retain their existing one-second timeout. Sampling is not blocked by
 the queue, so backpressure can drop IMU samples. One TCP client is supported.
 
@@ -108,6 +144,49 @@ cmake --build Appli/build -j 4
 ```
 
 The diagnostic options do not change laser safety checks or automatically retry
-faulted emission. The firmware preserves sensor fault status and stops capture.
+faulted emission. The firmware preserves sensor fault status, stops capture and latches a fault.
+The command service stays alive to report the fault; Start is rejected until an
+explicit Reset ToF (or board reset). Reset ToF restores compiled defaults and
+leaves ranging stopped; Start must be requested separately. IMU and profiler
+reports continue during sensor reset.
 ST's error handling and bit definitions are in
 [UM3683, sections 2.4–2.4.2](https://www.st.com/resource/en/user_manual/um3683-programing-guide-stmicroelectronics.pdf#page=16).
+
+
+## Gaming mode, frame rate and temperature
+
+The monitor's **Sensor configuration** tab exposes Precision (no DSS), Precision
+and Ambient. These map to short/DSS off, short/DSS short and long/DSS long.
+Previously Gaming selected long context and `vl53l9_set_binning` enabled DSS;
+it therefore used Ambient rather than the datasheet's Gaming mode. Gaming now
+selects Precision (no DSS), 54×42, regular power and a 10 ms requested period,
+keeping the local 1 ms exposure. Other presets retain DSS.
+
+ST's [VL53L9CX datasheet, Table 9](https://www.st.com/resource/en/datasheet/vl53l9cx.pdf)
+uses **4 ms** exposure for its 100 fps Gaming example. A 1 ms setting is a deliberate
+shorter exposure. Low/ultralow modes turn blocks off between frames; regular mode
+keeps them powered. Exposure alone therefore does not determine power or temperature.
+The [programming guide, Tables 22–23](https://www.st.com/resource/en/user_manual/um3683-programing-guide-stmicroelectronics.pdf)
+describes context/DSS mapping and processing time: full-resolution Precision DSS
+computation is listed as 13.5 ms, running in parallel with exposure. A readable
+10 ms period register alone cannot establish actual frame rate.
+
+CSI snapshots previously waited for the transport to finish before rearming.
+The next capture is now armed immediately after copying into the separate
+transport packet. This removes a source of alternate-frame skipping; transport
+backpressure can still limit received FPS. The monitor displays both received
+Lidar FPS and **estimated sensor FPS** from the sensor frame counter. A sensor
+estimate near 100 with received FPS near 50 points to capture/transport loss;
+if both are near 50, investigate sensor timing/mode and measurement jitter.
+The GUI redraw rate is separate from packet reception.
+
+The monitor also displays die temperature in °C, the mode and period reported
+in the frame, the frame counter, firmware error and the age of the last frame.
+Temperature is retained as a last-frame reading after stopping/shutdown; it is
+not a live reading while off. Confirm temperature/error details on hardware
+before concluding that heating caused a fault. Protection remains enabled.
+
+**Power down** holds XSHUT low and keeps IMU/network/profiler operation running.
+Supply rails remain connected. To wake: **Reset ToF → Start ToF**. Reset restores
+compiled defaults and leaves emission stopped. Stop pauses ranging without
+asserting XSHUT. The full wire format is in [protocol/README.md](../protocol/README.md).

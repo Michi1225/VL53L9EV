@@ -240,7 +240,7 @@ def capture(port, duration, output, ready_timeout=15):
                 for packet in parser.feed(data):
                     if packet.kind == MAGIC:
                         tof.append((arrival, packet))
-                    else:
+                    elif packet.kind == IMU_MAGIC:
                         imu.append((arrival, IMU_PAYLOAD.unpack(packet.payload)))
                 if recording_start is None and tof and imu:
                     recording_start = time.monotonic()

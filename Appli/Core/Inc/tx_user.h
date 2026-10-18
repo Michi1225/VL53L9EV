@@ -71,6 +71,9 @@
 #define TX_USER_H
 
 /* USER CODE BEGIN 1 */
+/* Cycle accounting hooks, shared by C and the preprocessed assembly port. */
+#define TX_ENABLE_EXECUTION_CHANGE_NOTIFY
+#define TX_THREAD_USER_EXTENSION unsigned long long profiler_cycles;
 
 /* USER CODE END 1 */
 

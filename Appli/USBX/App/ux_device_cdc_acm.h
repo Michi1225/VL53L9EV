@@ -31,6 +31,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdint.h>
 
 /* USER CODE END Includes */
 
@@ -44,6 +45,7 @@ extern "C" {
 /* ux_device_cdc_acm.h */
 
 extern UX_SLAVE_CLASS_CDC_ACM *cdc_acm;
+extern volatile uint32_t cdc_session;
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/

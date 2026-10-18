@@ -508,6 +508,21 @@ int vl53l9_set_binning(void *const p_dev, vl53l9_context_t context, uint8_t binn
     return ret;
 }
 
+int vl53l9_set_dss_enabled(void *const p_dev, vl53l9_context_t context, bool enabled) {
+    CHECK_NULL_PTR(p_dev);
+    if (context != VL53L9_CONTEXT_SHORT && context != VL53L9_CONTEXT_LONG)
+        return VL53L9_ERROR_INVALID_PARAM;
+    if (_get_fsm_state(p_dev) != FSM_STATE_STANDBY)
+        return VL53L9_ERROR_INVALID_STATE;
+    uint8_t mode = enabled ? (context == VL53L9_CONTEXT_SHORT ? DSS_SHORT : DSS_LONG) : DSS_DISABLE;
+    int ret = vl53l9_write8(p_dev, VL53L9_REGADDR_STANDBY_DSS_MODE((uint16_t)context), mode);
+    CHECK_RET(ret);
+    uint8_t readback = 0xff;
+    ret = vl53l9_read8(p_dev, VL53L9_REGADDR_STANDBY_DSS_MODE((uint16_t)context), &readback);
+    CHECK_RET(ret);
+    return readback == mode ? 0 : VL53L9_ERROR_INVALID_PARAM;
+}
+
 int vl53l9_get_exposure(void *const p_dev, vl53l9_context_t context, uint16_t *p_exposure_ms) {
     int ret = VL53L9_ERROR_NONE;
 
@@ -604,7 +619,9 @@ int vl53l9_stop(void *const p_dev) {
     if (_get_fsm_state(p_dev) != FSM_STATE_STREAMING) {
         return VL53L9_ERROR_INVALID_STATE;
     }
-    return _write_cmd(p_dev, COMMAND_STOP_STREAM, 14);
+    int ret = _write_cmd(p_dev, COMMAND_STOP_STREAM, 14);
+    CHECK_RET(ret);
+    return _wait_for_state(p_dev, FSM_STATE_STANDBY, 14);
 }
 
 int vl53l9_trigger_frame(void *const p_dev) {

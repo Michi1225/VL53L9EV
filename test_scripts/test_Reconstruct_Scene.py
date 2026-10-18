@@ -18,6 +18,43 @@ def depth_packet(seq=0):
 
 
 class ReconstructionTests(unittest.TestCase):
+    def test_capture_ignores_profiler_and_parameter_packets(self):
+        import sys
+        import types
+        from unittest.mock import patch
+        from USB_Debug import HEADER, MAGIC, IMU_MAGIC, IMU_PAYLOAD, PARAM_MAGIC
+        from test_thread_profiler import wire_profile
+
+        imu = IMU_PAYLOAD.pack(1000, *([1.0] * 10))
+        wire = HEADER.pack(PARAM_MAGIC, 0, 2, 1, 0) + b'{}' + wire_profile()
+        wire += HEADER.pack(MAGIC, 0, 4, 2, 2) + bytes(4)
+        wire += HEADER.pack(IMU_MAGIC, 0, len(imu), 10, 1) + imu
+
+        class Device:
+            def __init__(self):
+                self.buffer = bytearray(wire)
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                pass
+            @property
+            def in_waiting(self):
+                return len(self.buffer)
+            def read(self, count):
+                data = bytes(self.buffer[:count])
+                del self.buffer[:count]
+                return data
+
+        serial = types.SimpleNamespace(Serial=lambda *args, **kwargs: Device(),
+                                       SerialException=OSError)
+        with tempfile.TemporaryDirectory() as temp, patch.dict(sys.modules, serial=serial):
+            output = Path(temp)
+            scene.capture('/dev/test', 0, output)
+            with np.load(output / 'capture.npz') as capture:
+                self.assertEqual(len(capture['tof_sequences']), 1)
+                self.assertEqual(capture['imu_values'].shape, (1, 11))
+            self.assertEqual((output / 'usb_stream.bin').read_bytes(), wire)
+
     def test_observed_mounting_gravity_directions(self):
         config = scene.load_calibration(Path(__file__).with_name('mounting.json'))
         rotation = config['rotation_lidar_to_imu']

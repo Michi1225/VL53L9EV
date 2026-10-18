@@ -211,7 +211,7 @@ __tx_ts_new:
     CPSID   i                                       // Disable interrupts
 #endif
     LDR     r1, [r2]                                // Is there another thread ready to execute?
-    CBZ     r1, __tx_ts_wait                        // No, skip to the wait processing
+    CBZ     r1, __tx_ts_idle                        // No, skip to the wait processing
 
     /* Yes, another thread is ready for else, make the current thread the new thread.  */
 
@@ -274,6 +274,13 @@ _skip_vfp_restore:
        system will simply be idle until an interrupt occurs that makes a thread ready. Note that interrupts
        are disabled to allow use of WFI for waiting for a thread to arrive.  */
 
+__tx_ts_idle:
+#if defined(TX_ENABLE_EXECUTION_CHANGE_NOTIFY)
+    /* Mark idle once, outside the busy wait loop. Thread entry ends idle. */
+    PUSH    {r0-r3}
+    BL      _tx_execution_idle_enter
+    POP     {r0-r3}
+#endif
 __tx_ts_wait:
 #ifdef TX_PORT_USE_BASEPRI
     LDR     r1, =TX_PORT_BASEPRI                    // Mask interrupt priorities =< TX_PORT_BASEPRI

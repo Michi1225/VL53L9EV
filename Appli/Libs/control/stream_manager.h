@@ -27,6 +27,7 @@ extern TX_EVENT_FLAGS_GROUP stream_events;
 extern UCHAR stream_packet[STREAM_HEADER_SIZE + CSI_OUTPUT_PAYLOAD_SIZE];
 extern ULONG stream_packet_length;
 
+uint32_t stream_usb_session(void);
 UINT stream_usb_write(UCHAR *packet, ULONG length);
 
 void stream_thread_entry(ULONG argument);

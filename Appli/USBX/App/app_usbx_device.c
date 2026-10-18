@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include "stream_manager.h"
 #include "imu_stream.h"
+#include "tof_control.h"
 #include "main.h"
 
 #include "ux_device_cdc_acm.h"
@@ -241,9 +242,28 @@ static VOID usbx_app_thread_entry(ULONG thread_input)
     if (HAL_PCD_Start(&hpcd_USB_OTG_HS2) != HAL_OK)
         Error_Handler();
 
-    /* The transport thread owns packet consumption for USB and Ethernet. */
+    /* Receive commands here; the shared transport remains the only writer. */
+    tof_parser_t parser = {0};
+    uint32_t session = 0;
     for (;;)
-        tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND);
+    {
+        UX_SLAVE_CLASS_CDC_ACM *cdc = cdc_acm;
+        uint32_t current_session = stream_usb_session();
+        if (!current_session || !cdc)
+        {
+            parser.used = 0;
+            tx_thread_sleep(10);
+            continue;
+        }
+        if (session != current_session) { parser.used = 0; session = current_session; }
+        UCHAR input[64];
+        ULONG actual = 0;
+        (void)ux_device_class_cdc_acm_ioctl(cdc, UX_SLAVE_CLASS_CDC_ACM_IOCTL_SET_READ_TIMEOUT,
+                                          (VOID *)(ALIGN_TYPE)100U);
+        (void)ux_device_class_cdc_acm_read(cdc, input, sizeof(input), &actual);
+        if (actual && cdc == cdc_acm && session == stream_usb_session())
+            tof_control_feed(&parser, input, actual, TOF_USB, session);
+    }
   /* USER CODE END usbx_app_thread_entry */
 }
 
@@ -292,6 +312,12 @@ UINT MX_USBX_Device_Stack_DeInit(void)
 
 /* USER CODE BEGIN 1 */
 /* Only the shared transport thread calls this; packets cannot interleave. */
+uint32_t stream_usb_session(void)
+{
+    UX_SLAVE_CLASS_CDC_ACM *cdc = cdc_acm;
+    return cdc && cdc->ux_slave_class_cdc_acm_data_dtr_state ? cdc_session : 0U;
+}
+
 UINT stream_usb_write(UCHAR *packet, ULONG length)
 {
     UX_SLAVE_CLASS_CDC_ACM *cdc = cdc_acm;

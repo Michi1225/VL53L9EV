@@ -24,6 +24,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "app_usbx_device.h"
+#include <stdbool.h>
 
 /* USER CODE END Includes */
 
@@ -45,6 +46,8 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
 UX_SLAVE_CLASS_CDC_ACM *cdc_acm = UX_NULL;
+volatile uint32_t cdc_session;
+static bool previous_dtr;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -67,6 +70,8 @@ VOID USBD_CDC_ACM_Activate(VOID *cdc_acm_instance)
 {
   /* USER CODE BEGIN USBD_CDC_ACM_Activate */
 
+  ++cdc_session;
+  previous_dtr = false;
   cdc_acm = (UX_SLAVE_CLASS_CDC_ACM *)cdc_acm_instance;
   /* USER CODE END USBD_CDC_ACM_Activate */
 
@@ -83,6 +88,8 @@ VOID USBD_CDC_ACM_Deactivate(VOID *cdc_acm_instance)
 {
   /* USER CODE BEGIN USBD_CDC_ACM_Deactivate */
   UX_PARAMETER_NOT_USED(cdc_acm_instance);
+  ++cdc_session;
+  previous_dtr = false;
   cdc_acm = UX_NULL;
   /* USER CODE END USBD_CDC_ACM_Deactivate */
 
@@ -98,7 +105,10 @@ VOID USBD_CDC_ACM_Deactivate(VOID *cdc_acm_instance)
 VOID USBD_CDC_ACM_ParameterChange(VOID *cdc_acm_instance)
 {
   /* USER CODE BEGIN USBD_CDC_ACM_ParameterChange */
-  UX_PARAMETER_NOT_USED(cdc_acm_instance);
+  UX_SLAVE_CLASS_CDC_ACM *instance = cdc_acm_instance;
+  bool dtr = instance->ux_slave_class_cdc_acm_data_dtr_state != 0;
+  if (dtr != previous_dtr) ++cdc_session;
+  previous_dtr = dtr;
   /* USER CODE END USBD_CDC_ACM_ParameterChange */
 
   return;

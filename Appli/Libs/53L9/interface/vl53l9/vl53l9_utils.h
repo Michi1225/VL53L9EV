@@ -117,6 +117,7 @@ typedef struct {
     uint32_t frame_period_us;
     uint8_t binning;
     uint16_t exposure_ms;
+    bool dss_enabled;
 } vl53l9_profile_t;
 
 /**

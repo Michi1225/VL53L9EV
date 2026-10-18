@@ -686,6 +686,15 @@ static VOID  _nx_driver_disable(NX_IP_DRIVER *driver_req_ptr)
   /* Setup the IP pointer from the driver request.  */
   ip_ptr =  driver_req_ptr -> nx_ip_driver_ptr;
 
+  /* Cable polling also reconciles an unsuccessful boot-time enable. NetX
+   * initially marks the interface up, even when no cable was present. */
+  if (nx_driver_information.nx_driver_information_state == NX_DRIVER_STATE_INITIALIZED)
+  {
+    ip_ptr -> nx_ip_driver_link_up = NX_FALSE;
+    driver_req_ptr -> nx_ip_driver_status = NX_SUCCESS;
+    return;
+  }
+
   /* Check if the link is enabled.  */
   if (nx_driver_information.nx_driver_information_state !=  NX_DRIVER_STATE_LINK_ENABLED)
   {
@@ -1818,10 +1827,8 @@ static UINT  _nx_driver_hardware_enable(NX_IP_DRIVER *driver_req_ptr)
 {
 
   /* Call STM32 library to start Ethernet operation.  */
-  HAL_ETH_Start_IT(&eth_handle);
-
-  /* Return success!  */
-  return(NX_SUCCESS);
+  /* Do not advertise a usable link if MAC/DMA startup failed. */
+  return HAL_ETH_Start_IT(&eth_handle) == HAL_OK ? NX_SUCCESS : NX_DRIVER_ERROR;
 }
 
 
@@ -1871,10 +1878,8 @@ static UINT  _nx_driver_hardware_enable(NX_IP_DRIVER *driver_req_ptr)
 static UINT  _nx_driver_hardware_disable(NX_IP_DRIVER *driver_req_ptr)
 {
 
-  HAL_ETH_Stop(&eth_handle);
-
-  /* Return success!  */
-  return(NX_SUCCESS);
+  /* Match Start_IT so cable removal also disables DMA interrupts. */
+  return HAL_ETH_Stop_IT(&eth_handle) == HAL_OK ? NX_SUCCESS : NX_DRIVER_ERROR;
 }
 
 

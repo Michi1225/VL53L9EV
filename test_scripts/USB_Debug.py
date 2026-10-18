@@ -17,6 +17,13 @@ HEADER = struct.Struct("<4sIIHH")
 MAGIC = b"VL9F"
 IMU_MAGIC = b"IMUF"
 PARAM_MAGIC = b"PARM"
+TOF_MAGIC = b"TOFS"
+TOF_STATUS = struct.Struct("<IIiIHHBBBBHHI")  # legacy version 1
+TOF_STATUS_V2 = struct.Struct("<IIiIHHBBBBHHIHH")
+PROFILE_MAGIC = b"PROF"
+PROFILE_HEADER = struct.Struct("<IIQQQQHH")
+PROFILE_THREAD = struct.Struct("<IIQ32s")
+PROFILE_MAX_THREADS = 64
 IMU_PAYLOAD = struct.Struct("<I10f")
 MAX_PAYLOAD = 100 * 149
 RAW_GRID_SIZES = {2: (54, 42), 4: (24, 24), 6: (18, 14),
@@ -30,6 +37,44 @@ class Packet:
     height: int
     payload: bytes
     kind: bytes = MAGIC
+
+
+def decode_profile(packet):
+    """Decode one interval of firmware CPU cycles, including all ThreadX threads."""
+    if packet.kind != PROFILE_MAGIC or packet.width != 1 or len(packet.payload) < PROFILE_HEADER.size:
+        raise ValueError("unsupported profiler packet")
+    timestamp, clock, interval, idle, isr, scheduler, count, flags = PROFILE_HEADER.unpack_from(packet.payload)
+    if (not clock or not interval or count != packet.height or count > PROFILE_MAX_THREADS or
+            flags & ~1 or len(packet.payload) != PROFILE_HEADER.size + count * PROFILE_THREAD.size):
+        raise ValueError("invalid profiler header")
+    threads = []
+    ids = set()
+    for offset in range(PROFILE_HEADER.size, len(packet.payload), PROFILE_THREAD.size):
+        ident, priority, cycles, name = PROFILE_THREAD.unpack_from(packet.payload, offset)
+        if ident in ids:
+            raise ValueError("duplicate profiler thread")
+        ids.add(ident)
+        threads.append(dict(id=ident, priority=priority, cycles=cycles,
+                            name=name.split(b"\0", 1)[0].decode("utf-8", errors="replace")))
+    if idle + isr + scheduler + sum(t['cycles'] for t in threads) > interval:
+        raise ValueError("profiler times exceed interval")
+    return dict(timestamp_ms=timestamp, clock_hz=clock, interval_cycles=interval,
+                idle_cycles=idle, isr_cycles=isr, scheduler_cycles=scheduler,
+                truncated=bool(flags & 1), threads=threads)
+
+
+def profile_rows(profile):
+    """Return stable ID, label, priority, milliseconds and CPU share for display."""
+    rows = [(f"thread-{t['id']:08x}", t['name'] or f"Thread {t['id']:08x}",
+             t['priority'], t['cycles']) for t in profile['threads']]
+    rows += [('idle', 'Idle', '', profile['idle_cycles']),
+             ('isr', 'Interrupts', '', profile['isr_cycles']),
+             ('scheduler', 'Scheduler', '', profile['scheduler_cycles'])]
+    other = profile['interval_cycles'] - sum(row[3] for row in rows)
+    if other:
+        rows.append(('other', 'Other / removed threads', '', other))
+    return [(key, name, priority, cycles * 1000 / profile['clock_hz'],
+             cycles * 100 / profile['interval_cycles']) for key, name, priority, cycles in rows]
 
 
 def decode_depth(packet):
@@ -50,7 +95,7 @@ def decode_depth(packet):
         raise ValueError(f"unsupported metadata binning {binning}")
     width, height = RAW_GRID_SIZES[binning]
     zones = width * height
-    if len(packet.payload) < zones * 6 + zones // 2 + 100:
+    if len(packet.payload) < zones * 6 + (zones // 2 if dynamic & 0x30 else 0) + 100:
         raise ValueError("payload is too short for depth/amplitude/ambient/DSS")
     words = np.frombuffer(packet.payload, dtype="<u2", count=zones)
     depth = (words & 0x7FFF).astype(float).reshape(height, width)
@@ -66,6 +111,47 @@ def decode_depth(packet):
     return np.ma.masked_equal(depth, 0), binning
 
 
+def decode_depth_metadata(packet):
+    """Live sensor status from the final 100-byte CSI row (UM3683 Table 7)."""
+    if packet.kind != MAGIC or len(packet.payload) < 100:
+        raise ValueError('Missing sensor status row')
+    row = packet.payload[-100:]
+    dynamic = struct.unpack_from('<H', row, 58)[0]
+    return dict(counter=struct.unpack_from('<I', row)[0],
+                temperature_c=struct.unpack_from('<h', row, 4)[0],
+                ldd_temperature_raw=struct.unpack_from('<H', row, 6)[0],
+                dss_mode=(dynamic >> 4) & 3, context=(dynamic >> 11) & 1,
+                period_us=struct.unpack_from('<I', row, 68)[0],
+                error=struct.unpack_from('<H', row, 60)[0])
+
+
+class SensorFrameTiming:
+    """Estimate sensor FPS from its counter, independently of delivered FPS.
+
+    Host arrival times include buffering/jitter. Counter jumps count missed
+    sensor frames; a reset/backward jump restarts the measurement window.
+    """
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.anchor = None
+        self.fps = None
+
+    def add(self, counter, now):
+        if self.anchor is None:
+            self.anchor = (counter, now)
+            return
+        first, start = self.anchor
+        delta = (counter - first) & 0xffffffff
+        if delta >= 0x80000000:
+            self.reset()
+            self.anchor = (counter, now)
+        elif now - start >= .5:
+            self.fps = delta / (now - start)
+            self.anchor = (counter, now)
+
+
 class PacketParser:
     """Handle split/coalesced packets and recover after invalid headers."""
 
@@ -78,7 +164,7 @@ class PacketParser:
         self.buffer.extend(data)
         packets = []
         while True:
-            starts = [pos for magic in (MAGIC, IMU_MAGIC, PARAM_MAGIC)
+            starts = [pos for magic in (MAGIC, IMU_MAGIC, PARAM_MAGIC, PROFILE_MAGIC, TOF_MAGIC)
                       if (pos := self.buffer.find(magic)) >= 0]
             start = min(starts) if starts else -1
             if start < 0:
@@ -98,7 +184,11 @@ class PacketParser:
                      (kind == IMU_MAGIC and length == IMU_PAYLOAD.size and
                       width == 10 and height == 1) or
                      (kind == PARAM_MAGIC and 0 < length <= 16384 and
-                      width == 1 and height == 0))
+                      width == 1 and height == 0) or
+                     (kind == TOF_MAGIC and ((width == 1 and length == TOF_STATUS.size) or
+                                            (width == 2 and length == TOF_STATUS_V2.size))) or
+                     (kind == PROFILE_MAGIC and width == 1 and height <= PROFILE_MAX_THREADS and
+                      length == PROFILE_HEADER.size + height * PROFILE_THREAD.size))
             if not valid:
                 self.invalid_headers += 1
                 self.discarded += 1
@@ -119,6 +209,7 @@ packet_count = 0
 sequence_gaps = 0
 latest_packet = None
 latest_imu_packet = None
+latest_profile = None
 imu_packet_count = 0
 parser_discarded = 0
 parser_invalid = 0
@@ -131,6 +222,7 @@ stop_event = threading.Event()
 def stream_reader(read_chunk, label):
     global rx_total, connected, latest_packet, packet_count, sequence_gaps
     global parser_discarded, parser_invalid, latest_imu_packet, imu_packet_count
+    global latest_profile
     parser = PacketParser()
     previous_sequence = {}
     previous_imu_timestamp = None
@@ -138,6 +230,7 @@ def stream_reader(read_chunk, label):
     with lock:
         latest_packet = None
         latest_imu_packet = None
+        latest_profile = None
         parser_discarded = parser_invalid = 0
         imu_plot_buffer.clear()
         connected = True
@@ -153,7 +246,13 @@ def stream_reader(read_chunk, label):
                 parser_discarded = parser.discarded
                 parser_invalid = parser.invalid_headers
                 for packet in packets:
-                    if packet.kind == PARAM_MAGIC:
+                    if packet.kind in (PARAM_MAGIC, TOF_MAGIC):
+                        continue
+                    if packet.kind == PROFILE_MAGIC:
+                        try:
+                            latest_profile = decode_profile(packet)
+                        except ValueError:
+                            parser.invalid_headers += 1
                         continue
                     previous = previous_sequence.get(packet.kind)
                     if previous is not None and packet.sequence != ((previous + 1) & 0xFFFFFFFF):
@@ -259,6 +358,7 @@ def status_thread():
             total, count, packet = rx_total, packet_count, latest_packet
             gaps, discarded, invalid = sequence_gaps, parser_discarded, parser_invalid
             imu_count, imu_packet = imu_packet_count, latest_imu_packet
+            profile = latest_profile
         rate, fps = total - last_bytes, count - last_packets
         imu_fps = imu_count - last_imu
         last_imu = imu_count
@@ -282,6 +382,9 @@ def status_thread():
             print(f"[IMU] seq={imu_packet.sequence} t={timestamp} ms "
                   f"acc_mg={vector(values[:3])} gyro_mdps={vector(values[3:6])} "
                   f"quat_xyzw={vector(values[6:])}")
+        if profile:
+            print('[CPU] ' + ' | '.join(f'{name}: {ms:.2f} ms ({percent:.1f}%)'
+                  for _, name, _, ms, percent in profile_rows(profile)))
 
 
 def create_plots(refresh_hz=PLOT_FPS, depth_max=4000):

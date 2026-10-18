@@ -9,7 +9,8 @@ set -euo pipefail
 #   ./scripts/flash.sh --target appli-b
 #   ./scripts/flash.sh --target all
 #
-# Add --build to rebuild/sign all images first:
+# Every target refreshes parameters, preserving identity and other slots.
+# Add --build to rebuild/sign images first:
 #   ./scripts/flash.sh --target all --build --config Debug
 
 TARGET=""
@@ -130,16 +131,45 @@ if [[ "${BUILD_FIRST}" -eq 1 ]]; then
     "${SCRIPT_DIR}/build.sh" --target all --config "${CONFIG}"
 fi
 
-# Pack after building so provenance describes the images being flashed.
-if [[ "${TARGET}" == "all" || "${TARGET}" == "parameters" || -n "${PARAMETERS}" ]]; then
-    PARAMETERS="${PARAMETERS:-${ROOT_DIR}/config/flash_parameters.json}"
-    python3 "${SCRIPT_DIR}/pack_parameters.py" "${PARAMETERS}" "${PARAMETERS_IMAGE}" \
-        --fsbl "${FSBL_IMAGE}" --application "${APPLI_IMAGE}"
-fi
-
 [[ -f "${LOADER}" ]] || die "External loader not found: ${LOADER}"
 
 PROGRAMMER="$(find_programmer_cli)" || die "STM32_Programmer_CLI not found"
+
+# Validate all selected image paths before touching the device. Unselected
+# images/manifests are not needed, even for a parameters-only update.
+PACK_ARGS=(--target "${TARGET}" --connect-mode "${CONNECT_MODE}")
+case "${TARGET}" in
+    fsbl|all)
+        [[ -f "${FSBL_IMAGE}" ]] || die "FSBL image not found: ${FSBL_IMAGE}"
+        PACK_ARGS+=(--fsbl "${FSBL_IMAGE}")
+        ;;
+esac
+case "${TARGET}" in
+    appli-a|all)
+        [[ -f "${APPLI_IMAGE}" ]] || die "Application image not found: ${APPLI_IMAGE}"
+        PACK_ARGS+=(--application "${APPLI_IMAGE}")
+        ;;
+    appli-b)
+        [[ -f "${APPLI_IMAGE}" ]] || die "Application image not found: ${APPLI_IMAGE}"
+        PACK_ARGS+=(--application-b "${APPLI_IMAGE}")
+        ;;
+esac
+if [[ -n "${PARAMETERS}" || "${TARGET}" == "parameters" ]]; then
+    PACK_ARGS+=(--replace)
+fi
+PARAMETERS="${PARAMETERS:-${ROOT_DIR}/config/flash_parameters.json}"
+[[ -f "${PARAMETERS}" ]] || die "Parameter file not found: ${PARAMETERS}"
+
+# Read this board's existing settings rather than borrowing provenance from
+# a previous board or from unrelated binaries in the local build directory.
+PARAMETER_READBACK="$(mktemp --suffix=.bin -t vl53l9-parameters.XXXXXX)"
+trap 'rm -f "${PARAMETER_READBACK}"' EXIT
+"${PROGRAMMER}" \
+    -c "port=SWD" "mode=${CONNECT_MODE}" \
+    -el "${LOADER}" -hardRst \
+    -u "${PARAMETERS_ADDR}" 16384 "${PARAMETER_READBACK}"
+python3 "${SCRIPT_DIR}/pack_parameters.py" "${PARAMETERS}" "${PARAMETERS_IMAGE}" \
+    --existing "${PARAMETER_READBACK}" "${PACK_ARGS[@]}"
 
 program()
 {
@@ -166,10 +196,6 @@ program()
         -v
 }
 
-if [[ -n "${PARAMETERS}" ]]; then
-    program "${PARAMETERS_IMAGE}" "${PARAMETERS_ADDR}" "Parameters (reserved first 256 KiB)"
-fi
-
 case "${TARGET}" in
     parameters) ;;
     fsbl)
@@ -186,6 +212,9 @@ case "${TARGET}" in
         program "${APPLI_IMAGE}" "${APPLI_A_ADDR}" "Application A"
         ;;
 esac
+
+# Commit metadata only after every selected firmware image has been verified.
+program "${PARAMETERS_IMAGE}" "${PARAMETERS_ADDR}" "Parameters (reserved first 256 KiB)"
 
 echo
 echo "Programming complete."

@@ -288,6 +288,10 @@ int vl53l9_get_binning(void *const p_dev, vl53l9_context_t context, uint8_t *p_b
  * @param[in] binning Binning factor, accepted values are: 2, 3, 4, 6, 8, 12, 24
  * @return See @ref VL53L9_ERROR
  */
+/** Enable automatic DSS for the selected context, or select Precision (no DSS).
+ * Call after set_binning (which restores the default DSS mode), while in standby. */
+int vl53l9_set_dss_enabled(void *const p_dev, vl53l9_context_t context, bool enabled);
+
 int vl53l9_set_binning(void *const p_dev, vl53l9_context_t context, uint8_t binning);
 
 /**

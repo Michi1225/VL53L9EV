@@ -91,8 +91,9 @@ uint32_t extmemloader_Init()
   /* Enable I-Cache---------------------------------------------------------*/
   SCB_EnableICache();
 
-  /* Enable D-Cache---------------------------------------------------------*/
-  SCB_EnableDCache();
+  /* SWD supplies fresh programming buffers between loader calls. Keep data
+   * cache disabled so neither host buffers nor flash verification go stale. */
+  SCB_DisableDCache();
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();

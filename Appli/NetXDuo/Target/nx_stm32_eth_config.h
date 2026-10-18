@@ -59,6 +59,9 @@ extern void MX_ETH_Init(void);
 
 /* Private defines -----------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+/* The application polls/retries link enable; do not spin in the IP thread
+ * for five seconds at boot or on a disappearing cable. */
+#define PHY_LINK_TIMEOUT 0U
 
 /* USER CODE END PD */
 

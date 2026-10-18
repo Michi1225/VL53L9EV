@@ -73,7 +73,7 @@
                 "--build"
             ],
             "problemMatcher": [],
-            "detail": "Build/sign the selected configuration and program external SEMPER flash."
+            "detail": "Build/sign firmware, program external SEMPER flash and refresh the selected Appli/FSBL build timestamps and device parameters."
         },
         {
             "label": "Flash: Program Existing Images",
@@ -84,7 +84,7 @@
                 "${input:flashTarget}"
             ],
             "problemMatcher": [],
-            "detail": "Program already-built signed images without rebuilding."
+            "detail": "Program existing signed images and refresh selected Appli/FSBL build/flash timestamps, retaining original image build times from verified manifests."
         },
         {
             "label": "Flash: Program Parameters",
@@ -97,7 +97,7 @@
                 "${workspaceFolder}/config/flash_parameters.json"
             ],
             "problemMatcher": [],
-            "detail": "Generate JSON parameters with Git hash/dirty state and existing image provenance; replace the reserved first 256 KiB flash block. Requires previously packaged images and manifests."
+            "detail": "Replace editable settings, refresh parameter_build.built_at_utc and repository/flash metadata, and preserve on-board firmware build dates. No local firmware images required."
         },
         {
             "label": "Monitor: Board Viewer",

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Desktop viewer for VL53L9EV USB CDC / Ethernet sensor and identity packets."""
 import argparse
+from decimal import Decimal, InvalidOperation
 from collections import deque
 import json
 import socket
@@ -27,7 +28,102 @@ except ImportError as error:
         f"Import failed: {error}"
     ) from error
 
-from USB_Debug import PacketParser, MAGIC, IMU_MAGIC, PARAM_MAGIC, IMU_PAYLOAD, decode_depth
+from USB_Debug import (PacketParser, MAGIC, IMU_MAGIC, PARAM_MAGIC, IMU_PAYLOAD,
+                       decode_depth, decode_depth_metadata, SensorFrameTiming, PROFILE_MAGIC, decode_profile, profile_rows, TOF_MAGIC)
+from Sensor_Control import (GET_CONFIG, START, STOP, SET_CONFIG, RESET, POWER_DOWN, STATE_NAMES, POWER_NAMES,
+                            RANGING_MODES, ranging_mode, RESULT_NAMES, OPERATION_NAMES, build_command, decode_status)
+
+
+class CpuShareChart:
+    """Live CPU donut with stable colors and details on hover."""
+
+    PALETTE = ('#2563eb', '#10b981', '#8b5cf6', '#f43f5e', '#06b6d4',
+               '#eab308', '#6366f1', '#14b8a6')
+
+    def __init__(self, parent):
+        self.colors = {'idle': '#cbd5e1', 'isr': '#f59e0b',
+                       'scheduler': '#a855f7', 'other': '#64748b', 'small': '#94a3b8'}
+        self.thread_colors = {}
+        self.figure = Figure(figsize=(5, 5), dpi=100, facecolor='#f8fafc')
+        self.ax = self.figure.add_axes((.08, .24, .84, .70))
+        self.canvas = FigureCanvasTkAgg(self.figure, parent)
+        self.canvas.get_tk_widget().pack(fill='both', expand=True)
+        self.canvas.mpl_connect('motion_notify_event', self.hover)
+        self.slices = []
+        self.rows = []
+        self.tooltip = None
+        self.show(None)
+
+    def color(self, key):
+        if key in self.colors:
+            return self.colors[key]
+        if key not in self.thread_colors:
+            self.thread_colors[key] = self.PALETTE[len(self.thread_colors) % len(self.PALETTE)]
+        return self.thread_colors[key]
+
+    def show(self, profile):
+        self.ax.clear()
+        self.ax.set_aspect('equal')
+        self.ax.set_axis_off()
+        self.ax.set_title('CPU time distribution', color='#334155', fontsize=13, pad=14)
+        for legend in list(self.figure.legends):
+            legend.remove()
+        self.slices = []
+        self.rows = []
+        self.tooltip = None
+        if profile is None:
+            self.ax.pie([1], colors=['#e2e8f0'], radius=1,
+                        wedgeprops=dict(width=.28, edgecolor='#f8fafc', linewidth=2))
+            self.ax.text(0, .04, 'No data', ha='center', va='center',
+                         fontsize=19, color='#64748b', weight='bold')
+            self.ax.text(0, -.20, 'Waiting for a report', ha='center', fontsize=9, color='#64748b')
+        else:
+            rows = profile_rows(profile)
+            # Assign colors before sorting so changing loads do not swap colors.
+            for key, *_ in rows:
+                self.color(key)
+            active = sorted((row for row in rows if row[4] > 0), key=lambda row: -row[4])
+            self.rows = [row for row in active[:7] if row[4] >= 1]
+            small = [row for row in active if row not in self.rows]
+            if small:
+                self.rows.append(('small', 'Other activities', '',
+                                  sum(row[3] for row in small), sum(row[4] for row in small)))
+            self.slices, _, _ = self.ax.pie(
+                [row[4] for row in self.rows], colors=[self.color(row[0]) for row in self.rows],
+                startangle=90, counterclock=False, radius=1,
+                wedgeprops=dict(width=.28, edgecolor='#f8fafc', linewidth=2),
+                autopct=lambda percent: f'{percent:.0f}%' if percent >= 5 else '',
+                pctdistance=.86, textprops=dict(color='#0f172a', fontsize=9, weight='bold'))
+            busy = 100 * (1 - profile['idle_cycles'] / profile['interval_cycles'])
+            self.ax.text(0, .06, f'{busy:.1f}%', ha='center', va='center',
+                         fontsize=28, color='#0f172a', weight='bold')
+            self.ax.text(0, -.19, 'CPU busy', ha='center', fontsize=11, color='#64748b')
+            labels = [f'{name[:25]}  {percent:.1f}%' for _, name, _, _, percent in self.rows]
+            self.figure.legend(self.slices, labels, loc='lower center', bbox_to_anchor=(.5, .02),
+                               ncol=2, frameon=False, fontsize=8, labelcolor='#334155',
+                               handlelength=1, columnspacing=1.2)
+            self.tooltip = self.ax.annotate(
+                '', xy=(0, 0), xytext=(0, 16), textcoords='offset points',
+                ha='center', va='bottom', fontsize=9, color='#f8fafc', zorder=10,
+                bbox=dict(boxstyle='round,pad=.6', fc='#0f172a', ec='none', alpha=.95))
+            self.tooltip.set_visible(False)
+        self.canvas.draw_idle()
+
+    def hover(self, event):
+        if self.tooltip is None:
+            return
+        selected = next((i for i, wedge in enumerate(self.slices)
+                         if event.inaxes is self.ax and wedge.contains(event)[0]), None)
+        if selected is None:
+            if self.tooltip.get_visible():
+                self.tooltip.set_visible(False)
+                self.canvas.draw_idle()
+            return
+        _, name, _, ms, percent = self.rows[selected]
+        self.tooltip.xy = (event.xdata, event.ydata)
+        self.tooltip.set_text(f'{name}\n{ms:.3f} ms · {percent:.2f}%')
+        self.tooltip.set_visible(True)
+        self.canvas.draw_idle()
 
 
 class Receiver:
@@ -36,15 +132,37 @@ class Receiver:
         self.stop = threading.Event()
         self.lock = threading.Lock()
         self.status = 'Connecting'
+        self.tof_status = self.tof_settings = None
+        self.tof_received = None
+        self.sensor_timing = SensorFrameTiming()
+        self.sensor_metadata = self.sensor_metadata_received = None
+        self.pending_command = self.outgoing = None
+        self.command_message = 'Waiting for sensor status…'
+        self.next_request_id = 1
         self.total = self.lidar_count = self.imu_count = self.gaps = 0
         self.discarded = self.invalid = 0
         self.metadata = None
+        self.profile = None
+        self.profile_received = None
         self.depth = None
         self.samples = deque(maxlen=1000)
         self.last_packet = None
         self.session = 0
         self.thread = threading.Thread(target=self.run, daemon=True)
         self.thread.start()
+
+    def send_command(self, operation, config=None):
+        with self.lock:
+            if self.status != 'Connected':
+                raise ValueError('Connect to a device first')
+            if self.pending_command:
+                raise ValueError('Wait for the current command acknowledgement')
+            request_id = self.next_request_id
+            wire = build_command(request_id, operation, config)
+            self.next_request_id = (request_id + 1) & 0xffffffff or 1
+            self.pending_command = (request_id, operation, time.monotonic())
+            self.outgoing = wire
+            self.command_message = f'{OPERATION_NAMES[operation]}: waiting for device…'
 
     def run(self):
         while not self.stop.is_set():
@@ -53,17 +171,32 @@ class Receiver:
                     connection = socket.create_connection((self.endpoint, self.port), timeout=2)
                     connection.settimeout(.2)
                 else:
-                    connection = serial.Serial(self.endpoint, 115200, timeout=.2)
+                    connection = serial.Serial(self.endpoint, 115200, timeout=.2, write_timeout=.5)
                 with connection:
                     parser = PacketParser()
                     previous = {}
                     with self.lock:
                         self.status = 'Connected'
                         self.session += 1
-                        self.metadata = self.depth = None
+                        self.metadata = self.depth = self.profile = None
                         self.samples.clear()
                         self.last_packet = None
+                        self.tof_status = self.tof_settings = None
+                        self.sensor_timing.reset()
+                        self.sensor_metadata = self.sensor_metadata_received = None
+                        self.pending_command = self.outgoing = None
+                        self.command_message = 'Waiting for sensor status…'
                     while not self.stop.is_set():
+                        with self.lock:
+                            if self.pending_command and time.monotonic() - self.pending_command[2] > 8:
+                                self.pending_command = self.outgoing = None
+                                self.command_message = 'No acknowledgement; state may have changed. Refresh before retrying.'
+                            outgoing, self.outgoing = self.outgoing, None
+                        if outgoing:
+                            if self.mode == 'Ethernet':
+                                connection.sendall(outgoing)
+                            elif connection.write(outgoing) != len(outgoing):
+                                raise OSError('Incomplete USB command write')
                         try:
                             data = (connection.recv(65536) if self.mode == 'Ethernet'
                                     else connection.read(min(65536, max(1, connection.in_waiting))))
@@ -79,6 +212,28 @@ class Receiver:
                             self.discarded, self.invalid = parser.discarded, parser.invalid_headers
                             for packet in packets:
                                 self.last_packet = time.monotonic()
+                                if packet.kind == TOF_MAGIC:
+                                    try:
+                                        report = decode_status(packet)
+                                        if self.tof_status is None and self.pending_command is None:
+                                            self.command_message = 'Sensor status received.'
+                                        self.tof_status = report
+                                        self.tof_received = time.monotonic()
+                                        pending = self.pending_command
+                                        matched = pending and (report['request_id'], report['operation']) == pending[:2]
+                                        if (report['state'] in (1, 2) and self.tof_settings is None) or (
+                                                matched and report['result'] == 0 and report['operation'] in (GET_CONFIG, SET_CONFIG, RESET)):
+                                            self.tof_settings = report['config']
+                                        if matched:
+                                            self.command_message = f"{OPERATION_NAMES[report['operation']]}: {RESULT_NAMES[report['result']]}"
+                                            self.pending_command = None
+                                        if report['state'] in (1, 3, 4) or (matched and report['operation'] == RESET):
+                                            self.depth = None
+                                            self.sensor_timing.reset()
+                                    except ValueError:
+                                        parser.invalid_headers += 1
+                                        self.invalid = parser.invalid_headers
+                                    continue
                                 if packet.kind == PARAM_MAGIC:
                                     try:
                                         metadata = json.loads(packet.payload)
@@ -86,7 +241,16 @@ class Receiver:
                                             raise ValueError('Expected JSON object')
                                         self.metadata = metadata
                                     except (ValueError, UnicodeError):
-                                        self.invalid += 1
+                                        parser.invalid_headers += 1
+                                        self.invalid = parser.invalid_headers
+                                    continue
+                                if packet.kind == PROFILE_MAGIC:
+                                    try:
+                                        self.profile = decode_profile(packet)
+                                        self.profile_received = time.monotonic()
+                                    except ValueError:
+                                        parser.invalid_headers += 1
+                                        self.invalid = parser.invalid_headers
                                     continue
                                 old = previous.get(packet.kind)
                                 if old is not None:
@@ -97,17 +261,33 @@ class Receiver:
                                 if packet.kind == MAGIC:
                                     self.depth = packet
                                     self.lidar_count += 1
+                                    try:
+                                        self.sensor_metadata = decode_depth_metadata(packet)
+                                        self.sensor_metadata_received = time.monotonic()
+                                        self.sensor_timing.add(self.sensor_metadata['counter'], self.sensor_metadata_received)
+                                    except ValueError:
+                                        self.sensor_metadata = None
                                 elif packet.kind == IMU_MAGIC:
                                     self.samples.append((time.monotonic(), IMU_PAYLOAD.unpack(packet.payload)))
                                     self.imu_count += 1
             except (OSError, serial.SerialException) as error:
                 with self.lock:
+                    self.sensor_metadata = self.sensor_metadata_received = None
+                    self.sensor_timing.reset()
                     self.status = f'Reconnecting: {error}'
-                    self.metadata = self.depth = None
+                    self.tof_status = self.tof_settings = None
+                    self.command_message = 'Connection lost; refresh sensor state after reconnecting.'
+                    self.pending_command = self.outgoing = None
+                    self.metadata = self.depth = self.profile = None
                     self.samples.clear()
                 self.stop.wait(1)
         with self.lock:
+            self.sensor_metadata = self.sensor_metadata_received = None
+            self.sensor_timing.reset()
             self.status = 'Disconnected'
+            self.profile = None
+            self.tof_status = self.tof_settings = None
+            self.pending_command = self.outgoing = None
 
 
 class Viewer:
@@ -116,9 +296,11 @@ class Viewer:
         root.title('VL53L9EV · Device Monitor')
         root.geometry('1200x850')
         self.receiver = None
+        self.last_tof_settings = None
         self.metadata = None
         self.last_metadata = None
         self.last_depth = None
+        self.last_profile = None
         self.last_stats = (time.monotonic(), 0, 0, 0)
         self.last_session = -1
         bar = ttk.Frame(root, padding=12)
@@ -145,6 +327,78 @@ class Viewer:
         identity = ttk.Frame(tabs)
         tabs.add(sensor, text='Live sensors')
         tabs.add(identity, text='Device & firmware parameters')
+        profiler = ttk.Frame(tabs, padding=12)
+        tabs.add(profiler, text='CPU profiler')
+        self.profile_status = tk.StringVar(value='Waiting for profiler data…')
+        ttk.Label(profiler, textvariable=self.profile_status).pack(anchor='w', pady=(0, 8))
+        self.cpu_busy = ttk.Progressbar(profiler, maximum=100)
+        self.cpu_busy.pack(fill='x', pady=(0, 12))
+        ttk.Label(profiler, text='CPU time per reporting interval; blocked/sleeping time is excluded from threads.').pack(anchor='w', pady=(0, 8))
+        profile_panes = ttk.Panedwindow(profiler, orient='horizontal')
+        profile_panes.pack(fill='both', expand=True)
+        table = ttk.Frame(profile_panes)
+        chart = ttk.Frame(profile_panes)
+        profile_panes.add(table, weight=3)
+        profile_panes.add(chart, weight=2)
+        self.profile_tree = ttk.Treeview(table, columns=('name', 'priority', 'ms', 'percent'), show='headings')
+        for column, title, width in [('name', 'Thread / activity', 240), ('priority', 'Priority', 65),
+                                      ('ms', 'CPU time (ms)', 110), ('percent', 'CPU share (%)', 110)]:
+            self.profile_tree.heading(column, text=title)
+            self.profile_tree.column(column, width=width, anchor='w' if column == 'name' else 'e')
+        profile_scroll = ttk.Scrollbar(table, orient='vertical', command=self.profile_tree.yview)
+        self.profile_tree.configure(yscrollcommand=profile_scroll.set)
+        profile_scroll.pack(side='right', fill='y')
+        self.profile_tree.pack(fill='both', expand=True)
+        self.profile_chart = CpuShareChart(chart)
+        configuration = ttk.Frame(tabs, padding=20)
+        tabs.add(configuration, text='Sensor configuration')
+        self.tof_state = tk.StringVar(value='ToF: waiting for device status')
+        self.tof_command_status = tk.StringVar(value='Connect to read sensor settings.')
+        self.tof_buttons = []
+        live_controls = ttk.Frame(sensor, padding=(8, 6))
+        live_controls.pack(fill='x')
+        self.add_tof_button(live_controls, 'Start ToF', START)
+        self.add_tof_button(live_controls, 'Stop ToF', STOP)
+        self.add_tof_button(live_controls, 'Reset ToF', RESET)
+        self.add_tof_button(live_controls, 'Power down', POWER_DOWN)
+        ttk.Label(live_controls, textvariable=self.tof_state).pack(side='left', padx=12)
+        ttk.Label(configuration, text='Time-of-flight sensor', font=('TkDefaultFont', 16, 'bold')).pack(anchor='w')
+        ttk.Label(configuration, textvariable=self.tof_state).pack(anchor='w', pady=(8, 12))
+        controls = ttk.Frame(configuration)
+        controls.pack(anchor='w', pady=(0, 16))
+        self.add_tof_button(controls, 'Start ToF', START)
+        self.add_tof_button(controls, 'Stop ToF', STOP)
+        self.add_tof_button(controls, 'Reset ToF', RESET)
+        self.add_tof_button(controls, 'Power down', POWER_DOWN)
+        self.add_tof_button(controls, 'Read from device', GET_CONFIG)
+        form = ttk.LabelFrame(configuration, text='Ranging settings', padding=16)
+        form.pack(fill='x')
+        self.tof_period = tk.StringVar(value='10')
+        self.tof_exposure = tk.StringVar(value='1')
+        self.tof_binning = tk.StringVar(value='2')
+        self.tof_power = tk.StringVar(value='Regular')
+        self.tof_mode = tk.StringVar(value='Precision (no DSS)')
+        self.tof_diagnostics = tk.StringVar(value='Waiting for sensor frame diagnostics…')
+        ttk.Label(sensor, textvariable=self.tof_diagnostics, padding=(8, 0)).pack(fill='x')
+        ttk.Label(configuration, textvariable=self.tof_diagnostics).pack(anchor='w', pady=8)
+        for row, (label, variable, values, hint) in enumerate([
+                ('Frame period (ms)', self.tof_period, None, '10–1000 ms (1–100 Hz)'),
+                ('Exposure (ms)', self.tof_exposure, None, '1–30 ms; must fit within the frame period'),
+                ('Binning', self.tof_binning, ['2', '4', '6', '8', '12', '24'], '2: 54×42 · 4: 24×20 · 6: 18×14 · 8: 12×10 · 12: 8×6 · 24: 4×4'),
+                ('Power mode', self.tof_power, POWER_NAMES, ''),
+                ('Ranging mode', self.tof_mode, RANGING_MODES, 'Precision: short context · Ambient: long context')]):
+            ttk.Label(form, text=label).grid(row=row, column=0, sticky='w', pady=8, padx=(0, 24))
+            widget = (ttk.Combobox(form, textvariable=variable, values=values, state='readonly', width=22)
+                      if values else ttk.Entry(form, textvariable=variable, width=18))
+            widget.grid(row=row, column=1, sticky='w', pady=8)
+            ttk.Label(form, text=hint).grid(row=row, column=2, sticky='w', padx=18)
+        actions = ttk.Frame(configuration)
+        actions.pack(anchor='w', pady=16)
+        self.add_tof_button(actions, 'Apply settings', SET_CONFIG)
+        ttk.Label(configuration, text='Stop ToF before applying changes. Settings last until reboot. IMU and CPU reports continue.').pack(anchor='w')
+        ttk.Label(configuration, text='Reset ToF restores compiled defaults and leaves ranging stopped; it also clears recoverable sensor faults.').pack(anchor='w', pady=(6, 0))
+        ttk.Label(configuration, text='Power down holds XSHUT low. Use Reset ToF to wake the sensor, then Start ToF to range.').pack(anchor='w', pady=(6, 0))
+        ttk.Label(configuration, textvariable=self.tof_command_status, wraplength=1000).pack(anchor='w', pady=16)
         fig = Figure(figsize=(11, 6), dpi=100)
         grid = fig.add_gridspec(3, 2)
         self.depth_ax = fig.add_subplot(grid[:, 0])
@@ -178,6 +432,58 @@ class Viewer:
         if args.connect:
             self.connect()
 
+    def add_tof_button(self, parent, label, operation):
+        button = ttk.Button(parent, text=label, state='disabled', command=lambda: self.sensor_command(operation))
+        button.pack(side='left', padx=(0, 8))
+        self.tof_buttons.append((button, operation))
+
+    def sensor_command(self, operation):
+        try:
+            config = None
+            if operation == SET_CONFIG:
+                microseconds = Decimal(self.tof_period.get()) * 1000
+                if not microseconds.is_finite() or microseconds != microseconds.to_integral_value():
+                    raise ValueError('Frame period must be a whole number of microseconds')
+                config = dict(period_us=int(microseconds), exposure_ms=int(self.tof_exposure.get()),
+                              binning=int(self.tof_binning.get()), power=POWER_NAMES.index(self.tof_power.get()),
+                              context=int(self.tof_mode.get() == 'Ambient'),
+                              dss_enabled=self.tof_mode.get() != 'Precision (no DSS)')
+            if self.receiver is None:
+                raise ValueError('Connect to a device first')
+            self.receiver.send_command(operation, config)
+        except (ValueError, InvalidOperation) as error:
+            self.tof_command_status.set(str(error))
+            if self.receiver:
+                with self.receiver.lock:
+                    self.receiver.command_message = str(error)
+
+    def show_sensor_status(self, report, settings, received, connected, pending, message):
+        self.tof_command_status.set(message)
+        state = report['state'] if report else None
+        if report:
+            age = time.monotonic() - received
+            text = f"ToF: {STATE_NAMES[state]} · {report['width']}×{report['height']} CSI · {report['frames']} frames"
+            if report['error']:
+                text += f" · error {report['error']}"
+            if age > 3:
+                text += f' · status {age:.1f}s old'
+            self.tof_state.set(text)
+        else:
+            self.tof_state.set('ToF: waiting for device status' if connected else 'ToF: disconnected')
+        if settings is not None and settings is not self.last_tof_settings:
+            self.tof_period.set(f"{settings['period_us']/1000:g}")
+            self.tof_exposure.set(str(settings['exposure_ms']))
+            self.tof_binning.set(str(settings['binning']))
+            self.tof_power.set(POWER_NAMES[settings['power']])
+            self.tof_mode.set(ranging_mode(settings['context'], settings.get('dss_enabled', True)))
+        self.last_tof_settings = settings
+        for button, operation in self.tof_buttons:
+            enabled = connected and not pending and (operation == GET_CONFIG or
+                      (operation == RESET and state in (1, 2, 3, 4)) or
+                      (operation == POWER_DOWN and state in (1, 2, 3)) or
+                      (operation in (START, SET_CONFIG) and state == 1) or (operation == STOP and state == 2))
+            button.configure(state='normal' if enabled else 'disabled')
+
     def connect(self):
         if self.receiver and self.receiver.thread.is_alive():
             self.receiver.stop.set()
@@ -195,6 +501,8 @@ class Viewer:
         self.last_session = -1
         self.last_depth = self.last_metadata = self.metadata = None
         self.tree.delete(*self.tree.get_children())
+        self.show_profile(None, None)
+        self.show_sensor_status(None, None, None, False, False, 'Waiting for sensor status…')
 
     def disconnect(self):
         if self.receiver:
@@ -217,13 +525,52 @@ class Viewer:
             else:
                 self.tree.insert(parent, 'end', text=key, values=(json.dumps(value, ensure_ascii=False),))
 
+    def show_profile(self, profile, received):
+        if profile is not self.last_profile:
+            self.profile_chart.show(profile)
+        if profile is None:
+            self.profile_status.set('Waiting for profiler data…')
+            self.cpu_busy['value'] = 0
+            if self.profile_tree.get_children():
+                self.profile_tree.delete(*self.profile_tree.get_children())
+        else:
+            idle = 100 * profile['idle_cycles'] / profile['interval_cycles']
+            duration = 1000 * profile['interval_cycles'] / profile['clock_hz']
+            age = time.monotonic() - received
+            suffix = ' · STALE' if age > 3 else ''
+            if profile['truncated']:
+                suffix += ' · thread list truncated'
+            self.profile_status.set(f'CPU busy {100-idle:.1f}% · Idle {idle:.1f}% · Interval {duration:.1f} ms · Report age {age:.1f}s{suffix}')
+            self.cpu_busy['value'] = 100 - idle
+            if profile is not self.last_profile:
+                self.profile_tree.delete(*self.profile_tree.get_children())
+                for key, name, priority, ms, percent in profile_rows(profile):
+                    self.profile_tree.insert('', 'end', iid=key,
+                                             values=(name, priority, f'{ms:.3f}', f'{percent:.2f}'))
+        self.last_profile = profile
+
     def update(self):
         r = self.receiver
         if r:
             with r.lock:
                 status, total, lidar, imu, gaps = r.status, r.total, r.lidar_count, r.imu_count, r.gaps
                 depth, samples, metadata = r.depth, list(r.samples), r.metadata
+                profile, profile_received = r.profile, r.profile_received
+                tof, settings, tof_received = r.tof_status, r.tof_settings, r.tof_received
+                pending, command_message = r.pending_command, r.command_message
+                sensor_meta, sensor_received, sensor_fps = r.sensor_metadata, r.sensor_metadata_received, r.sensor_timing.fps
                 discarded, invalid, last_packet, session = r.discarded, r.invalid, r.last_packet, r.session
+            if sensor_meta:
+                mode = ranging_mode(sensor_meta['context'], sensor_meta['dss_mode'] != 0)
+                fps = 'measuring' if sensor_fps is None else f'{sensor_fps:.1f} fps (estimated)'
+                age = time.monotonic() - sensor_received
+                self.tof_diagnostics.set(f"Sensor {fps} · die {sensor_meta['temperature_c']} °C · {mode} · "
+                                         f"reported period {sensor_meta['period_us']/1000:g} ms · "
+                                         f"sensor frame {sensor_meta['counter']} · error 0x{sensor_meta['error']:04x} · last frame {age:.1f}s ago")
+            else:
+                self.tof_diagnostics.set('Waiting for sensor frame diagnostics…')
+            self.show_profile(profile, profile_received)
+            self.show_sensor_status(tof, settings, tof_received, status == 'Connected', pending, command_message)
             age = '' if last_packet is None else f' · last packet {time.monotonic()-last_packet:.1f}s ago'
             self.status.set(f'{r.mode}: {r.endpoint} · {status}{age}')
             now = time.monotonic()

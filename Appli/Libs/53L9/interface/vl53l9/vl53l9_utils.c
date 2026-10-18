@@ -32,6 +32,7 @@ vl53l9_profile_t g_ranging_profiles[VL53L9_NB_USECASES] = {
         .id = VL53L9_USECASE_AR_RANGE,
         .sync = VL53L9_SYNC_AUTONOMOUS,
         .power = VL53L9_POWER_REGULAR,
+        .dss_enabled = true,
         .context = VL53L9_CONTEXT_LONG,
         .frame_period_us = FPS_TO_FRAME_PERIOD(30),
         .binning = 2,
@@ -41,6 +42,7 @@ vl53l9_profile_t g_ranging_profiles[VL53L9_NB_USECASES] = {
         .id = VL53L9_USECASE_AR_PRECISION,
         .sync = VL53L9_SYNC_AUTONOMOUS,
         .power = VL53L9_POWER_ULTRA_LOW,
+        .dss_enabled = true,
         .context = VL53L9_CONTEXT_SHORT,
         .frame_period_us = FPS_TO_FRAME_PERIOD(30),
         .binning = 2,
@@ -50,6 +52,7 @@ vl53l9_profile_t g_ranging_profiles[VL53L9_NB_USECASES] = {
         .id = VL53L9_USECASE_AF_RANGE,
         .sync = VL53L9_SYNC_AUTONOMOUS,
         .power = VL53L9_POWER_LOW,
+        .dss_enabled = true,
         .context = VL53L9_CONTEXT_LONG,
         .frame_period_us = FPS_TO_FRAME_PERIOD(30),
         .binning = 4,
@@ -59,6 +62,7 @@ vl53l9_profile_t g_ranging_profiles[VL53L9_NB_USECASES] = {
         .id = VL53L9_USECASE_AF,
         .sync = VL53L9_SYNC_AUTONOMOUS,
         .power = VL53L9_POWER_ULTRA_LOW,
+        .dss_enabled = true,
         .context = VL53L9_CONTEXT_SHORT,
         .frame_period_us = FPS_TO_FRAME_PERIOD(30),
         .binning = 4,
@@ -68,10 +72,12 @@ vl53l9_profile_t g_ranging_profiles[VL53L9_NB_USECASES] = {
         .id = VL53L9_USECASE_GAMING,
         .sync = VL53L9_SYNC_AUTONOMOUS,
         .power = VL53L9_POWER_REGULAR,
-        .context = VL53L9_CONTEXT_LONG,
+        /* Datasheet Gaming: Precision (no DSS). Keep the requested 1 ms exposure. */
+        .dss_enabled = false,
+        .context = VL53L9_CONTEXT_SHORT,
         .frame_period_us = FPS_TO_FRAME_PERIOD(100),
         .binning = 2,
-        .exposure_ms = 2,
+        .exposure_ms = 5,
     }
 };
 
@@ -106,6 +112,10 @@ int vl53l9_utils_set_profile(vl53l9_device_t *p_dev, vl53l9_profile_t *p_profile
     if (ret) {
         return ret;
     }
+
+    /* set_binning enables DSS, so apply the explicit mode afterwards. */
+    ret = vl53l9_set_dss_enabled(p_dev, p_profile->context, p_profile->dss_enabled);
+    if (ret) return ret;
 
     ret = vl53l9_set_exposure(p_dev, p_profile->context, p_profile->exposure_ms);
     if (ret) {
@@ -177,7 +187,7 @@ int vl53l9_utils_get_csi_resolution(uint8_t binning, uint8_t *p_width, uint8_t *
 
 int vl53l9_utils_parse_frame(uint8_t *p_buffer, size_t buffer_size, vl53l9_frame_t *p_frame) {
 
-    if ((p_buffer == NULL) || (p_frame == NULL)) {
+    if ((p_buffer == NULL) || (p_frame == NULL) || buffer_size < sizeof(vl53l9_meta_t)) {
         return -1;
     }
 
@@ -185,8 +195,8 @@ int vl53l9_utils_parse_frame(uint8_t *p_buffer, size_t buffer_size, vl53l9_frame
 
     size_t resolution = _get_raw_resolution((uint8_t)p_frame->p_metadata->binning);
 
-    size_t dss_size = resolution / 2u;
-    if (buffer_size < ((resolution * 3u * 2u) + dss_size)) {
+    size_t dss_size = p_frame->p_metadata->dss_mode ? resolution / 2u : 0u;
+    if (!resolution || buffer_size < ((resolution * 3u * 2u) + dss_size + sizeof(vl53l9_meta_t))) {
         return -1;
     }
 
@@ -201,7 +211,7 @@ int vl53l9_utils_parse_frame(uint8_t *p_buffer, size_t buffer_size, vl53l9_frame
     p_frame->p_ambient = (uint16_t *)&p_buffer[offset];
     offset += (uint16_t)(resolution * 2u);
 
-    p_frame->p_dss_lut = &p_buffer[offset]; // NOTE: no check since dss is always enabled
+    p_frame->p_dss_lut = dss_size ? &p_buffer[offset] : NULL;
 
     return 0;
 }
@@ -214,8 +224,8 @@ int vl53l9_utils_dump_csi_frame(vl53l9_frame_t *p_frame, uint8_t *p_buffer, size
     }
 
     size_t resolution = _get_raw_resolution((uint8_t)p_frame->p_metadata->binning);
-    size_t frame_size =
-        resolution * (sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint16_t) + 0.5) + sizeof(vl53l9_meta_t);
+    size_t dss_size = p_frame->p_metadata->dss_mode ? resolution / 2u : 0u;
+    size_t frame_size = resolution * 6u + dss_size + sizeof(vl53l9_meta_t);
 
     if (frame_size > buffer_size) {
         return -1; /* output buffer too small */
@@ -229,8 +239,8 @@ int vl53l9_utils_dump_csi_frame(vl53l9_frame_t *p_frame, uint8_t *p_buffer, size
     ptr_cursor += resolution * sizeof(uint16_t);
     memcpy(ptr_cursor, p_frame->p_ambient, sizeof(uint16_t) * resolution);
     ptr_cursor += resolution * sizeof(uint16_t);
-    memcpy(ptr_cursor, p_frame->p_dss_lut, 0.5 * resolution);
-    ptr_cursor += (uint32_t)(0.5 * resolution);
+    if (dss_size) memcpy(ptr_cursor, p_frame->p_dss_lut, dss_size);
+    ptr_cursor += dss_size;
     memcpy(ptr_cursor, p_frame->p_metadata, sizeof(vl53l9_meta_t));
     ptr_cursor += sizeof(vl53l9_meta_t);
 

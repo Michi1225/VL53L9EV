@@ -253,6 +253,24 @@ ExtMemLoader/build/VL53L9_eval_ExtMemLoader.stldr
 
 with `STM32_Programmer_CLI`.
 
+Every persistent flash also updates device/build parameters at `0x90000000`.
+The script reads the connected board's existing parameters, preserves editable
+settings and other slots' records, validates the selected image manifests, then
+programs/verifies firmware followed by parameters. Build records now include
+compiler/toolchain versions, actual compile flags/definitions and feature options.
+Existing images keep their recorded Debug/Release configuration. Old manifests
+require a one-time rebuild; SRAM `--dev` images must be rebuilt for persistent use.
+
+Use `--target parameters` to replace editable settings from the default JSON,
+or `--parameters /path/to/device.json` to apply a specific settings file with
+any target. Inspect `build/flash_parameters.json` or the PC viewer's
+**Device & firmware parameters** tab. `parameter_build.built_at_utc` refreshes on
+every parameter build. Flashing FSBL, Appli A, Appli B or all also refreshes each
+selected slot's `build.*.built_at_utc` and `programmed_at_utc`; `image_built_at_utc`
+retains the image's original build date. A parameter-only update preserves all
+firmware records. See [parameter management](../config/README.md)
+for complete field and preservation details.
+
 ---
 
 ## 6. Flashing from VS Code

@@ -105,7 +105,10 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ../common/s28hs512t/semper_flash.c
     ../common/s28hs512t/s28hs512t.c
     ./Libs/control/device_parameters.c
+    ./Libs/control/tof_control.c
+    ./Libs/control/thread_profiler.c
     ./Libs/control/ethernet_stream.c
+    ./Libs/control/ethernet_link.c
     ./Libs/control/app_events.c
     ../common/led/LEDController.c
     ./Core/Src/app_clock.c

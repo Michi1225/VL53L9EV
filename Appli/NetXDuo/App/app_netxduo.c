@@ -23,6 +23,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "ethernet_link.h"
 
 /* USER CODE END Includes */
 
@@ -193,81 +194,7 @@ UINT MX_NetXDuo_Init(VOID *memory_ptr)
 static VOID netXduo_app_thread_entry (ULONG thread_input)
 {
   /* USER CODE BEGIN Nx_App_Thread_Entry 0 */
-  UINT status;
-  ULONG actual_status;
-
-  (void)thread_input;
-
-  while (1)
-  {
-    /*
-     * Wait until Ethernet becomes available.
-     */
-    status = nx_ip_status_check(
-        &NetXDuoEthIpInstance,
-        NX_IP_LINK_ENABLED,
-        &actual_status,
-        NX_WAIT_FOREVER);
-
-    if (status != NX_SUCCESS)
-    {
-        /*
-         * Unexpected NetX error.
-         */
-        tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND);
-        continue;
-    }
-
-    /*
-     * Link is up.
-     */
-    tx_event_flags_set(
-        &app_events,
-        APP_EVT_ETH_LINK_UP,
-        TX_OR);
-
-    /*
-      * We are currently using a static IP, so once the physical
-      * link is up the interface can be considered IP-ready.
-      */
-    tx_event_flags_set(
-        &app_events,
-        APP_EVT_ETH_IP_READY,
-        TX_OR);
-
-    /*
-      * Stay here until the link disappears.
-      */
-    while (1)
-    {
-        status = nx_ip_status_check(
-            &NetXDuoEthIpInstance,
-            NX_IP_LINK_ENABLED,
-            &actual_status,
-            TX_NO_WAIT);
-
-        if ((status != NX_SUCCESS) ||
-            ((actual_status & NX_IP_LINK_ENABLED) == 0U))
-        {
-            break;
-        }
-
-        tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 5U);
-    }
-
-    /*
-      * Link has gone down.
-      */
-    tx_event_flags_set(
-        &app_events,
-        ~(APP_EVT_ETH_LINK_UP |
-          APP_EVT_ETH_IP_READY),
-        TX_AND);
-
-      /*
-        * Loop back and wait for another link-up.
-        */
-  }
+  ethernet_link_thread_entry(thread_input);
   /* USER CODE END Nx_App_Thread_Entry 0 */
 
 }
