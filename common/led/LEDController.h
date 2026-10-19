@@ -151,7 +151,9 @@ typedef struct
     LED_Controller_Config_t config;
 } LEDController;
 
+/** @brief Initialize the LED controller state and program its default configuration. */
 void LEDController_Init(LEDController *controller);
+/** @brief Select an LED animation and write its patterns to the controller. */
 void LEDController_SetAnimation(LEDController *controller, LED_Animation_t animation);
 
 static LEDController led_controller;

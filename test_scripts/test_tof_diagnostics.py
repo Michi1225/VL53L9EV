@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class DiagnosticsTests(unittest.TestCase):
+    ## @brief Verify modes and both status versions.
     def test_modes_and_both_status_versions(self):
         for version in (1, 2):
             wire = status_wire(version=version)
@@ -27,6 +28,7 @@ class DiagnosticsTests(unittest.TestCase):
         self.assertEqual(struct.unpack_from('<H', build_command(1, SET_CONFIG, config), 26)[0], 1)
         self.assertEqual(build_command(2, POWER_DOWN)[14:], b'\x06\x00')
 
+    ## @brief Verify metadata and short no dss frame.
     def test_metadata_and_short_no_dss_frame(self):
         row = bytearray(100)
         struct.pack_into('<IhH', row, 0, 123, -12, 456)
@@ -44,6 +46,7 @@ class DiagnosticsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             decode_depth(Packet(2, 100, 138, data[:-100] + row))
 
+    ## @brief Verify counter estimate distinguishes sensor and received rate.
     def test_counter_estimate_distinguishes_sensor_and_received_rate(self):
         timing = SensorFrameTiming()
         # Only every second frame arrives, but the sensor is running at 100 Hz.
@@ -62,6 +65,7 @@ class DiagnosticsTests(unittest.TestCase):
 
 @unittest.skipUnless(shutil.which('cc'), 'native C compiler required')
 class SensorRegisterTests(unittest.TestCase):
+    ## @brief Verify gaming profile registers readback and no dss decode.
     def test_gaming_profile_registers_readback_and_no_dss_decode(self):
         driver = ROOT / 'Appli/Libs/53L9/vl53l9'
         utils = ROOT / 'Appli/Libs/53L9/interface/vl53l9'
@@ -76,16 +80,23 @@ class SensorRegisterTests(unittest.TestCase):
 #include <string.h>
 static unsigned char registers[65536];
 static int mismatch, writes;
+/** @brief Capture sensor register writes in the simulated register map. */
 int vl53l9_write(void *p, uint16_t a, uint8_t *v, uint32_t size) { (void)p; memcpy(registers+a,v,size); return 0; }
+/** @brief Read an eight-bit value from the simulated sensor register map. */
 int vl53l9_read8(void *p, uint16_t a, uint8_t *v) {
  (void)p; *v=registers[a];
  if(mismatch && a==VL53L9_REGADDR_STANDBY_DSS_MODE(0)) *v=0xff;
  return 0;
 }
+/** @brief Write an eight-bit value to the simulated sensor register map. */
 int vl53l9_write8(void *p, uint16_t a, uint8_t v) { (void)p; ++writes; registers[a]=v; return 0; }
+/** @brief Read a 32-bit value from the simulated sensor register map. */
 int vl53l9_read32(void *p, uint16_t a, uint32_t *v) { (void)p; memcpy(v,registers+a,4); return 0; }
+/** @brief Write a 16-bit value to the simulated sensor register map. */
 int vl53l9_write16(void *p, uint16_t a, uint16_t v) { (void)p; memcpy(registers+a,&v,2); return 0; }
+/** @brief Write a 32-bit value to the simulated sensor register map. */
 int vl53l9_write32(void *p, uint16_t a, uint32_t v) { (void)p; memcpy(registers+a,&v,4); return 0; }
+/** @brief Verify sensor register configuration and CSI frame decoding. */
 int main(void) {
  vl53l9_device_t device={0};
  registers[VL53L9_REGADDR_SYSTEM_FSM]=2;

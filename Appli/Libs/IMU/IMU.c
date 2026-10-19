@@ -4,6 +4,7 @@
 #include "stm32n6xx_hal_def.h"
 #include <math.h>
 
+/** @brief Convert an IMU half-precision sample into a single-precision value. */
 static float_t npy_half_to_float(uint16_t h)
 {
     union { float_t ret; uint32_t retbits; } conv;
@@ -11,6 +12,7 @@ static float_t npy_half_to_float(uint16_t h)
     return conv.ret;
 }
 
+/** @brief Expand the SFLP rotation vector into a normalized xyzw quaternion. */
 static void sflp2q(float_t quat[4], uint16_t sflp[3])
 {
   float_t sumsq = 0;
@@ -35,6 +37,7 @@ static void sflp2q(float_t quat[4], uint16_t sflp[3])
 
 #define IMU_INIT_CALL(call) do { if ((call) != 0) return HAL_ERROR; } while (0)
 
+/** @brief Initialize the IMU transport, sampling, FIFO, and SFLP game rotation output. */
 HAL_StatusTypeDef imu_init(IMU *imu)
 {
     memset(imu, 0, sizeof(*imu));
@@ -92,6 +95,7 @@ HAL_StatusTypeDef imu_init(IMU *imu)
 
 #undef IMU_INIT_CALL
 
+/** @brief Flush the IMU FIFO and clear sample validity before resuming streaming. */
 HAL_StatusTypeDef imu_reset_fifo(IMU *imu)
 {
     if (lsm6dsv16x_fifo_mode_set(&imu->dev_ctx, LSM6DSV16X_BYPASS_MODE) != 0)
@@ -102,6 +106,7 @@ HAL_StatusTypeDef imu_reset_fifo(IMU *imu)
     return HAL_OK;
 }
 
+/** @brief Drain available FIFO entries into the latest acceleration, gyro, and quaternion samples. */
 HAL_StatusTypeDef imu_get_data_blocking(IMU *imu)
 {
     int32_t errorcode = 0;

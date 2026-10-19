@@ -33,6 +33,7 @@
 #include "ethernet_stream.h"
 #include "app_netxduo.h"
 #include "tx_api.h"
+#include "firmware_update.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -138,6 +139,8 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   }
   if (tof_control_init() != TX_SUCCESS)
       return TX_QUEUE_ERROR;
+  if (firmware_update_init() != TX_SUCCESS)
+      return TX_THREAD_ERROR;
   CHAR *stream_stack = TX_NULL;
   if (tx_event_flags_create(&stream_events, "sensor stream") != TX_SUCCESS)
       return TX_GROUP_ERROR;

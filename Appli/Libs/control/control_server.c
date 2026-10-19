@@ -6,6 +6,7 @@
 
 static NX_TCP_SOCKET control_socket;
 
+/** @brief Echo TCP packets until the client disconnects or the Ethernet generation changes. */
 static void Control_HandleClient(NX_TCP_SOCKET *socket, uint32_t generation)
 {
     UINT status;
@@ -51,6 +52,7 @@ static void Control_HandleClient(NX_TCP_SOCKET *socket, uint32_t generation)
     }
 }
 
+/** @brief Serve TCP echo clients while handling Ethernet link loss and reconnection. */
 void control_thread_entry(ULONG thread_input)
 {
     ULONG flags;

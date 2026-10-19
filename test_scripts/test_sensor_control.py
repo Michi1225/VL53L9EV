@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CONFIG = dict(period_us=10000, exposure_ms=1, binning=2, power=0, context=1, dss_enabled=True)
 
 
+## @brief Encode a synthetic ToF status or acknowledgement packet.
 def status_wire(request_id=0, operation=0, state=2, result=0, config=None, version=2):
     c = config or CONFIG
     height = {2: 149, 4: 39, 6: 18, 8: 9, 12: 6, 24: 3}[c['binning']]
@@ -27,6 +28,7 @@ def status_wire(request_id=0, operation=0, state=2, result=0, config=None, versi
 
 
 class ControlProtocolTests(unittest.TestCase):
+    ## @brief Verify exact command bytes.
     def test_exact_command_bytes(self):
         self.assertEqual(build_command(0x12345678, STOP).hex(' '),
                          '43 54 52 4c 78 56 34 12 00 00 00 00 01 00 03 00')
@@ -36,6 +38,7 @@ class ControlProtocolTests(unittest.TestCase):
         self.assertEqual(HEADER.unpack(wire[:16]), (b'CTRL', 7, 12, 2, 4))
         self.assertEqual(struct.unpack('<IHHBBH', wire[16:]), (10000, 1, 2, 0, 1, 0))
 
+    ## @brief Verify invalid settings and commands.
     def test_invalid_settings_and_commands(self):
         for changes in [dict(period_us=9999), dict(period_us=1000001), dict(exposure_ms=0),
                         dict(exposure_ms=31), dict(exposure_ms=11), dict(binning=3),
@@ -46,6 +49,7 @@ class ControlProtocolTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 build_command(request_id, operation)
 
+    ## @brief Verify status with mixed sensor packets at every split.
     def test_status_with_mixed_sensor_packets_at_every_split(self):
         imu = IMU_PAYLOAD.pack(1000, *([1.] * 10))
         wire = HEADER.pack(MAGIC, 1, 4, 2, 2) + bytes(4)
@@ -62,6 +66,7 @@ class ControlProtocolTests(unittest.TestCase):
 
 class SensorConnection:
     """Full-duplex fake used by receiver and Tk integration tests."""
+    ## @brief Initialize the simulated transport state used by this test.
     def __init__(self):
         self.parts = queue.Queue()
         self.parts.put(status_wire())
@@ -70,19 +75,24 @@ class SensorConnection:
         self.config = dict(CONFIG)
         self.auto_reply = True
 
+    ## @brief Return the simulated transport when entering its context manager.
     def __enter__(self):
         return self
 
+    ## @brief Finish the simulated transport context without suppressing test failures.
     def __exit__(self, *args):
         pass
 
+    ## @brief Accept the socket timeout setting required by the simulated transport.
     def settimeout(self, timeout):
         pass
 
+    ## @brief Report the input currently available from the simulated serial transport.
     @property
     def in_waiting(self):
         return 1
 
+    ## @brief Return the next simulated TCP input or the configured timeout or disconnection.
     def recv(self, count):
         try:
             return self.parts.get(timeout=.01)
@@ -91,9 +101,11 @@ class SensorConnection:
 
     read = recv
 
+    ## @brief Submit outgoing bytes to the simulated transport.
     def sendall(self, wire):
         self.write(wire)
 
+    ## @brief Consume outgoing bytes and emulate the transport response used by the test.
     def write(self, wire):
         _, request, size, _, operation = HEADER.unpack(wire[:16])
         self.commands.append((request, operation))
@@ -121,6 +133,7 @@ class SensorConnection:
         return len(wire)
 
 
+## @brief Pump asynchronous work until a test condition succeeds or the deadline expires.
 def wait_for(condition, pump=lambda: None):
     deadline = time.monotonic() + 3
     while not condition() and time.monotonic() < deadline:
@@ -131,6 +144,7 @@ def wait_for(condition, pump=lambda: None):
 
 
 class ReceiverControlTests(unittest.TestCase):
+    ## @brief Verify start stop set on tcp and usb without blocking reader.
     def test_start_stop_set_on_tcp_and_usb_without_blocking_reader(self):
         from unittest.mock import patch
         from Board_Viewer import Receiver
@@ -167,6 +181,7 @@ class ReceiverControlTests(unittest.TestCase):
                         receiver.thread.join(timeout=1)
                     self.assertIsNone(receiver.tof_status)
 
+    ## @brief Verify acknowledgements match both id and operation and timeout is not retried.
     def test_acknowledgements_match_both_id_and_operation_and_timeout_is_not_retried(self):
         from unittest.mock import patch
         from Board_Viewer import Receiver
@@ -228,9 +243,13 @@ MAIN_STUB = r'''
 #define HAL_ERROR 1
 typedef int HAL_StatusTypeDef;
 uint32_t HAL_GetTick(void);
+/** @brief Read the simulated interrupt mask. */
 static inline uint32_t __get_PRIMASK(void) { return 0; }
+/** @brief Set the simulated interrupt mask. */
 static inline void __disable_irq(void) {}
+/** @brief Restore the simulated interrupt mask. */
 static inline void __set_PRIMASK(uint32_t value) { (void)value; }
+/** @brief Provide the no-op cache invalidation hook used by host tests. */
 static inline void SCB_InvalidateDCache_by_Addr(uint32_t *p, unsigned n) { (void)p; (void)n; }
 #endif
 '''
@@ -269,57 +288,77 @@ HARNESS = r'''
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+/** @brief Initialize an in-memory queue with the requested capacity and message size. */
 unsigned tx_queue_create(TX_QUEUE *q, char *name, unsigned words, void *storage, unsigned size) {
     (void)name; *q = (TX_QUEUE){.words=words, .capacity=size/(words*4), .data=storage}; return 0;
 }
+/** @brief Copy a message into the simulated bounded queue when space is available. */
 unsigned tx_queue_send(TX_QUEUE *q, void *p, unsigned wait) {
     (void)wait; if(q->count==q->capacity) return 1;
     memcpy(q->data+q->tail*q->words*4,p,q->words*4); q->tail=(q->tail+1)%q->capacity; ++q->count; return 0;
 }
+/** @brief Take a message from the simulated queue or report that it is empty. */
 unsigned tx_queue_receive(TX_QUEUE *q, void *p, unsigned wait) {
     (void)wait; if(!q->count) return 1;
     memcpy(p,q->data+q->head*q->words*4,q->words*4); q->head=(q->head+1)%q->capacity; --q->count; return 0;
 }
+/** @brief Return the event flags configured for the current test scenario. */
 unsigned tx_event_flags_get(TX_EVENT_FLAGS_GROUP *e, ULONG flags, unsigned op, ULONG *actual, unsigned wait) {
     (void)wait; *actual=e->flags&flags; if(op==TX_OR_CLEAR) e->flags&=~flags; return *actual?0:1;
 }
+/** @brief Update simulated event flags and check the expected firmware transition. */
 unsigned tx_event_flags_set(TX_EVENT_FLAGS_GROUP *e, ULONG flags, unsigned op) { (void)op; e->flags|=flags; return 0; }
 static uint32_t tick;
+/** @brief Return the harness's simulated millisecond clock. */
 uint32_t HAL_GetTick(void) { return tick; }
 static unsigned starts, stops, captures, configurations, initializations, shutdowns;
 static bool ready=true, capturing, failed, fail_initialization;
+/** @brief Initialize the simulated sensor profile and count reset attempts. */
 int VL53L9_init(VL53L9_TypeDef_t *s) {
     ++initializations; if(fail_initialization) return 1;
     failed=false; s->p_dev=(void *)1; s->profile=(vl53l9_profile_t){10000,1,2,0,1,true};
     s->csi_width=100; s->csi_height=149; return 0;
 }
+/** @brief Record the simulated sensor shutdown. */
 int VL53L9_power_down(VL53L9_TypeDef_t *s) { (void)s; assert(!capturing); ++shutdowns; return 0; }
+/** @brief Record a simulated ranging start and apply the configured result. */
 int VL53L9_start_ranging(VL53L9_TypeDef_t *s) { (void)s; ++starts; ++captures; capturing=true; return 0; }
+/** @brief Apply the requested profile and geometry to the simulated sensor. */
 int VL53L9_configure(VL53L9_TypeDef_t *s, const vl53l9_profile_t *p) {
     assert(!capturing); ++configurations; s->profile=*p; s->csi_height=39; return 0;
 }
+/** @brief Provide the capture buffer preparation hook for the sensor harness. */
 void VL53L9_prepare_capture(VL53L9_TypeDef_t *s) { (void)s; }
+/** @brief Record a simulated CSI capture stop. */
 int platform_stop_csi_pipe(void) { capturing=false; return 0; }
+/** @brief Record a simulated CSI capture start. */
 int platform_start_csi_pipe(uint8_t *p) { (void)p; ++captures; capturing=true; return 0; }
+/** @brief Report the frame readiness selected by the test scenario. */
 int platform_get_event_status(int e, bool *r) { (void)e; *r=ready; return 0; }
+/** @brief Clear the simulated frame event. */
 int platform_acknowledge_event(int e) { (void)e; ready=false; capturing=false; return 0; }
+/** @brief Record a simulated sensor ranging stop. */
 int vl53l9_stop(void *p) { (void)p; ++stops; return 0; }
+/** @brief Return the configured simulated sensor health status. */
 int vl53l9_get_status(void *p, vl53l9_status_t *s) { (void)p; s->firmware=failed?15:0; return 0; }
 extern TX_EVENT_FLAGS_GROUP stream_events;
 static tof_parser_t parser;
 static unsigned stage;
 static jmp_buf finished;
+/** @brief Queue a sensor command for the lifecycle test. */
 static void submit(uint32_t id, uint32_t opcode, bool set) {
     uint8_t wire[28]={'C','T','R','L'};
     wire[4]=id; wire[8]=set?12:0; wire[12]=1; wire[14]=opcode;
     if(set) { wire[16]=0x20; wire[17]=0x4e; wire[20]=2; wire[22]=4; wire[24]=1; }
     for(unsigned i=0;i<(set?28U:16U);++i) tof_control_feed(&parser,wire+i,1,TOF_TCP,17);
 }
+/** @brief Print a queued sensor acknowledgement for host-side assertions. */
 static void emit_reply(unsigned id, unsigned result) {
     tof_reply_t reply; assert(tof_control_next_reply(&reply));
     assert(reply.route==TOF_TCP && reply.session==17 && reply.packet[4]==id && reply.packet[39]==result);
     assert(fwrite(reply.packet,1,sizeof(reply.packet),stdout)==sizeof(reply.packet));
 }
+/** @brief Advance the test scenario when the firmware yields. */
 void tx_thread_sleep(ULONG t) {
     tick+=t;
     assert(++stage<40);
@@ -413,6 +452,7 @@ void tx_thread_sleep(ULONG t) {
     }
 }
 extern void stream_thread_entry(ULONG);
+/** @brief Run the selected sensor lifecycle or command parsing scenario. */
 int main(int argc, char **argv) {
     (void)argv; assert(tof_control_init()==0);
     if(argc>1) {
@@ -430,6 +470,7 @@ int main(int argc, char **argv) {
 
 @unittest.skipUnless(shutil.which('cc'), 'native C compiler required')
 class FirmwareControlTests(unittest.TestCase):
+    ## @brief Compile the firmware harness and prepare shared test fixtures.
     @classmethod
     def setUpClass(cls):
         cls.temp = tempfile.TemporaryDirectory()
@@ -448,6 +489,7 @@ class FirmwareControlTests(unittest.TestCase):
         if result.returncode:
             raise AssertionError(result.stderr)
 
+    ## @brief Verify real firmware lifecycle and frame ownership.
     def test_real_firmware_lifecycle_and_frame_ownership(self):
         wire = subprocess.check_output([str(self.executable)])
         packets = PacketParser().feed(wire)
@@ -463,10 +505,12 @@ class FirmwareControlTests(unittest.TestCase):
         self.assertEqual(reports[9]['height'], 149)
         self.assertEqual(reports[-1]['frames'], 4)
 
+    ## @brief Run the firmware parser harness and decode its emitted command records.
     def parse_commands(self, wire):
         result = subprocess.check_output([str(self.executable), 'parse'], input=wire)
         return [[int(value) for value in line.split()] for line in result.splitlines()]
 
+    ## @brief Verify fragmented coalesced and invalid commands in real parser.
     def test_fragmented_coalesced_and_invalid_commands_in_real_parser(self):
         bad = HEADER.pack(b'CTRL', 55, 0xffffffff, 1, 1)
         wire = b'noise' + bad + build_command(1, GET_CONFIG) + build_command(2, SET_CONFIG, CONFIG)
@@ -480,6 +524,7 @@ class FirmwareControlTests(unittest.TestCase):
         self.assertEqual(commands[1][3:8], [10000, 1, 2, 0, 1])
         self.assertTrue(all(c[8:10] == [1, 23] for c in commands))
 
+    ## @brief Verify versions dss flags and power down in real parser.
     def test_versions_dss_flags_and_power_down_in_real_parser(self):
         no_dss = build_command(1, SET_CONFIG, dict(CONFIG, context=0, dss_enabled=False))
         legacy = bytearray(no_dss); legacy[12] = 1
@@ -492,6 +537,7 @@ class FirmwareControlTests(unittest.TestCase):
         commands = self.parse_commands(legacy)
         self.assertEqual((commands[0][2], commands[0][10]), (0, 1))
 
+    ## @brief Verify queue is bounded.
     def test_queue_is_bounded(self):
         wire = b''.join(build_command(i, GET_CONFIG) for i in range(1, 10))
         self.assertEqual(len(self.parse_commands(wire)), 8)

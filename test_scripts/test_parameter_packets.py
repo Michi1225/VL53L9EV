@@ -4,6 +4,7 @@ from USB_Debug import HEADER, PacketParser, PARAM_MAGIC, IMU_MAGIC, IMU_PAYLOAD
 
 
 class ParameterPacketTests(unittest.TestCase):
+    ## @brief Verify fragmented metadata and imu.
     def test_fragmented_metadata_and_imu(self):
         payload = json.dumps({'repository': {'git_hash': 'a'*40, 'git_dirty': True}}).encode()
         metadata = HEADER.pack(PARAM_MAGIC, 0, len(payload), 1, 0) + payload
@@ -17,6 +18,7 @@ class ParameterPacketTests(unittest.TestCase):
         self.assertEqual(json.loads(packets[0].payload)['repository']['git_dirty'], True)
         self.assertEqual(parser.discarded, 0)
 
+    ## @brief Verify invalid metadata size resynchronizes.
     def test_invalid_metadata_size_resynchronizes(self):
         payload = b'{}'
         stream = HEADER.pack(PARAM_MAGIC, 0, 16385, 1, 0)

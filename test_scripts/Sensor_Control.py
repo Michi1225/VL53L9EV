@@ -8,6 +8,7 @@ POWER_NAMES = ('Regular', 'Low', 'Ultra low')
 CONTEXT_NAMES = ('Short', 'Long')
 RANGING_MODES = ('Precision (no DSS)', 'Precision', 'Ambient')
 
+## @brief Translate the selected ranging mode into sensor power and context settings.
 def ranging_mode(context, dss_enabled):
     return ('Ambient' if context else 'Precision') if dss_enabled else 'Precision (no DSS)'
 RESULT_NAMES = ('OK', 'Unknown command', 'Invalid configuration', 'Device busy',
@@ -17,6 +18,7 @@ OPERATION_NAMES = {GET_CONFIG: 'Read configuration', START: 'Start ToF', STOP: '
                    SET_CONFIG: 'Apply configuration', RESET: 'Reset ToF', POWER_DOWN: 'Power down ToF'}
 
 
+## @brief Check host-side ToF settings before encoding a sensor command.
 def validate_config(config):
     fields = ('period_us', 'exposure_ms', 'binning', 'power', 'context')
     if not isinstance(config, dict) or set(config) not in (set(fields), set(fields) | {'dss_enabled'}) or any(type(config[key]) is not int for key in fields):
@@ -37,6 +39,7 @@ def validate_config(config):
         raise ValueError('Unsupported power mode or range context')
 
 
+## @brief Encode a versioned CTRL request with the validated configuration when required.
 def build_command(request_id, operation, config=None):
     import struct
     if not 1 <= request_id <= 0xffffffff or operation not in OPERATION_NAMES:
@@ -51,6 +54,7 @@ def build_command(request_id, operation, config=None):
     return HEADER.pack(CTRL_MAGIC, request_id, len(payload), 2 if operation == SET_CONFIG else 1, operation) + payload
 
 
+## @brief Decode and validate a versioned TOFS acknowledgement or status packet.
 def decode_status(packet):
     layout = {1: TOF_STATUS, 2: TOF_STATUS_V2}.get(packet.width)
     if packet.kind != TOF_MAGIC or layout is None or len(packet.payload) != layout.size:

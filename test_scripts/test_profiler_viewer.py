@@ -12,6 +12,7 @@ from USB_Debug import HEADER, PARAM_MAGIC, IMU_MAGIC, IMU_PAYLOAD
 from test_thread_profiler import wire_profile
 
 
+## @brief Cancel scheduled Tk callbacks and destroy the test window.
 def destroy_root(root):
     # Separate Tk roots share the event loop; remove queued callbacks before
     # the next integration test creates another interpreter.
@@ -22,6 +23,7 @@ def destroy_root(root):
 
 @unittest.skipUnless(os.environ.get('DISPLAY'), 'requires a display (or xvfb-run)')
 class ProfilerViewerTests(unittest.TestCase):
+    ## @brief Verify sensor configuration tab and acknowledged controls.
     def test_sensor_configuration_tab_and_acknowledged_controls(self):
         import tkinter as tk
         from Board_Viewer import Viewer
@@ -94,6 +96,7 @@ class ProfilerViewerTests(unittest.TestCase):
                 viewer.receiver.thread.join(timeout=1)
             destroy_root(root)
 
+    ## @brief Verify receiver and profiler tab with mixed stream.
     def test_receiver_and_profiler_tab_with_mixed_stream(self):
         import tkinter as tk
         from Board_Viewer import Viewer
@@ -104,14 +107,19 @@ class ProfilerViewerTests(unittest.TestCase):
         wire += wire_profile() + HEADER.pack(IMU_MAGIC, 0, len(imu), 10, 1) + imu
 
         class Connection:
+            ## @brief Initialize the simulated transport state used by this test.
             def __init__(self):
                 self.parts = [wire[:7], wire[7:20], wire[20:]]
+            ## @brief Return the simulated transport when entering its context manager.
             def __enter__(self):
                 return self
+            ## @brief Finish the simulated transport context without suppressing test failures.
             def __exit__(self, *args):
                 pass
+            ## @brief Accept the socket timeout setting required by the simulated transport.
             def settimeout(self, value):
                 pass
+            ## @brief Return the next simulated TCP input or the configured timeout or disconnection.
             def recv(self, length):
                 if self.parts:
                     return self.parts.pop(0)

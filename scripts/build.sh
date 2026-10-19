@@ -47,12 +47,14 @@ APPLI_SIGNED="${ROOT_DIR}/Appli/build/${APPLI_TARGET}-signed.bin"
 EXTMEM_ELF="${ROOT_DIR}/ExtMemLoader/build/${EXTMEM_TARGET}.elf"
 EXTMEM_STLDR="${ROOT_DIR}/ExtMemLoader/build/${EXTMEM_TARGET}.stldr"
 
+# @brief Print an error message and exit with failure.
 die()
 {
     echo "ERROR: $*" >&2
     exit 1
 }
 
+# @brief Print a build progress banner.
 info()
 {
     echo
@@ -61,6 +63,7 @@ info()
     echo "================================================================"
 }
 
+# @brief Print the supported command-line options.
 usage()
 {
     cat <<EOF
@@ -69,6 +72,7 @@ Usage:
 EOF
 }
 
+# @brief Locate an executable from an explicit override, PATH, or known install locations.
 find_executable()
 {
     local override="$1"
@@ -97,6 +101,7 @@ find_executable()
     return 1
 }
 
+# @brief Locate the STM32 ARM compiler toolchain directory.
 find_stm32_gcc_bin()
 {
     if [[ -n "${STM32_GCC_PATH:-}" ]]; then
@@ -156,6 +161,7 @@ find_stm32_gcc_bin()
     return 1
 }
 
+# @brief Locate the STM32 image signing tool.
 find_signing_tool()
 {
     if [[ -n "${STM32_SIGNING_TOOL:-}" ]]; then
@@ -305,6 +311,7 @@ cd "${ROOT_DIR}"
 
 # CMake keeps absolute compiler paths even after PATH changes. Refresh only
 # generated configuration for selected projects when the toolchain changes.
+# @brief Discard stale CMake compiler configuration when the selected compiler changes.
 refresh_compiler_cache()
 {
     local build_dir="$1"
@@ -344,6 +351,7 @@ fi
 # while both configurations share each project's build directory. Configure
 # selected projects explicitly so stale stamps cannot skip a missing cache or
 # leave the project using the other configuration.
+# @brief Configure the selected firmware project with the requested build mode.
 configure_project()
 {
     local project_dir="$1"
@@ -373,12 +381,14 @@ case "${TARGET}" in
         ;;
 esac
 
+# @brief Build the selected CMake target using the active configuration preset.
 build_target()
 {
     local cmake_target="$1"
     "${CMAKE}" --build --preset "${CONFIG}" --target "${cmake_target}"
 }
 
+# @brief Export the FSBL binary, add its STM32 boot header, and record provenance.
 package_fsbl()
 {
     [[ -f "${FSBL_ELF}" ]] || die "FSBL ELF not found: ${FSBL_ELF}"
@@ -401,6 +411,7 @@ package_fsbl()
     python3 "${SCRIPT_DIR}/build_provenance.py" "${FSBL_SIGNED}" "${CONFIG}"
 }
 
+# @brief Export the application binary, add its STM32 boot header, and record provenance.
 package_appli()
 {
     [[ -f "${APPLI_ELF}" ]] || die "Application ELF not found: ${APPLI_ELF}"
@@ -421,6 +432,7 @@ package_appli()
     python3 "${SCRIPT_DIR}/build_provenance.py" "${APPLI_SIGNED}" "${CONFIG}"
 }
 
+# @brief Package the external-memory loader ELF as a validated ST-LINK loader file.
 package_extmem()
 {
     [[ -f "${EXTMEM_ELF}" ]] || die "ExtMemLoader ELF not found: ${EXTMEM_ELF}"

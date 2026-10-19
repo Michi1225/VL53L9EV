@@ -200,6 +200,8 @@ static VOID netXduo_app_thread_entry (ULONG thread_input)
 }
 /* USER CODE BEGIN 1 */
 
+/** @brief Return the application's shared NetX IP instance. */
 NX_IP *nx_get_ip() {return &NetXDuoEthIpInstance;}
+/** @brief Return the packet pool used by application TCP services. */
 NX_PACKET_POOL *nx_get_app_pool() {return &NxAppPool;}
 /* USER CODE END 1 */

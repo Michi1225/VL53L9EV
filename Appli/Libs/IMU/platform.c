@@ -3,6 +3,7 @@
 
 #define IMU_SPI_MAX_PAYLOAD 128U
 
+/** @brief Transfer one SPI command and payload while holding the IMU chip select active. */
 static int32_t exchange(void *handle, uint8_t *tx, uint8_t *rx, uint16_t size)
 {
     SPI_HandleTypeDef *spi = (SPI_HandleTypeDef *)handle;
@@ -14,6 +15,7 @@ static int32_t exchange(void *handle, uint8_t *tx, uint8_t *rx, uint16_t size)
     return status == HAL_OK ? 0 : -1;
 }
 
+/** @brief Write a bounded IMU register payload through SPI. */
 int32_t platform_write(void *handle, uint8_t reg, const uint8_t *bufp, uint16_t len)
 {
     if (handle == NULL || bufp == NULL || len == 0 || len > IMU_SPI_MAX_PAYLOAD)
@@ -26,6 +28,7 @@ int32_t platform_write(void *handle, uint8_t reg, const uint8_t *bufp, uint16_t 
     return exchange(handle, tx, rx, len + 1U);
 }
 
+/** @brief Read a bounded IMU register payload through SPI. */
 int32_t platform_read(void *handle, uint8_t reg, uint8_t *bufp, uint16_t len)
 {
     if (handle == NULL || bufp == NULL || len == 0 || len > IMU_SPI_MAX_PAYLOAD)
@@ -40,10 +43,12 @@ int32_t platform_read(void *handle, uint8_t reg, uint8_t *bufp, uint16_t len)
     return result;
 }
 
+/** @brief Wait for the requested number of milliseconds using the HAL time base. */
 void platform_delay(uint32_t ms)
 {
     HAL_Delay(ms);
 }
+/** @brief Provide the IMU initialization hook; SPI and GPIO are configured separately. */
 void platform_init(void *handle)
 {
     (void)handle;

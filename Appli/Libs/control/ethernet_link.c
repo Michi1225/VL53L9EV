@@ -5,8 +5,10 @@
 
 static volatile uint32_t generation;
 
+/** @brief Return the generation counter used to detect Ethernet reconnections. */
 uint32_t ethernet_link_generation(void) { return generation; }
 
+/** @brief Monitor the PHY, recover MAC operation, and publish Ethernet readiness. */
 void ethernet_link_thread_entry(ULONG argument)
 {
     (void)argument;

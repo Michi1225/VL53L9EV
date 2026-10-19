@@ -8,6 +8,7 @@
 
 #define INIT_CALL(call) do { if ((call) != 0) return HAL_ERROR; } while (0)
 
+/** @brief Clean and invalidate the CSI DMA buffer before the next capture. */
 void VL53L9_prepare_capture(VL53L9_TypeDef_t *tof)
 {
     if (SCB->CCR & SCB_CCR_DC_Msk)
@@ -15,6 +16,7 @@ void VL53L9_prepare_capture(VL53L9_TypeDef_t *tof)
                                          sizeof(tof->g_csi_output_buffer));
 }
 
+/** @brief Reset and address the ToF sensor, load its firmware, and apply the default profile. */
 HAL_StatusTypeDef VL53L9_init(VL53L9_TypeDef_t *tof)
 {
     tof->p_dev = &device[CONF_DEVICE_ID];
@@ -27,6 +29,7 @@ HAL_StatusTypeDef VL53L9_init(VL53L9_TypeDef_t *tof)
     return VL53L9_configure(tof, &tof->profile);
 }
 
+/** @brief Validate the requested geometry and configure the ToF sensor and CSI receiver. */
 HAL_StatusTypeDef VL53L9_configure(VL53L9_TypeDef_t *tof, const vl53l9_profile_t *profile)
 {
     vl53l9_profile_t next = *profile;
@@ -57,6 +60,7 @@ HAL_StatusTypeDef VL53L9_configure(VL53L9_TypeDef_t *tof, const vl53l9_profile_t
 
 #undef INIT_CALL
 
+/** @brief Arm frame capture and start ranging, stopping capture if sensor startup fails. */
 HAL_StatusTypeDef VL53L9_start_ranging(VL53L9_TypeDef_t *tof)
 {
     int result = platform_enable_event(PLATFORM_CAM_PIPE_FRAME_EVT);
@@ -79,6 +83,7 @@ HAL_StatusTypeDef VL53L9_start_ranging(VL53L9_TypeDef_t *tof)
     return HAL_OK;
 }
 
+/** @brief Copy and parse a completed CSI frame after invalidating its DMA buffer cache. */
 HAL_StatusTypeDef VL53L9_process(VL53L9_TypeDef_t *tof)
 {
     bool event = false;
@@ -98,6 +103,7 @@ HAL_StatusTypeDef VL53L9_process(VL53L9_TypeDef_t *tof)
 
 /* XSHUT shutdown leaves supply rails connected. Reset reassigns I3C and reloads
  * the patch before ranging can be restarted. Called only by the sensor owner. */
+/** @brief Hold the sensor in XSHUT while leaving its supply rails connected. */
 HAL_StatusTypeDef VL53L9_power_down(VL53L9_TypeDef_t *tof)
 {
     if (!tof) return HAL_ERROR;

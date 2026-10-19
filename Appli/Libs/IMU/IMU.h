@@ -36,8 +36,11 @@ typedef struct
     uint8_t valid_data;
 } IMU;
 
+/** @brief Initialize the IMU transport, sampling, FIFO, and SFLP game rotation output. */
 HAL_StatusTypeDef imu_init(IMU *imu);
+/** @brief Drain available FIFO entries into the latest acceleration, gyro, and quaternion samples. */
 HAL_StatusTypeDef imu_get_data_blocking(IMU *imu);
+/** @brief Flush the IMU FIFO and clear sample validity before resuming streaming. */
 HAL_StatusTypeDef imu_reset_fifo(IMU *imu);
 
 

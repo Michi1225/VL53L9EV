@@ -68,7 +68,7 @@ static void SystemIsolation_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+#include "../../Libs/control/firmware_update.inc"
 /* USER CODE END 0 */
 
 /**

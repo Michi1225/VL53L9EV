@@ -3,6 +3,7 @@
 #include <string.h>
 
 
+/** @brief Reset the flash across supported bus modes and restore the software SPI state. */
 static SEMPER_Status_t SEMPER_Reset(SEMPER_Handle_t *dev)
 {
     int32_t ret = SEMPER_OK;
@@ -54,6 +55,7 @@ static SEMPER_Status_t SEMPER_Reset(SEMPER_Handle_t *dev)
 
 
 
+/** @brief Reset and identify the flash, then configure octal DDR access. */
 SEMPER_Status_t SEMPER_Init(
     SEMPER_Handle_t *dev,
     XSPI_HandleTypeDef *hxspi)
@@ -121,6 +123,7 @@ SEMPER_Status_t SEMPER_Init(
 }
 
 
+/** @brief Switch the flash interface and transfer mode while updating its access state. */
 SEMPER_Status_t SEMPER_ConfigDevice(
     SEMPER_Handle_t *dev,
     S28HS512T_Interface_t interface,
@@ -227,6 +230,7 @@ SEMPER_Status_t SEMPER_ConfigDevice(
     return SEMPER_OK;
 }
 
+/** @brief Configure the flash for octal DDR transfers. */
 SEMPER_Status_t SEMPER_EnterDOPIMode(SEMPER_Handle_t *dev) 
 {
     const uint8_t CFR5_RSRVD = 0x40;
@@ -263,6 +267,7 @@ SEMPER_Status_t SEMPER_EnterDOPIMode(SEMPER_Handle_t *dev)
   return SEMPER_OK;
 }
 
+/** @brief Configure the flash for octal SDR transfers. */
 SEMPER_Status_t SEMPER_EnterSOPIMode(SEMPER_Handle_t *dev)
 {
     const uint8_t CFR5_RSRVD = 0x40;
@@ -299,6 +304,7 @@ SEMPER_Status_t SEMPER_EnterSOPIMode(SEMPER_Handle_t *dev)
   return SEMPER_OK;
 }
 
+/** @brief Return the flash from octal access to SPI mode. */
 SEMPER_Status_t SEMPER_ExitOPIMode(
     SEMPER_Handle_t *dev)
 {
@@ -371,6 +377,7 @@ SEMPER_Status_t SEMPER_ExitOPIMode(
 }
 
 
+/** @brief Read flash bytes using the current indirect interface and transfer mode. */
 SEMPER_Status_t SEMPER_Read(
     SEMPER_Handle_t *dev,
     uint32_t address,
@@ -419,6 +426,7 @@ SEMPER_Status_t SEMPER_Read(
   return ret;
 }
 
+/** @brief Program flash bytes while splitting writes at physical page boundaries. */
 SEMPER_Status_t SEMPER_Write(
     SEMPER_Handle_t *dev,
     uint32_t address,
@@ -501,6 +509,7 @@ SEMPER_Status_t SEMPER_Write(
   return ret;
 }
 
+/** @brief Issue a 4 KiB sector erase in indirect access mode. */
 SEMPER_Status_t SEMPER_Erase4K(
     SEMPER_Handle_t *dev,
     uint32_t address)
@@ -541,6 +550,7 @@ SEMPER_Status_t SEMPER_Erase4K(
   return ret;
 }
 
+/** @brief Issue a 256 KiB sector erase in indirect access mode. */
 SEMPER_Status_t SEMPER_Erase256K(
     SEMPER_Handle_t *dev,
     uint32_t address)
@@ -581,6 +591,7 @@ SEMPER_Status_t SEMPER_Erase256K(
   return ret;
 }
 
+/** @brief Issue a whole-device erase in indirect access mode. */
 SEMPER_Status_t SEMPER_ChipErase(
     SEMPER_Handle_t *dev)
 {
@@ -619,6 +630,7 @@ SEMPER_Status_t SEMPER_ChipErase(
   return ret;
 }
 
+/** @brief Enable memory-mapped flash reads and update the handle's access state. */
 SEMPER_Status_t SEMPER_EnableMemoryMappedMode(
     SEMPER_Handle_t *dev)
 {
@@ -666,6 +678,7 @@ SEMPER_Status_t SEMPER_EnableMemoryMappedMode(
   return ret;
 }
 
+/** @brief Abort memory-mapped access and restore indirect flash operations. */
 SEMPER_Status_t SEMPER_DisableMemoryMappedMode(
     SEMPER_Handle_t *dev)
 {
@@ -696,6 +709,7 @@ SEMPER_Status_t SEMPER_DisableMemoryMappedMode(
   return ret;
 }
 
+/** @brief Read the flash status and report readiness, busy state, or a device error. */
 SEMPER_Status_t SEMPER_GetStatus(
     SEMPER_Handle_t *dev)
 {

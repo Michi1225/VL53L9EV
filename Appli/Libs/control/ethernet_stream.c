@@ -14,6 +14,7 @@ static NX_TCP_SOCKET stream_socket;
 static bool client_connected;
 static uint32_t client_session;
 static tof_parser_t command_parser;
+/** @brief Disconnect the stream client and discard its partial command. */
 static void disconnect_client(void)
 {
     nx_tcp_socket_disconnect(&stream_socket, TX_NO_WAIT);
@@ -21,6 +22,7 @@ static void disconnect_client(void)
     client_connected = false;
     command_parser.used = 0;
 }
+/** @brief Send stream bytes through bounded TCP packets, returning the first transport error. */
 static UINT tcp_write(const UCHAR *data, ULONG length)
 {
     while (length)
@@ -44,6 +46,7 @@ static UINT tcp_write(const UCHAR *data, ULONG length)
     }
     return NX_SUCCESS;
 }
+/** @brief Read available TCP data and feed the current client's ToF command parser. */
 static void read_commands(void)
 {
     for (unsigned i = 0; client_connected && i < 4U; ++i)
@@ -65,12 +68,14 @@ static void read_commands(void)
         nx_packet_release(packet);
     }
 }
+/** @brief Send a complete telemetry packet to USB and the connected TCP client. */
 static void write_transports(UCHAR *data, ULONG size)
 {
     (void)stream_usb_write(data, size);
     if (client_connected && tcp_write(data, size) != NX_SUCCESS)
         disconnect_client(); /* A partial frame must end this TCP session. */
 }
+/** @brief Manage stream clients and forward sensor packets, metadata, and command replies. */
 void ethernet_stream_thread_entry(ULONG argument)
 {
     (void)argument;

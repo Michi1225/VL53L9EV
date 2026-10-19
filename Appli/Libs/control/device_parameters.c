@@ -7,6 +7,7 @@
 static uint8_t packet[16U + DEVICE_PARAMETERS_MAX_JSON];
 static uint32_t packet_size;
 
+/** @brief Wrap parameter JSON in a PARM telemetry packet. */
 static void set_payload(const uint8_t *json, uint32_t length)
 {
     const uint16_t version = 1U, reserved = 0U;
@@ -20,6 +21,7 @@ static void set_payload(const uint8_t *json, uint32_t length)
     packet_size = 16U + length;
 }
 
+/** @brief Read device parameters from flash and prepare JSON telemetry or an error payload. */
 void device_parameters_init(void)
 {
     SEMPER_Handle_t flash = {0};
@@ -46,6 +48,7 @@ void device_parameters_init(void)
     set_payload(missing, sizeof(missing) - 1U);
 }
 
+/** @brief Return the cached PARM packet and its byte length. */
 uint8_t *device_parameters_packet(uint32_t *size)
 {
     *size = packet_size;

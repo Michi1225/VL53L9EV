@@ -17,7 +17,9 @@ IMAGE_ADDRESSES = {'fsbl': '0x90040000', 'application': '0x90100000',
 GENERATED_KEYS = {'repository', 'build', 'flash', 'parameter_build'}
 
 
+## @brief Parse a parameter object while rejecting duplicate keys and non-JSON numbers.
 def load_json(text):
+    ## @brief Build a JSON object while rejecting repeated keys.
     def unique_object(pairs):
         result = {}
         for key, value in pairs:
@@ -26,6 +28,7 @@ def load_json(text):
             result[key] = value
         return result
 
+    ## @brief Reject numeric constants that are outside the JSON format.
     def reject_constant(value):
         raise ValueError(f'Non-JSON numeric value: {value}')
 
@@ -35,6 +38,7 @@ def load_json(text):
     return data
 
 
+## @brief Decode a complete parameter readback or recognize an erased flash block.
 def read_existing(path):
     raw = path.read_bytes()
     if len(raw) != MAX_JSON_SIZE:
@@ -50,6 +54,7 @@ def read_existing(path):
         raise ValueError('Stored parameters are invalid; use --parameters to replace them') from error
 
 
+## @brief Recursively merge changed settings into an independent copy of the original object.
 def merge(base, changes):
     result = deepcopy(base)
     for key, value in changes.items():
@@ -60,6 +65,7 @@ def merge(base, changes):
     return result
 
 
+## @brief Validate an image's provenance, hash, size, build timestamp, and flash suitability.
 def image_metadata(image):
     metadata = load_json(image.with_suffix('.manifest.json').read_text(encoding='utf-8'))
     if metadata.get('manifest_version') != MANIFEST_VERSION:
@@ -81,6 +87,7 @@ def image_metadata(image):
     return metadata
 
 
+## @brief Merge settings and image provenance into a bounded, padded flash parameter image.
 def pack(source: Path, output: Path, images=(), *, existing=None, replace=False,
          target=None, connect_mode='HOTPLUG', root=None) -> None:
     template = load_json(source.read_text(encoding='utf-8'))
@@ -147,6 +154,7 @@ def pack(source: Path, output: Path, images=(), *, existing=None, replace=False,
     print(f'Parameters: {len(payload)} JSON bytes -> {output} ({REGION_SIZE} bytes)')
 
 
+## @brief Parse parameter packing options and write the requested flash image and JSON sidecar.
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('source', type=Path)

@@ -27,9 +27,12 @@ extern TX_EVENT_FLAGS_GROUP stream_events;
 extern UCHAR stream_packet[STREAM_HEADER_SIZE + CSI_OUTPUT_PAYLOAD_SIZE];
 extern ULONG stream_packet_length;
 
+/** @brief Return the session identifier used to reject stale USB replies. */
 uint32_t stream_usb_session(void);
+/** @brief Write a complete packet to the active USB CDC session. */
 UINT stream_usb_write(UCHAR *packet, ULONG length);
 
+/** @brief Own the ToF sensor, process commands, and publish captured frames. */
 void stream_thread_entry(ULONG argument);
 
 #endif

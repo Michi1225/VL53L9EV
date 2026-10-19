@@ -28,6 +28,7 @@ static int _i3c_read(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescriptor, 
 static int _i3c_read_async(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescriptor, I3C_XferTypeDef *aContextBuffers);
 static int _i3c_write(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescriptor, I3C_XferTypeDef *aContextBuffers);
 
+/** @brief Wait for the I3C controller to become ready, returning on a bus error or timeout. */
 static int _i3c_wait_ready(I3C_HandleTypeDef *hi3c) {
     uint32_t start = HAL_GetTick();
     for (;;) {
@@ -41,6 +42,7 @@ static int _i3c_wait_ready(I3C_HandleTypeDef *hi3c) {
     }
 }
 
+/** @brief Read a sensor register block through the configured I3C bus. */
 int vl53l9_read(void *const p_dev, uint16_t address, uint8_t *p_values, uint32_t size) {
     int ret = VL53L9_ERROR_NONE;
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
@@ -68,6 +70,7 @@ int vl53l9_read(void *const p_dev, uint16_t address, uint8_t *p_values, uint32_t
     return VL53L9_ERROR_INVALID_STATE;
 }
 
+/** @brief Start an I3C DMA read into a caller-owned sensor buffer. */
 int vl53l9_read_async(void *const p_dev, uint16_t address, volatile uint8_t *p_values, uint32_t size) {
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
 
@@ -95,6 +98,7 @@ int vl53l9_read_async(void *const p_dev, uint16_t address, volatile uint8_t *p_v
     return VL53L9_ERROR_INVALID_STATE;
 }
 
+/** @brief Read an eight-bit sensor register over I3C. */
 int vl53l9_read8(void *const p_dev, uint16_t address, uint8_t *p_value) {
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
 
@@ -121,6 +125,7 @@ int vl53l9_read8(void *const p_dev, uint16_t address, uint8_t *p_value) {
     return VL53L9_ERROR_INVALID_STATE;
 }
 
+/** @brief Read a 16-bit sensor register over I3C. */
 int vl53l9_read16(void *const p_dev, uint16_t address, uint16_t *p_value) {
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
 
@@ -149,6 +154,7 @@ int vl53l9_read16(void *const p_dev, uint16_t address, uint16_t *p_value) {
     return VL53L9_ERROR_INVALID_STATE;
 }
 
+/** @brief Read a 32-bit sensor register over I3C. */
 int vl53l9_read32(void *const p_dev, uint16_t address, uint32_t *p_value) {
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
 
@@ -177,6 +183,7 @@ int vl53l9_read32(void *const p_dev, uint16_t address, uint32_t *p_value) {
     return VL53L9_ERROR_INVALID_STATE;
 }
 
+/** @brief Write a sensor register block through the configured I3C bus. */
 int vl53l9_write(void *const p_dev, uint16_t address, uint8_t *p_values, uint32_t size) {
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
     uint8_t data_write[2 + size];
@@ -204,6 +211,7 @@ int vl53l9_write(void *const p_dev, uint16_t address, uint8_t *p_values, uint32_
     return VL53L9_ERROR_INVALID_STATE;
 }
 
+/** @brief Write an eight-bit sensor register over I3C. */
 int vl53l9_write8(void *const p_dev, uint16_t address, uint8_t value) {
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
 
@@ -230,6 +238,7 @@ int vl53l9_write8(void *const p_dev, uint16_t address, uint8_t value) {
     return VL53L9_ERROR_INVALID_STATE;
 }
 
+/** @brief Encode and write a little-endian 16-bit sensor register over I3C. */
 int vl53l9_write16(void *const p_dev, uint16_t address, uint16_t value) {
     int ret = VL53L9_ERROR_NONE;
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
@@ -258,6 +267,7 @@ int vl53l9_write16(void *const p_dev, uint16_t address, uint16_t value) {
     return VL53L9_ERROR_INVALID_STATE;
 }
 
+/** @brief Encode and write a little-endian 32-bit sensor register over I3C. */
 int vl53l9_write32(void *const p_dev, uint16_t address, uint32_t value) {
     int ret = VL53L9_ERROR_NONE;
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
@@ -288,6 +298,7 @@ int vl53l9_write32(void *const p_dev, uint16_t address, uint32_t value) {
     return VL53L9_ERROR_INVALID_STATE;
 }
 
+/** @brief Transmit the register address and receive the requested sensor bytes synchronously. */
 static int _i3c_read(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescriptor, I3C_XferTypeDef *aContextBuffers) {
     int ret = VL53L9_ERROR_NONE;
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
@@ -329,6 +340,7 @@ static int _i3c_read(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescriptor, 
     return ret;
 }
 
+/** @brief Transmit the register address and start the sensor data receive through DMA. */
 static int _i3c_read_async(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescriptor,
                            I3C_XferTypeDef *aContextBuffers) {
     int ret = VL53L9_ERROR_NONE;
@@ -371,6 +383,7 @@ static int _i3c_read_async(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescri
     return ret;
 }
 
+/** @brief Transmit sensor bytes with word FIFO service and scheduling protection for long writes. */
 static int _i3c_write(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescriptor, I3C_XferTypeDef *aContextBuffers) {
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
     I3C_HandleTypeDef *p_hi3c = (I3C_HandleTypeDef *)p_device->bus;
@@ -414,12 +427,14 @@ static int _i3c_write(void *const p_dev, I3C_PrivateTypeDef *aPrivateDescriptor,
     return VL53L9_ERROR_NONE;
 }
 
+/** @brief Provide the sensor driver's blocking millisecond delay through the HAL. */
 int vl53l9_wait_ms(void *const p_dev, uint32_t delay_ms) {
     (void)p_dev;
     HAL_Delay(delay_ms);
     return 0;
 }
 
+/** @brief Return the sensor's configured I/O supply voltage. */
 int vl53l9_get_config_vddio(void *const p_dev, vl53l9_vddio_t *voltage) {
     int ret = VL53L9_ERROR_NONE;
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
@@ -427,6 +442,7 @@ int vl53l9_get_config_vddio(void *const p_dev, vl53l9_vddio_t *voltage) {
     return ret;
 }
 
+/** @brief Return the sensor's configured analog supply voltage. */
 int vl53l9_get_config_vdda(void *const p_dev, vl53l9_vdda_t *voltage) {
     int ret = VL53L9_ERROR_NONE;
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;
@@ -434,6 +450,7 @@ int vl53l9_get_config_vdda(void *const p_dev, vl53l9_vdda_t *voltage) {
     return ret;
 }
 
+/** @brief Return the sensor's configured external clock frequency. */
 int vl53l9_get_config_ext_clock(void *const p_dev, uint32_t *ext_clock) {
     int ret = VL53L9_ERROR_NONE;
     vl53l9_device_t *p_device = (vl53l9_device_t *)p_dev;

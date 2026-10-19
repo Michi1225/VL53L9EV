@@ -60,7 +60,7 @@ void PeriphCommonClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+#include "../../../common/firmware/fw_boot.inc"
 /* USER CODE END 0 */
 
 /**
@@ -78,7 +78,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  fw_watchdog_refresh();
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -98,7 +98,11 @@ int main(void)
   MX_I2C2_Init();
   MX_EXTMEM_MANAGER_Init();
   /* USER CODE BEGIN 2 */
-
+  /* A/B selection validates before copying; it returns only on failure. */
+  if (fw_boot_run() != FW_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE END 2 */
 
   /* We should never get here as control is now taken by the scheduler */
@@ -272,6 +276,7 @@ void PeriphCommonClock_Config(void)
 /* USER CODE BEGIN 4 */
 /* STM32 header v2.3 is 0x240 bytes. --align adds padding to its payload
    so the application's vector table starts at EXTMEM_HEADER_OFFSET. */
+/** @brief Validate the STM32 image header, checksum, and vectors, then return its total size. */
 uint32_t BOOT_GetApplicationSize(uint32_t img_addr)
 {
   const uint32_t header_size = 0x240U;

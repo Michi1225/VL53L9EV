@@ -20,6 +20,7 @@ REPOSITORY = dict(git_hash='a' * 40, git_dirty=False, git_description='test',
                   git_branch='main', submodules=[])
 
 
+## @brief Write a valid image provenance fixture with optional field overrides.
 def manifest(image, **changes):
     data = dict(manifest_version=2, **REPOSITORY, built_at_utc='2026-01-01T00:00:00+00:00',
                 configuration='Release', image=image.name, image_size_bytes=image.stat().st_size,
@@ -33,12 +34,14 @@ def manifest(image, **changes):
     return data
 
 
+## @brief Encode parameter JSON as a padded flash readback fixture.
 def readback(data):
     payload = json.dumps(data).encode() + b'\0'
     return payload + b'\xff' * (parameters.MAX_JSON_SIZE - len(payload))
 
 
 class ParameterPackingTests(unittest.TestCase):
+    ## @brief Prepare isolated files and fixtures for the next test.
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -58,11 +61,13 @@ class ParameterPackingTests(unittest.TestCase):
         self.image.write_bytes(b'signed application')
         self.metadata = manifest(self.image)
 
+    ## @brief Run parameter packing with deterministic repository metadata and decode its output.
     def pack(self, images=(), **kwargs):
         with patch.object(parameters, 'repository_state', return_value=REPOSITORY):
             parameters.pack(self.source, self.output, images, existing=self.existing, **kwargs)
         return json.loads(self.output.read_bytes().split(b'\0', 1)[0])
 
+    ## @brief Verify partial update preserves identity calibration and other slot.
     def test_partial_update_preserves_identity_calibration_and_other_slot(self):
         data = self.pack([('application_b', self.image)], target='appli-b')
         self.assertEqual(data['device']['serial_number'], 'BOARD-42')
@@ -77,6 +82,7 @@ class ParameterPackingTests(unittest.TestCase):
         self.assertEqual(json.loads(self.output.with_suffix('.json').read_text()), data)
         self.assertLess(len(self.output.read_bytes().split(b'\0')[0]), parameters.MAX_JSON_SIZE)
 
+    ## @brief Verify parameter build time refreshes without relabelling firmware.
     def test_parameter_build_time_refreshes_without_relabelling_firmware(self):
         self.old['parameter_build'] = {'built_at_utc': '2020-01-01T00:00:00+00:00'}
         self.existing.write_bytes(readback(self.old))
@@ -92,6 +98,7 @@ class ParameterPackingTests(unittest.TestCase):
         self.assertEqual(first['build'], self.old['build'])
         self.assertEqual(second['build'], self.old['build'])
 
+    ## @brief Verify selected image date comes from current manifest.
     def test_selected_image_date_comes_from_current_manifest(self):
         date = '2026-10-16T11:30:00+00:00'
         manifest(self.image, built_at_utc=date)
@@ -100,6 +107,7 @@ class ParameterPackingTests(unittest.TestCase):
         self.assertEqual(data['build']['application']['built_at_utc'], data['parameter_build']['built_at_utc'])
         self.assertEqual(data['build']['fsbl'], self.old['build']['fsbl'])
 
+    ## @brief Verify explicit settings replace editable fields and retain provenance.
     def test_explicit_settings_replace_editable_fields_and_retain_provenance(self):
         data = self.pack(replace=True, target='parameters')
         self.assertEqual(data['device']['serial_number'], None)
@@ -108,6 +116,7 @@ class ParameterPackingTests(unittest.TestCase):
         self.assertEqual(data['build'], self.old['build'])
         self.assertEqual(data['flash']['updated_images'], [])
 
+    ## @brief Verify erased device uses template.
     def test_erased_device_uses_template(self):
         self.existing.write_bytes(b'\xff' * parameters.MAX_JSON_SIZE)
         data = self.pack([('application', self.image)], target='appli-a')
@@ -115,6 +124,7 @@ class ParameterPackingTests(unittest.TestCase):
         self.assertNotIn('fsbl', data['build'])
         self.assertEqual(data['repository'], REPOSITORY)
 
+    ## @brief Verify corrupt readback requires explicit replacement.
     def test_corrupt_readback_requires_explicit_replacement(self):
         self.existing.write_bytes(b'bad\0' + b'\xff' * (parameters.MAX_JSON_SIZE - 4))
         with self.assertRaisesRegex(ValueError, 'Stored parameters are invalid'):
@@ -125,6 +135,7 @@ class ParameterPackingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'exactly 16 KiB'):
             self.pack(replace=True)
 
+    ## @brief Verify missing old tampered and development manifests fail.
     def test_missing_old_tampered_and_development_manifests_fail(self):
         for changes in [dict(manifest_version=1), dict(image_sha256='wrong'),
                         dict(image_size_bytes=999), dict(compiler={}), dict(options={'DEV_MODE': True}),
@@ -139,6 +150,7 @@ class ParameterPackingTests(unittest.TestCase):
         with self.assertRaises(OSError):
             self.pack([('application', self.image)])
 
+    ## @brief Verify invalid or oversized json never creates flash image.
     def test_invalid_or_oversized_json_never_creates_flash_image(self):
         for value in ['{"device":{},"device":{}}', '[]', '{"value":NaN}',
                       json.dumps({'large': 'x' * parameters.MAX_JSON_SIZE})]:
@@ -149,6 +161,7 @@ class ParameterPackingTests(unittest.TestCase):
 
 
 class BuildProvenanceTests(unittest.TestCase):
+    ## @brief Verify records actual compile flags macros options and compiler.
     def test_records_actual_compile_flags_macros_options_and_compiler(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -168,6 +181,7 @@ VL53L9_SENSOR_ONLY:BOOL=ON
                     '-c', str(root / 'Core/Src/main.c')]
             (build / 'compile_commands.json').write_text(json.dumps([
                 dict(directory=str(build), arguments=args, file=str(root / 'Core/Src/main.c'))]))
+            ## @brief Emulate compiler version and preprocessor queries for provenance validation.
             def output(command, **kwargs):
                 if '-dM' in command:
                     self.assertNotIn('-o', command)
@@ -212,6 +226,7 @@ if '-w' in args:
 
 
 class FlashWorkflowTests(unittest.TestCase):
+    ## @brief Prepare isolated files and fixtures for the next test.
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -245,6 +260,7 @@ class FlashWorkflowTests(unittest.TestCase):
         subprocess.run(['git', '-C', str(self.root), '-c', 'user.name=Test', '-c', 'user.email=test@example.com',
                         'commit', '-q', '--allow-empty', '-m', 'Fixture'], check=True)
 
+    ## @brief Execute the flash script against the simulated programmer with the selected options.
     def run_flash(self, target, *extra, fail_address=None):
         env = dict(self.env)
         if fail_address:
@@ -252,15 +268,19 @@ class FlashWorkflowTests(unittest.TestCase):
         return subprocess.run(['bash', str(self.root / 'scripts/flash.sh'), '--target', target, *extra],
                               text=True, capture_output=True, env=env)
 
+    ## @brief Read the programmer invocation records captured by the test.
     def calls(self):
         return [json.loads(line) for line in self.log.read_text().splitlines()]
 
+    ## @brief Return the flash addresses written by the simulated programmer.
     def writes(self):
         return [call[call.index('-w') + 2] for call in self.calls() if '-w' in call]
 
+    ## @brief Decode the simulated device parameter block.
     def data(self):
         return json.loads(self.state.read_bytes().split(b'\0', 1)[0])
 
+    ## @brief Verify every target refreshes parameters after verified firmware.
     def test_every_target_refreshes_parameters_after_verified_firmware(self):
         for target, addresses, images in [
                 ('fsbl', ['0x90040000', '0x90000000'], ['fsbl']),
@@ -279,6 +299,7 @@ class FlashWorkflowTests(unittest.TestCase):
                 if target != 'parameters':
                     self.assertEqual(self.data()['device']['serial_number'], 'BOARD-42')
 
+    ## @brief Verify single image does not need other local images or manifests.
     def test_single_image_does_not_need_other_local_images_or_manifests(self):
         self.images['fsbl'].unlink()
         self.images['fsbl'].with_suffix('.manifest.json').unlink()
@@ -288,6 +309,7 @@ class FlashWorkflowTests(unittest.TestCase):
         # Default --config Debug must not relabel the existing Release image.
         self.assertEqual(self.data()['build']['application']['configuration'], 'Release')
 
+    ## @brief Verify firmware flashes refresh selected build dates even for same image.
     def test_firmware_flashes_refresh_selected_build_dates_even_for_same_image(self):
         for target, slots in [('fsbl', ['fsbl']), ('appli-a', ['application']),
                               ('appli-b', ['application_b']), ('all', ['fsbl', 'application'])]:
@@ -316,6 +338,7 @@ class FlashWorkflowTests(unittest.TestCase):
                             self.assertEqual(record, previous[slot])
                     previous = data['build']
 
+    ## @brief Verify parameter only does not need any firmware images.
     def test_parameter_only_does_not_need_any_firmware_images(self):
         for image in self.images.values():
             image.unlink()
@@ -325,6 +348,7 @@ class FlashWorkflowTests(unittest.TestCase):
         self.assertEqual(self.writes(), ['0x90000000'])
         self.assertEqual(self.data()['build']['fsbl']['image_sha256'], 'original')
 
+    ## @brief Verify validation failure prevents all writes.
     def test_validation_failure_prevents_all_writes(self):
         self.images['application'].write_bytes(b'tampered')
         result = self.run_flash('all')
@@ -332,6 +356,7 @@ class FlashWorkflowTests(unittest.TestCase):
         self.assertIn('does not match build manifest', result.stderr)
         self.assertEqual(self.writes(), [])
 
+    ## @brief Verify short readback prevents all writes even with explicit settings.
     def test_short_readback_prevents_all_writes_even_with_explicit_settings(self):
         self.state.write_bytes(b'short')
         result = self.run_flash('all', '--parameters', str(self.root / 'config/flash_parameters.json'))
@@ -339,6 +364,7 @@ class FlashWorkflowTests(unittest.TestCase):
         self.assertIn('exactly 16 KiB', result.stderr)
         self.assertEqual(self.writes(), [])
 
+    ## @brief Verify failed firmware write keeps previous parameter block.
     def test_failed_firmware_write_keeps_previous_parameter_block(self):
         before = self.state.read_bytes()
         result = self.run_flash('all', fail_address='0x90100000')

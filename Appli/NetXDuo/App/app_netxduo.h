@@ -64,7 +64,9 @@ UINT MX_NetXDuo_Init(VOID *memory_ptr);
 
 /* USER CODE BEGIN EFP */
 
+/** @brief Return the application's shared NetX IP instance. */
 NX_IP *nx_get_ip();
+/** @brief Return the packet pool used by application TCP services. */
 NX_PACKET_POOL *nx_get_app_pool();
 /* USER CODE END EFP */
 

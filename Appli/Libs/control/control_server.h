@@ -21,6 +21,7 @@
 
 
 
+/** @brief Serve TCP echo clients while handling Ethernet link loss and reconnection. */
 void control_thread_entry(ULONG argument);
 
 

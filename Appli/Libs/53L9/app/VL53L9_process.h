@@ -37,11 +37,17 @@ typedef struct
 
 } VL53L9_TypeDef_t;
 
+/** @brief Reset and address the ToF sensor, load its firmware, and apply the default profile. */
 HAL_StatusTypeDef VL53L9_init(VL53L9_TypeDef_t *tof);
+/** @brief Validate the requested geometry and configure the ToF sensor and CSI receiver. */
 HAL_StatusTypeDef VL53L9_configure(VL53L9_TypeDef_t *tof, const vl53l9_profile_t *profile);
+/** @brief Hold the sensor in XSHUT while leaving its supply rails connected. */
 HAL_StatusTypeDef VL53L9_power_down(VL53L9_TypeDef_t *tof);
+/** @brief Clean and invalidate the CSI DMA buffer before the next capture. */
 void VL53L9_prepare_capture(VL53L9_TypeDef_t *tof);
+/** @brief Arm frame capture and start ranging, stopping capture if sensor startup fails. */
 HAL_StatusTypeDef VL53L9_start_ranging(VL53L9_TypeDef_t *tof);
+/** @brief Copy and parse a completed CSI frame after invalidating its DMA buffer cache. */
 HAL_StatusTypeDef VL53L9_process(VL53L9_TypeDef_t *tof);
 
 #endif //__VL53L9_PROCESS_H

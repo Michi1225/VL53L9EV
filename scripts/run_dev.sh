@@ -26,12 +26,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 GDB_PORT="${STM32_GDB_PORT:-61234}"
 
+# @brief Print an error message and exit with failure.
 die()
 {
     echo "ERROR: $*" >&2
     exit 1
 }
 
+# @brief Print the supported command-line options.
 usage()
 {
     cat <<EOF
@@ -45,6 +47,7 @@ Examples:
 EOF
 }
 
+# @brief Locate the STM32 ARM compiler toolchain directory.
 find_stm32_gcc_bin()
 {
     if [[ -n "${STM32_GCC_PATH:-}" ]]; then
@@ -78,6 +81,7 @@ find_stm32_gcc_bin()
     return 1
 }
 
+# @brief Locate the STM32CubeProgrammer command-line executable.
 find_programmer_cli()
 {
     if [[ -n "${STM32_PROGRAMMER_CLI:-}" ]]; then
@@ -116,6 +120,7 @@ find_programmer_cli()
     return 1
 }
 
+# @brief Locate the ST-LINK GDB server executable.
 find_gdb_server()
 {
     if [[ -n "${STLINK_GDBSERVER:-}" ]]; then
@@ -236,6 +241,7 @@ GDBSERVER="$(find_gdb_server)" || die "ST-LINK_gdbserver not found"
 LOG_FILE="$(mktemp -t stm32n6-gdbserver.XXXXXX.log)"
 GDBSERVER_PID=""
 
+# @brief Stop the background GDB server when the development session exits.
 cleanup()
 {
     if [[ -n "${GDBSERVER_PID}" ]] && kill -0 "${GDBSERVER_PID}" 2>/dev/null; then

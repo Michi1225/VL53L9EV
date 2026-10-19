@@ -11,7 +11,9 @@ import subprocess
 MANIFEST_VERSION = 2
 
 
+## @brief Collect the repository revision, worktree state, branch, and submodule revisions.
 def repository_state(root):
+    ## @brief Run a Git query in the selected repository and return trimmed text.
     def git(*args):
         return subprocess.check_output(['git', '-C', str(root), *args], text=True).strip()
     return {
@@ -27,6 +29,7 @@ def repository_state(root):
     }
 
 
+## @brief Extract the actual compiler, flags, definitions, and options from a CMake build.
 def build_settings(build_dir, configuration):
     cache = {}
     for line in (build_dir / 'CMakeCache.txt').read_text().splitlines():
@@ -96,6 +99,7 @@ def build_settings(build_dir, configuration):
     }
 
 
+## @brief Combine repository and build metadata with the packaged image's size and SHA-256.
 def record(root, image, configuration, build_dir=None):
     settings = build_settings(build_dir or image.parent, configuration)
     return {
@@ -110,6 +114,7 @@ def record(root, image, configuration, build_dir=None):
     }
 
 
+## @brief Write a provenance manifest for the selected packaged firmware image.
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('image', type=Path)

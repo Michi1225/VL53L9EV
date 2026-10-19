@@ -70,6 +70,7 @@ UINT MX_USBX_Device_Stack_Init(void);
 UINT MX_USBX_Device_Stack_DeInit(void);
 
 /* USER CODE BEGIN EFP */
+/** @brief Request USB device startup through the USB event group. */
 static inline void USBX_Device_Attach(void)
 {
     tx_event_flags_set(&usb_device_events,
@@ -77,6 +78,7 @@ static inline void USBX_Device_Attach(void)
                        TX_OR);
 }
 
+/** @brief Request USB device shutdown through the USB event group. */
 static inline void USBX_Device_Detach(void)
 {
     tx_event_flags_set(&usb_device_events,

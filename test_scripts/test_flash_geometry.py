@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @unittest.skipUnless(shutil.which('cc'), 'native C compiler required')
 class FlashGeometryTests(unittest.TestCase):
+    ## @brief Verify parameter sectors do not touch fsbl and ranges are bounded.
     def test_parameter_sectors_do_not_touch_fsbl_and_ranges_are_bounded(self):
         with tempfile.TemporaryDirectory() as directory:
             temp = Path(directory)
@@ -30,11 +31,13 @@ int EXTMEM_EraseSector(uint32_t, uint32_t, uint32_t);
 #include <assert.h>
 MEM_STATUS memory_sectorerase(uint32_t,uint32_t,uint32_t);
 static uint32_t next, count, fail;
+/** @brief Record and check a physical sector erase requested by the loader. */
 int EXTMEM_EraseSector(uint32_t id, uint32_t address, uint32_t size) {
  assert(id==0 && address==next);
  assert(size==(address<0x20000 ? 0x1000U : address<0x40000 ? 0x20000U : 0x40000U));
  next+=size; ++count; return fail ? 1 : 0;
 }
+/** @brief Verify hybrid-sector erase ranges and loader bounds checks. */
 int main(void) {
  assert(memory_sectorerase(0x90000000,0x90020000,0x40000)==MEM_OK);
  assert(count==33 && next==0x40000); /* FSBL starts here: never erase it. */

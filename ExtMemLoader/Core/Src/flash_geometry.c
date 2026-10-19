@@ -4,6 +4,7 @@
 #include "stm32_extmem.h"
 #include <stdint.h>
 
+/** @brief Return the physical hybrid flash sector size at the given offset. */
 static uint32_t sector_size(uint32_t offset)
 {
     if (offset < 0x20000U) return 0x1000U;
@@ -11,6 +12,7 @@ static uint32_t sector_size(uint32_t offset)
     return 0x40000U;
 }
 
+/** @brief Erase each physical sector intersecting a validated inclusive loader range. */
 MEM_STATUS memory_sectorerase(uint32_t first, uint32_t last, uint32_t ignored)
 {
     (void)ignored;

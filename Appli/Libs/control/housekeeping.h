@@ -15,6 +15,7 @@
 
 
 
+/** @brief Declare the reserved housekeeping thread entry point. */
 void housekeeping_thread_entry(ULONG argument);
 
 

@@ -1,5 +1,6 @@
 #include "app_clock.h"
 
+/** @brief Configure the application power supply, oscillators, PLLs, and bus clocks. */
 void App_SystemClock_Config(void)
 {
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};

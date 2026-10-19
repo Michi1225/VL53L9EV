@@ -16,7 +16,9 @@
  * SFLP game-rotation quaternion xyzw. All fields are little-endian. */
 extern TX_QUEUE imu_packet_queue;
 
+/** @brief Create the bounded queue of complete IMU telemetry packets. */
 UINT imu_stream_queue_init(void);
+/** @brief Sample the IMU and enqueue telemetry at the configured publish rate. */
 void imu_stream_thread_entry(ULONG argument);
 
 #endif

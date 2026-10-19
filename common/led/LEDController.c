@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <string.h>
 
+/** @brief Assign a controller pattern to a validated engine sequence slot. */
 static void led_set_engine_pattern(LEDController *controller,
                                   uint8_t engine_index,
                                   uint8_t engine_pattern_index,
@@ -16,6 +17,7 @@ static void led_set_engine_pattern(LEDController *controller,
     controller->engines[engine_index].patterns[engine_pattern_index] = &controller->patterns[pattern_index];
 }
 
+/** @brief Disable a validated pattern slot in an LED engine sequence. */
 static void led_disable_engine_pattern(LEDController *controller,
                                        uint8_t engine_index,
                                        uint8_t pattern_index)
@@ -28,6 +30,7 @@ static void led_disable_engine_pattern(LEDController *controller,
     controller->engines[engine_index].patterns[pattern_index] = NULL;
 }
 
+/** @brief Send the stop command to the LED controller. */
 static void led_stop(LEDController *controller)
 {
     uint8_t txdata = 0xAAU;
@@ -37,6 +40,7 @@ static void led_stop(LEDController *controller)
     HAL_I2C_Mem_Write(LED_I2C_HANDLE, LED_I2C_ADDRESS << 1, LED_STOP_CMD, I2C_MEMADD_SIZE_8BIT, &txdata, 1U, 10);
 }
 
+/** @brief Send the start command to the LED controller. */
 static void led_start(LEDController *controller)
 {
     uint8_t txdata = 0xFFU;
@@ -46,6 +50,7 @@ static void led_start(LEDController *controller)
     HAL_I2C_Mem_Write(LED_I2C_HANDLE, LED_I2C_ADDRESS << 1, LED_START_CMD, I2C_MEMADD_SIZE_8BIT, &txdata, 1U, 10);
 }
 
+/** @brief Write engine configuration and patterns to the LED controller, then restart it. */
 static void led_update_config(LEDController *controller)
 {
     if (controller == NULL)
@@ -201,6 +206,7 @@ static void led_update_config(LEDController *controller)
     led_start(controller);
 }
 
+/** @brief Initialize the LED controller state and program its default configuration. */
 void LEDController_Init(LEDController *controller)
 {
     uint8_t i;
@@ -268,6 +274,7 @@ void LEDController_Init(LEDController *controller)
     HAL_I2C_Mem_Write(LED_I2C_HANDLE, LED_I2C_ADDRESS << 1, LED_REG_DC, I2C_MEMADD_SIZE_8BIT, txdata, sizeof(txdata), 10);
 }
 
+/** @brief Select an LED animation and write its patterns to the controller. */
 void LEDController_SetAnimation(LEDController *controller, LED_Animation_t animation)
 {
     if (controller == NULL)

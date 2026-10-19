@@ -84,6 +84,7 @@ extern I3C_HandleTypeDef hi3c2;
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
+/** @brief Configure the shared peripheral clock sources. */
 void PeriphCommonClock_Config(void);
 /* USER CODE END EFP */
 

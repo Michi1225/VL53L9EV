@@ -13,6 +13,7 @@ import numpy as np
 from USB_Debug import Packet, PacketParser, MAGIC, IMU_MAGIC, IMU_PAYLOAD, RAW_GRID_SIZES, decode_depth
 
 
+## @brief Load and validate mounting calibration and optional per-zone ray directions.
 def load_calibration(path, approximate=False):
     if path is None:
         if not approximate:
@@ -43,6 +44,7 @@ def load_calibration(path, approximate=False):
     return config
 
 
+## @brief Convert a finite, nonzero xyzw quaternion into a rotation matrix.
 def quaternion_matrix(q):
     q = np.asarray(q, dtype=float)
     norm = np.linalg.norm(q)
@@ -54,6 +56,7 @@ def quaternion_matrix(q):
                      [2*(x*z-y*w), 2*(y*z+x*w), 1-2*(x*x+y*y)]])
 
 
+## @brief Interpolate sign-consistent xyzw quaternions using host arrival times.
 def orientation_at(timestamp, imu_times, imu_values, max_gap=0.15):
     """Interpolate sign-consistent xyzw quaternions using host arrival times."""
     right = int(np.searchsorted(imu_times, timestamp))
@@ -71,6 +74,7 @@ def orientation_at(timestamp, imu_times, imu_values, max_gap=0.15):
     return quaternion_matrix((1-fraction)*a + fraction*b)
 
 
+## @brief Convert a valid depth packet into range-filtered points in the LiDAR frame.
 def frame_points(packet, calibration, min_depth=0.05, max_depth=8.8):
     grid, binning = decode_depth(packet)
     metadata = packet.payload[-100:]
@@ -100,6 +104,7 @@ def frame_points(packet, calibration, min_depth=0.05, max_depth=8.8):
     return rays[valid] * depth[valid, None]
 
 
+## @brief Find the nearest target point for each source point using bounded temporary arrays.
 def nearest(source, target):
     indices, distances = [], []
     for start in range(0, len(source), 128):
@@ -111,6 +116,7 @@ def nearest(source, target):
     return np.concatenate(indices), np.concatenate(distances)
 
 
+## @brief Trimmed point-to-point ICP; returns pose, inlier fraction and RMSE.
 def icp(source, target, initial, max_distance=0.15, iterations=12):
     """Trimmed point-to-point ICP; returns pose, inlier fraction and RMSE."""
     pose = initial.copy()
@@ -140,6 +146,7 @@ def icp(source, target, initial, max_distance=0.15, iterations=12):
     return pose, float(inliers.mean()), float(np.sqrt(np.mean(distance[inliers]**2))) if inliers.any() else float('inf')
 
 
+## @brief Average points that fall inside the same spatial voxel.
 def voxel_downsample(points, size):
     keys = np.floor(points / size).astype(np.int64)
     _, inverse, counts = np.unique(keys, axis=0, return_inverse=True, return_counts=True)
@@ -148,6 +155,7 @@ def voxel_downsample(points, size):
     return sums / counts[:, None]
 
 
+## @brief Solve A X = X B for lidar-to-IMU rotation from independent rotations.
 def solve_mounting_rotation(pairs):
     """Solve A X = X B for lidar-to-IMU rotation from independent rotations."""
     if len(pairs) < 3:
@@ -167,6 +175,7 @@ def solve_mounting_rotation(pairs):
     return rotation, residuals
 
 
+## @brief Estimate LiDAR-to-IMU rotation from overlapping depth frames and inertial motion.
 def estimate_mounting(data, calibration, fps=10, max_distance=0.15):
     pairs = []
     previous = None
@@ -203,6 +212,7 @@ def estimate_mounting(data, calibration, fps=10, max_distance=0.15):
     return calibration
 
 
+## @brief Save timestamped depth packets and inertial samples in a compressed replay archive.
 def save_capture(path, tof, imu):
     max_size = max((len(packet.payload) for _, packet in tof), default=0)
     payloads = np.zeros((len(tof), max_size), dtype=np.uint8)
@@ -215,6 +225,7 @@ def save_capture(path, tof, imu):
         imu_times=np.array([t for t, _ in imu]), imu_values=np.array([v for _, v in imu]).reshape(-1, 11))
 
 
+## @brief Record USB depth and IMU packets, preserving the raw stream for replay.
 def capture(port, duration, output, ready_timeout=15):
     import serial
     parser = PacketParser()
@@ -254,6 +265,7 @@ def capture(port, duration, output, ready_timeout=15):
         raise ValueError("Both depth and IMU streams are required; partial capture was saved")
 
 
+## @brief Export recorded depth frames as a video with timestamps and range coloring.
 def depth_video(data, output, fps=10, max_depth_mm=4000):
     from PIL import Image
     from matplotlib import colormaps
@@ -281,11 +293,13 @@ def depth_video(data, output, fps=10, max_depth_mm=4000):
                        duration=durations, loop=0)
 
 
+## @brief Reconstruct a depth packet from one frame in a saved capture archive.
 def packet_at(data, i):
     payload = data['tof_payloads'][i, :int(data['tof_lengths'][i])].tobytes()
     return Packet(int(data['tof_sequences'][i]), int(data['tof_widths'][i]), int(data['tof_heights'][i]), payload)
 
 
+## @brief Register captured depth frames and export the reconstructed point cloud and trajectory.
 def reconstruct(data, calibration, output, fps=10, max_distance=0.15, voxel=0.02):
     if len(data['imu_times']) < 2 or not len(data['tof_times']):
         raise ValueError("Need depth frames and at least two IMU samples")
@@ -359,6 +373,7 @@ def reconstruct(data, calibration, output, fps=10, max_distance=0.15, voxel=0.02
     return scene
 
 
+## @brief Display a saved point cloud in an interactive three-dimensional plot.
 def preview(scene):
     import matplotlib.pyplot as plt
     points = scene[np.linspace(0, len(scene)-1, min(20000, len(scene)), dtype=int)]
@@ -371,6 +386,7 @@ def preview(scene):
     plt.show()
 
 
+## @brief Run the selected capture, reconstruction, video, or preview command.
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--port', help='USB serial device, e.g. /dev/ttyACM1')

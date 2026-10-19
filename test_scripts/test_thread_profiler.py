@@ -24,8 +24,11 @@ extern uint32_t SystemCoreClock, irq_mask;
 #define CoreDebug (&fake_debug)
 #define CoreDebug_DEMCR_TRCENA_Msk 1U
 #define DWT_CTRL_CYCCNTENA_Msk 1U
+/** @brief Read the simulated interrupt mask. */
 static inline uint32_t __get_PRIMASK(void) { return irq_mask; }
+/** @brief Set the simulated interrupt mask. */
 static inline void __disable_irq(void) { irq_mask = 1; }
+/** @brief Restore the simulated interrupt mask. */
 static inline void __set_PRIMASK(uint32_t mask) { irq_mask = mask; }
 #endif
 '''
@@ -57,14 +60,18 @@ FakeCoreDebug fake_debug;
 uint32_t SystemCoreClock = 1000, irq_mask;
 TX_THREAD *_tx_thread_current_ptr, *_tx_thread_created_ptr;
 ULONG _tx_thread_created_count;
+/** @brief Return the simulated ThreadX time base. */
 ULONG tx_time_get(void) { return 1000; }
+/** @brief Advance the simulated CPU cycle counter. */
 static void advance(uint32_t cycles) { fake_dwt.CYCCNT += cycles; }
+/** @brief Write a real firmware profiling packet to the harness output. */
 static void emit(void) {
     uint32_t size;
     uint8_t *data = thread_profiler_packet(&size);
     assert(size > 16);
     assert(fwrite(data, 1, size, stdout) == size);
 }
+/** @brief Exercise CPU accounting across context switches, interrupts, and counter wraparound. */
 int main(void) {
     uint32_t size = 99;
     _tx_execution_isr_enter(); /* Early HAL interrupts precede kernel init. */
@@ -139,6 +146,7 @@ int main(void) {
 '''
 
 
+## @brief Encode a valid profiling interval for mixed-stream tests.
 def wire_profile(sequence=0):
     payload = PROFILE_HEADER.pack(1000, 1000, 100, 50, 10, 5, 1, 0)
     payload += PROFILE_THREAD.pack(123, 12, 35, b'Camera')
@@ -146,6 +154,7 @@ def wire_profile(sequence=0):
 
 
 class ProfilerTests(unittest.TestCase):
+    ## @brief Verify firmware accounting and wire format.
     @unittest.skipUnless(shutil.which('cc'), 'native C compiler required')
     def test_firmware_accounting_and_wire_format(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -183,6 +192,7 @@ class ProfilerTests(unittest.TestCase):
             self.assertAlmostEqual(sum(row[-1] for row in profile_rows(profile)), 100)
         self.assertEqual(parser.discarded, 0)
 
+    ## @brief Verify mixed stream at every byte boundary.
     def test_mixed_stream_at_every_byte_boundary(self):
         imu = IMU_PAYLOAD.pack(1000, *([1.0] * 10))
         wire = wire_profile() + HEADER.pack(IMU_MAGIC, 1, len(imu), 10, 1) + imu
@@ -195,6 +205,7 @@ class ProfilerTests(unittest.TestCase):
             self.assertEqual(rows[0], ('thread-0000007b', 'Camera', 12, 35.0, 35.0))
             self.assertEqual(parser.discarded, 0)
 
+    ## @brief Verify invalid profiler headers resynchronize.
     def test_invalid_profiler_headers_resynchronize(self):
         for length, version, count in [(44, 1, 65), (44, 2, 0), (43, 1, 0), (45, 1, 0)]:
             parser = PacketParser()
@@ -203,6 +214,7 @@ class ProfilerTests(unittest.TestCase):
             self.assertEqual([p.sequence for p in packets], [9])
             self.assertEqual(parser.invalid_headers, 1)
 
+    ## @brief Verify decoder rejects inconsistent times and counts.
     def test_decoder_rejects_inconsistent_times_and_counts(self):
         for clock, interval, idle, isr, scheduler, count, flags in [
                 (0, 100, 0, 0, 0, 0, 0), (1000, 0, 0, 0, 0, 0, 0),
@@ -212,10 +224,12 @@ class ProfilerTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 decode_profile(Packet(0, 1, 0, payload, PROFILE_MAGIC))
 
+    ## @brief Verify legacy reader accepts profile without treating it as imu.
     def test_legacy_reader_accepts_profile_without_treating_it_as_imu(self):
         import USB_Debug as usb
         from unittest.mock import patch
         chunks = iter([wire_profile(), b''])
+        ## @brief Return the next bytes supplied by the simulated input stream.
         def read():
             chunk = next(chunks)
             if not chunk:

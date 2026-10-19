@@ -39,6 +39,7 @@ class Packet:
     kind: bytes = MAGIC
 
 
+## @brief Decode one interval of firmware CPU cycles, including all ThreadX threads.
 def decode_profile(packet):
     """Decode one interval of firmware CPU cycles, including all ThreadX threads."""
     if packet.kind != PROFILE_MAGIC or packet.width != 1 or len(packet.payload) < PROFILE_HEADER.size:
@@ -63,6 +64,7 @@ def decode_profile(packet):
                 truncated=bool(flags & 1), threads=threads)
 
 
+## @brief Return stable ID, label, priority, milliseconds and CPU share for display.
 def profile_rows(profile):
     """Return stable ID, label, priority, milliseconds and CPU share for display."""
     rows = [(f"thread-{t['id']:08x}", t['name'] or f"Thread {t['id']:08x}",
@@ -77,6 +79,7 @@ def profile_rows(profile):
              cycles * 100 / profile['interval_cycles']) for key, name, priority, cycles in rows]
 
 
+## @brief Decode the raw radial-distance plane and the status row's crop.
 def decode_depth(packet):
     """Decode the raw radial-distance plane and the status row's crop.
 
@@ -111,6 +114,7 @@ def decode_depth(packet):
     return np.ma.masked_equal(depth, 0), binning
 
 
+## @brief Live sensor status from the final 100-byte CSI row (UM3683 Table 7).
 def decode_depth_metadata(packet):
     """Live sensor status from the final 100-byte CSI row (UM3683 Table 7)."""
     if packet.kind != MAGIC or len(packet.payload) < 100:
@@ -131,13 +135,16 @@ class SensorFrameTiming:
     Host arrival times include buffering/jitter. Counter jumps count missed
     sensor frames; a reset/backward jump restarts the measurement window.
     """
+    ## @brief Initialize the sensor frame counter timing window.
     def __init__(self):
         self.reset()
 
+    ## @brief Clear the timing anchor and estimated sensor frame rate.
     def reset(self):
         self.anchor = None
         self.fps = None
 
+    ## @brief Update the sensor frame-rate estimate while handling counter wraparound and resets.
     def add(self, counter, now):
         if self.anchor is None:
             self.anchor = (counter, now)
@@ -155,11 +162,13 @@ class SensorFrameTiming:
 class PacketParser:
     """Handle split/coalesced packets and recover after invalid headers."""
 
+    ## @brief Initialize the stream buffer and parser recovery counters.
     def __init__(self):
         self.buffer = bytearray()
         self.discarded = 0
         self.invalid_headers = 0
 
+    ## @brief Parse split or coalesced telemetry frames and recover from invalid headers.
     def feed(self, data):
         self.buffer.extend(data)
         packets = []
@@ -219,6 +228,7 @@ lock = threading.Lock()
 stop_event = threading.Event()
 
 
+## @brief Read and decode a transport session while updating shared packet statistics and samples.
 def stream_reader(read_chunk, label):
     global rx_total, connected, latest_packet, packet_count, sequence_gaps
     global parser_discarded, parser_invalid, latest_imu_packet, imu_packet_count
@@ -286,6 +296,7 @@ def stream_reader(read_chunk, label):
 
 
 
+## @brief Open a USB serial session and drain available input into the stream decoder.
 def serial_reader(port):
     import serial
     print(f"[USB] Opening {port}")
@@ -294,6 +305,7 @@ def serial_reader(port):
     except OSError as exc:
         print(f"[USB] Failed to open {port}: {exc}")
         return
+    ## @brief Read at least one serial byte and drain currently available data.
     def read_chunk():
         data = ser.read(1)
         if data and ser.in_waiting:
@@ -307,6 +319,7 @@ def serial_reader(port):
         ser.close()
 
 
+## @brief Reconnect to the TCP stream and decode packets until monitoring stops.
 def ethernet_monitor(host, tcp_port):
     import socket
     global port_name
@@ -315,6 +328,7 @@ def ethernet_monitor(host, tcp_port):
         try:
             with socket.create_connection((host, tcp_port), timeout=3) as connection:
                 connection.settimeout(0.2)
+                ## @brief Read TCP input, treating a timeout as no data and a closed socket as disconnection.
                 def read_chunk():
                     try:
                         data = connection.recv(65536)
@@ -328,6 +342,7 @@ def ethernet_monitor(host, tcp_port):
             print(f"[ETH] Cannot connect to {port_name}: {exc}")
         stop_event.wait(1.0)
 
+## @brief Keep exactly one reader active, retrying after unplug or open failure.
 def usb_monitor(requested_port=None):
     """Keep exactly one reader active, retrying after unplug or open failure."""
     global port_name
@@ -351,6 +366,7 @@ def usb_monitor(requested_port=None):
         stop_event.wait(1.0)
 
 
+## @brief Print periodic transport, sensor, IMU, and CPU usage diagnostics.
 def status_thread():
     last_bytes = last_packets = last_imu = 0
     while not stop_event.wait(1.0):
@@ -377,6 +393,7 @@ def status_thread():
                   f"first16={packet.payload[:16].hex(' ')}")
         if imu_packet:
             timestamp, *values = IMU_PAYLOAD.unpack(imu_packet.payload)
+            ## @brief Format a numeric vector for the IMU diagnostic output.
             def vector(items):
                 return '(' + ', '.join(f'{value:.4f}' for value in items) + ')'
             print(f"[IMU] seq={imu_packet.sequence} t={timestamp} ms "
@@ -387,6 +404,7 @@ def status_thread():
                   for _, name, _, ms, percent in profile_rows(profile)))
 
 
+## @brief Create the live depth and IMU plots and their animation callback.
 def create_plots(refresh_hz=PLOT_FPS, depth_max=4000):
     import matplotlib.pyplot as plt
     from matplotlib.animation import FuncAnimation
@@ -410,6 +428,7 @@ def create_plots(refresh_hz=PLOT_FPS, depth_max=4000):
                          va="top", color="white", fontsize=9,
                          bbox=dict(facecolor="black", alpha=0.6, edgecolor="none"))
 
+    ## @brief Format the depth value under the plot cursor.
     def depth_coordinate(x, y):
         col, row = int(np.floor(x + 0.5)), int(np.floor(y + 0.5))
         grid = image.get_array()
@@ -442,6 +461,7 @@ def create_plots(refresh_hz=PLOT_FPS, depth_max=4000):
     use_blit = fig.canvas.supports_blit
     previous_packet = None
 
+    ## @brief Refresh depth and inertial plot artists from the latest received samples.
     def update_plot(_):
         nonlocal previous_packet
         with lock:
@@ -499,6 +519,7 @@ def create_plots(refresh_hz=PLOT_FPS, depth_max=4000):
     return fig, animation
 
 
+## @brief Start the selected stream monitor, diagnostic output, and live plots.
 def main(default_host=None):
     import matplotlib.pyplot as plt
 

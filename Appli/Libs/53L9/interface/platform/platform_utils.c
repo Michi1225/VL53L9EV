@@ -41,6 +41,7 @@ static uint64_t dev_payload[NB_DEVICES];
 
 /* private functions */
 
+/** @brief Check whether a millisecond timeout has expired across tick counter wraparound. */
 static int _timeout_expire(uint32_t to_start, uint32_t to_value) {
     uint64_t currentlong = HAL_GetTick();
     uint32_t current = (uint32_t)currentlong;
@@ -50,11 +51,13 @@ static int _timeout_expire(uint32_t to_start, uint32_t to_value) {
 
 /* exported functions */
 
+/** @brief Provide the sensor driver's delay using the HAL millisecond time base. */
 int platform_delay_ms(uint32_t delay_ms) {
     HAL_Delay(delay_ms - 1);
     return 0;
 }
 
+/** @brief Return board identification and interface, firmware, and driver versions. */
 int platform_get_version(platform_version_t *version) {
     version->interface = (_version_t){ .major = INTERFACE_MAJOR, .minor = INTERFACE_MINOR, .patch = INTERFACE_PATCH };
     version->firmware = (_version_t){ .major = FW_MAJOR, .minor = FW_MINOR, .patch = FW_PATCH };
@@ -68,6 +71,7 @@ int platform_get_version(platform_version_t *version) {
 
 /* device power management */
 
+/** @brief Pulse the selected sensor's XSHUT pin and wait for startup. */
 int platform_power_reset(uint8_t id) {
     HAL_GPIO_WritePin((GPIO_TypeDef *)device[id].xshut.port, device[id].xshut.pin, GPIO_PIN_RESET);
     HAL_Delay(50);
@@ -76,12 +80,14 @@ int platform_power_reset(uint8_t id) {
     return 0;
 }
 
+/** @brief Release the selected sensor from XSHUT and wait for startup. */
 int platform_power_enable(uint8_t id) {
     HAL_GPIO_WritePin((GPIO_TypeDef *)device[id].xshut.port, device[id].xshut.pin, GPIO_PIN_SET);
     HAL_Delay(50);
     return 0;
 }
 
+/** @brief Assert the selected sensor's XSHUT pin and wait for shutdown. */
 int platform_power_disable(uint8_t id) {
     HAL_GPIO_WritePin((GPIO_TypeDef *)device[id].xshut.port, device[id].xshut.pin, GPIO_PIN_RESET);
     HAL_Delay(50);
@@ -90,6 +96,7 @@ int platform_power_disable(uint8_t id) {
 
 /* i2c/i3c interfaces */
 
+/** @brief Set the stored seven-bit address for a sensor using the I2C bus. */
 int platform_set_device_address(uint8_t id, uint8_t address) {
     if (device[id].bus_type == PLATFORM_BUS_I2C) { // TODO: replace with I3C_LEGACY
         device[id].address = address & 0x7F;
@@ -99,6 +106,7 @@ int platform_set_device_address(uint8_t id, uint8_t address) {
     }
 }
 
+/** @brief Assign the sensor's I3C address and restore the operating bus timing. */
 int platform_assign_dynamic_address() {
     // TODO: how to handle dynamic address assignment for multiple devices?
 
@@ -167,6 +175,7 @@ int platform_assign_dynamic_address() {
     return 0;
 }
 
+/** @brief Assign dynamic I3C addresses to the configured sensors. */
 int platform_assign_dynamic_address_multisensor() {
     // TODO: how to handle dynamic address assignment for multiple devices?
 
@@ -210,6 +219,7 @@ int platform_assign_dynamic_address_multisensor() {
     return 0;
 }
 
+/** @brief Set, clear, or toggle a platform GPIO. */
 int platform_ctrl_gpio(platform_gpio_t gpio, platform_gpio_state_t state) {
     switch (state) {
     case PLATFORM_GPIO_STATE_RESET:
@@ -230,22 +240,26 @@ int platform_ctrl_gpio(platform_gpio_t gpio, platform_gpio_state_t state) {
 
 /* profiling */
 
+/** @brief Enable the DWT CPU cycle counter for sensor timing measurements. */
 int platform_profiler_enable() {
     CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
     DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk; // enable counter
     return 0;
 }
 
+/** @brief Provide the profiler shutdown hook; the cycle counter currently remains enabled. */
 int platform_profiler_disable() {
     // TODO: clear CoreDebug_DEMCR_TRCENA_Msk in DEMCR register
     // TODO: disable counter
     return 0;
 }
 
+/** @brief Read the current DWT CPU cycle counter. */
 uint32_t platform_profiler_get_timestamp() {
     return DWT->CYCCNT;
 }
 
+/** @brief Convert elapsed CPU cycles to microseconds using the system clock. */
 uint32_t platform_profiler_convert_to_us(uint32_t timestamp) {
     uint32_t tick_per_1us = SystemCoreClock / 1000000;
     return timestamp / tick_per_1us;
@@ -253,6 +267,7 @@ uint32_t platform_profiler_convert_to_us(uint32_t timestamp) {
 
 /* event handling */
 
+/** @brief Clear stale event state and enable the selected sensor interrupt source. */
 int platform_enable_event(platform_event_t event) {
     uint8_t res = 0;
     switch (event) {
@@ -277,6 +292,7 @@ int platform_enable_event(platform_event_t event) {
     return res;
 }
 
+/** @brief Disable the selected sensor interrupt source and clear its event state. */
 int platform_disable_event(platform_event_t event) {
     uint8_t res = 0;
     switch (event) {
@@ -301,6 +317,7 @@ int platform_disable_event(platform_event_t event) {
     return res;
 }
 
+/** @brief Wait for a selected sensor event until the millisecond timeout expires. */
 int platform_wait_for_event(platform_event_t event, uint32_t timeout_ms) {
     uint8_t res = 0;
     uint64_t to_startlong = HAL_GetTick();
@@ -314,6 +331,7 @@ int platform_wait_for_event(platform_event_t event, uint32_t timeout_ms) {
     return res;
 }
 
+/** @brief Clear a handled sensor event flag. */
 int platform_acknowledge_event(platform_event_t event) {
     uint8_t res = 0;
     switch (event) {
@@ -336,6 +354,7 @@ int platform_acknowledge_event(platform_event_t event) {
     return res;
 }
 
+/** @brief Report whether the selected sensor event flag is active. */
 int platform_get_event_status(platform_event_t event, bool *active) {
     *active = (g_platform_evt & event) ? true : false;
     return 0;
@@ -343,15 +362,18 @@ int platform_get_event_status(platform_event_t event, bool *active) {
 
 /* HAL callbacks */
 
+/** @brief Record the target payload and assign the next sensor's I3C address. */
 void HAL_I3C_TgtReqDynamicAddrCallback(I3C_HandleTypeDef *hi3c, uint64_t targetPayload) {
     dev_payload[dev_count] = targetPayload;
     HAL_I3C_Ctrl_SetDynAddr(hi3c, device[dev_count++].address);
 }
 
+/** @brief Record completion of the I3C dynamic address assignment procedure. */
 void HAL_I3C_CtrlDAACpltCallback(I3C_HandleTypeDef *hi3c) {
     g_platform_evt |= PLATFORM_I3C_DAA_EVT;
 }
 
+/** @brief Translate a sensor I3C in-band notification into a platform event. */
 void HAL_I3C_NotifyCallback(I3C_HandleTypeDef *hi3c, uint32_t eventId) {
     if ((eventId & EVENT_ID_IBI) == EVENT_ID_IBI) {
         I3C_CCCInfoTypeDef CCCInfo;
@@ -364,10 +386,12 @@ void HAL_I3C_NotifyCallback(I3C_HandleTypeDef *hi3c, uint32_t eventId) {
     }
 }
 
+/** @brief Record completion of an I3C DMA receive transfer. */
 void HAL_I3C_CtrlRxCpltCallback(I3C_HandleTypeDef *hi3c) {
     g_platform_evt |= PLATFORM_I3C_DMA_RX_EVT;
 }
 
+/** @brief Record an interrupt from a configured sensor GPIO. */
 void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin) {
     for (int i = 0; i < NB_DEVICES; i++) {
         if (GPIO_Pin == device[i].intr.pin) {
@@ -376,6 +400,7 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin) {
     }
 }
 
+/** @brief Record completion of a frame on CSI capture pipe zero. */
 void HAL_DCMIPP_PIPE_FrameEventCallback(DCMIPP_HandleTypeDef *hdcmipp, uint32_t Pipe) {
     if (Pipe == DCMIPP_PIPE0) {
         g_platform_evt |= PLATFORM_CAM_PIPE_FRAME_EVT;
@@ -384,6 +409,7 @@ void HAL_DCMIPP_PIPE_FrameEventCallback(DCMIPP_HandleTypeDef *hdcmipp, uint32_t 
 
 /* csi interface */
 
+/** @brief Start a CSI snapshot into the supplied frame buffer. */
 int platform_start_csi_pipe(uint8_t *buff_csi) {
     HAL_StatusTypeDef status = HAL_DCMIPP_CSI_PIPE_Start(&hdcmipp, DCMIPP_PIPE0,
                                 DCMIPP_VIRTUAL_CHANNEL0, (uint32_t)buff_csi,
@@ -394,6 +420,7 @@ int platform_start_csi_pipe(uint8_t *buff_csi) {
     return 0;
 }
 
+/** @brief Stop the sensor's CSI capture pipe. */
 int platform_stop_csi_pipe(void) {
     if (HAL_OK != HAL_DCMIPP_CSI_PIPE_Stop(&hdcmipp, DCMIPP_PIPE0, DCMIPP_VIRTUAL_CHANNEL0)) {
         return -1;
@@ -403,18 +430,22 @@ int platform_stop_csi_pipe(void) {
 
 /* display */
 
+/** @brief Provide a no-op hook for the unsupported platform display. */
 int platform_display_enable() {
     return 0;
 }
 
+/** @brief Provide a no-op shutdown hook for the unsupported platform display. */
 int platform_display_disable() {
     return 0;
 }
 
+/** @brief Provide a no-op color lookup hook for the unsupported platform display. */
 int platform_display_set_color_lut(uint8_t layer_id) {
     return 0;
 }
 
+/** @brief Provide a no-op layer configuration hook for the unsupported platform display. */
 int platform_display_configure_layer(platform_display_layer_config_t *config, uint8_t layer_id) {
     return 0;
 }

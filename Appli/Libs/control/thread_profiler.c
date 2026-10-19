@@ -22,6 +22,7 @@ static bool initialized, idle;
 /* All accounting and snapshots run with interrupts masked. The 1 kHz tick
  * updates the timestamp even with no context switches, extending CYCCNT past
  * its 32-bit wrap (about 5 seconds at 800 MHz). No counter resets are needed. */
+/** @brief Charge elapsed CPU cycles to the current thread, interrupt, idle, or scheduler context. */
 static void account(void)
 {
     uint32_t now = DWT->CYCCNT;
@@ -34,6 +35,7 @@ static void account(void)
     else scheduler_cycles += elapsed;
 }
 
+/** @brief Enable the DWT cycle counter and initialize CPU time accounting. */
 void _tx_execution_initialize(void)
 {
     CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
@@ -42,6 +44,7 @@ void _tx_execution_initialize(void)
     initialized = true;
 }
 
+/** @brief Account for the previous context and select the scheduled thread. */
 void _tx_execution_thread_enter(void)
 {
     uint32_t mask = __get_PRIMASK();
@@ -55,6 +58,7 @@ void _tx_execution_thread_enter(void)
     __set_PRIMASK(mask);
 }
 
+/** @brief Account for the departing thread and enter scheduler accounting. */
 void _tx_execution_thread_exit(void)
 {
     uint32_t mask = __get_PRIMASK();
@@ -68,6 +72,7 @@ void _tx_execution_thread_exit(void)
     __set_PRIMASK(mask);
 }
 
+/** @brief Account for the previous context and begin idle time accounting. */
 void _tx_execution_idle_enter(void)
 {
     uint32_t mask = __get_PRIMASK();
@@ -80,6 +85,7 @@ void _tx_execution_idle_enter(void)
     __set_PRIMASK(mask);
 }
 
+/** @brief Account for the interrupted context and track interrupt nesting. */
 void _tx_execution_isr_enter(void)
 {
     uint32_t mask = __get_PRIMASK();
@@ -92,6 +98,7 @@ void _tx_execution_isr_enter(void)
     __set_PRIMASK(mask);
 }
 
+/** @brief Account for interrupt time and restore the enclosing context. */
 void _tx_execution_isr_exit(void)
 {
     uint32_t mask = __get_PRIMASK();
@@ -104,6 +111,7 @@ void _tx_execution_isr_exit(void)
     __set_PRIMASK(mask);
 }
 
+/** @brief Snapshot CPU usage into a PROF packet and reset interval counters. */
 uint8_t *thread_profiler_packet(uint32_t *size)
 {
     uint16_t count = 0U, flags = 0U, version = 1U;

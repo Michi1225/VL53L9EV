@@ -33,12 +33,14 @@ PARAMETERS_IMAGE="${ROOT_DIR}/build/flash_parameters.bin"
 
 CONNECT_MODE="${STM32_CONNECT_MODE:-HOTPLUG}"
 
+# @brief Print an error message and exit with failure.
 die()
 {
     echo "ERROR: $*" >&2
     exit 1
 }
 
+# @brief Print the supported command-line options.
 usage()
 {
     cat <<EOF
@@ -48,6 +50,7 @@ Usage:
 EOF
 }
 
+# @brief Locate the STM32CubeProgrammer command-line executable.
 find_programmer_cli()
 {
     if [[ -n "${STM32_PROGRAMMER_CLI:-}" ]]; then
@@ -171,6 +174,7 @@ trap 'rm -f "${PARAMETER_READBACK}"' EXIT
 python3 "${SCRIPT_DIR}/pack_parameters.py" "${PARAMETERS}" "${PARAMETERS_IMAGE}" \
     --existing "${PARAMETER_READBACK}" "${PACK_ARGS[@]}"
 
+# @brief Program and verify the selected image at its configured flash address.
 program()
 {
     local image="$1"

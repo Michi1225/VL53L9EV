@@ -39,6 +39,18 @@
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
+/**
+ * @fn int32_t nx_eth_phy_init(void)
+ * @brief Invoke the board PHY auto-negotiation initialization hook.
+ */
+/**
+ * @fn int32_t nx_eth_phy_get_link_state(void)
+ * @brief Return the ADIN1300 link speed and duplex in NetX format.
+ */
+/**
+ * @fn nx_eth_phy_handle_t nx_eth_phy_get_handle(void)
+ * @brief Return the PHY handle placeholder, currently NULL.
+ */
 
 /* USER CODE END PFP */
 

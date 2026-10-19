@@ -4,12 +4,13 @@ import argparse
 from decimal import Decimal, InvalidOperation
 from collections import deque
 import json
+from pathlib import Path
 import socket
 import threading
 import time
 try:
     import tkinter as tk
-    from tkinter import ttk, filedialog
+    from tkinter import ttk, filedialog, font as tkfont
 except ImportError as error:
     raise SystemExit("Tk is required. On Ubuntu/Debian install python3-tk, then rerun this viewer.") from error
 
@@ -32,6 +33,7 @@ from USB_Debug import (PacketParser, MAGIC, IMU_MAGIC, PARAM_MAGIC, IMU_PAYLOAD,
                        decode_depth, decode_depth_metadata, SensorFrameTiming, PROFILE_MAGIC, decode_profile, profile_rows, TOF_MAGIC)
 from Sensor_Control import (GET_CONFIG, START, STOP, SET_CONFIG, RESET, POWER_DOWN, STATE_NAMES, POWER_NAMES,
                             RANGING_MODES, ranging_mode, RESULT_NAMES, OPERATION_NAMES, build_command, decode_status)
+from Firmware_Update import UpdateWorker, fw, slot_name
 
 
 class CpuShareChart:
@@ -40,6 +42,7 @@ class CpuShareChart:
     PALETTE = ('#2563eb', '#10b981', '#8b5cf6', '#f43f5e', '#06b6d4',
                '#eab308', '#6366f1', '#14b8a6')
 
+    ## @brief Create the CPU share chart, stable color assignments, and hover handling.
     def __init__(self, parent):
         self.colors = {'idle': '#cbd5e1', 'isr': '#f59e0b',
                        'scheduler': '#a855f7', 'other': '#64748b', 'small': '#94a3b8'}
@@ -54,6 +57,7 @@ class CpuShareChart:
         self.tooltip = None
         self.show(None)
 
+    ## @brief Return a stable chart color for a thread or accounting category.
     def color(self, key):
         if key in self.colors:
             return self.colors[key]
@@ -61,6 +65,7 @@ class CpuShareChart:
             self.thread_colors[key] = self.PALETTE[len(self.thread_colors) % len(self.PALETTE)]
         return self.thread_colors[key]
 
+    ## @brief Render the current CPU usage profile and retain hover details for each slice.
     def show(self, profile):
         self.ax.clear()
         self.ax.set_aspect('equal')
@@ -109,6 +114,7 @@ class CpuShareChart:
             self.tooltip.set_visible(False)
         self.canvas.draw_idle()
 
+    ## @brief Show CPU usage details for the chart slice under the pointer.
     def hover(self, event):
         if self.tooltip is None:
             return
@@ -127,6 +133,7 @@ class CpuShareChart:
 
 
 class Receiver:
+    ## @brief Initialize a transport worker, telemetry state, and sensor command tracking.
     def __init__(self, mode, endpoint, port):
         self.mode, self.endpoint, self.port = mode, endpoint, port
         self.stop = threading.Event()
@@ -151,6 +158,7 @@ class Receiver:
         self.thread = threading.Thread(target=self.run, daemon=True)
         self.thread.start()
 
+    ## @brief Queue one sensor command for the connected worker and track its acknowledgement.
     def send_command(self, operation, config=None):
         with self.lock:
             if self.status != 'Connected':
@@ -164,6 +172,7 @@ class Receiver:
             self.outgoing = wire
             self.command_message = f'{OPERATION_NAMES[operation]}: waiting for device…'
 
+    ## @brief Reconnect and decode telemetry while sending queued commands and matching replies.
     def run(self):
         while not self.stop.is_set():
             try:
@@ -291,11 +300,21 @@ class Receiver:
 
 
 class Viewer:
+    ## @brief Build the device monitor tabs, sensor controls, plots, and periodic refresh loop.
     def __init__(self, root, args):
         self.root = root
         root.title('VL53L9EV · Device Monitor')
         root.geometry('1200x850')
+        # Treeview's fixed row height does not follow the DPI-scaled font.
+        # Share font-based spacing between the profiler and parameter tables.
+        style = ttk.Style(root)
+        table_font = tkfont.Font(root=root, font=style.lookup('Treeview', 'font') or 'TkDefaultFont')
+        style.configure('Treeview', rowheight=table_font.metrics('linespace') + round(root.winfo_fpixels('4p')))
         self.receiver = None
+        self.fw_worker = None
+        self.fw_resume = False
+        self.fw_report = self.fw_report_target = None
+        self.closing = False
         self.last_tof_settings = None
         self.metadata = None
         self.last_metadata = None
@@ -309,13 +328,18 @@ class Viewer:
         self.endpoint = tk.StringVar(value=args.port or args.host)
         self.port = tk.StringVar(value=str(args.tcp_port))
         ttk.Label(bar, text='Transport').pack(side='left')
-        ttk.Combobox(bar, textvariable=self.mode, values=['Ethernet', 'USB'], state='readonly', width=10).pack(side='left', padx=8)
+        mode_box = ttk.Combobox(bar, textvariable=self.mode, values=['Ethernet', 'USB'], state='readonly', width=10)
+        mode_box.pack(side='left', padx=8)
         ttk.Label(bar, text='Host / serial port').pack(side='left')
         self.endpoint_box = ttk.Combobox(bar, textvariable=self.endpoint, values=[p.device for p in list_ports.comports()], width=24)
         self.endpoint_box.pack(side='left', padx=8)
         ttk.Label(bar, text='TCP port').pack(side='left')
-        ttk.Entry(bar, textvariable=self.port, width=7).pack(side='left', padx=8)
-        ttk.Button(bar, text='Connect', command=self.connect).pack(side='left', padx=4)
+        port_box = ttk.Entry(bar, textvariable=self.port, width=7)
+        port_box.pack(side='left', padx=8)
+        connect_button = ttk.Button(bar, text='Connect', command=self.connect)
+        connect_button.pack(side='left', padx=4)
+        self.connection_widgets = [(mode_box, 'readonly'), (self.endpoint_box, 'normal'),
+                                   (port_box, 'normal'), (connect_button, 'normal')]
         ttk.Button(bar, text='Disconnect', command=self.disconnect).pack(side='left', padx=4)
         self.status = tk.StringVar(value='Disconnected')
         ttk.Label(root, textvariable=self.status, padding=(12, 4)).pack(fill='x')
@@ -399,6 +423,7 @@ class Viewer:
         ttk.Label(configuration, text='Reset ToF restores compiled defaults and leaves ranging stopped; it also clears recoverable sensor faults.').pack(anchor='w', pady=(6, 0))
         ttk.Label(configuration, text='Power down holds XSHUT low. Use Reset ToF to wake the sensor, then Start ToF to range.').pack(anchor='w', pady=(6, 0))
         ttk.Label(configuration, textvariable=self.tof_command_status, wraplength=1000).pack(anchor='w', pady=16)
+        self.build_firmware_tab(tabs, getattr(args, 'dfu_port', 50003))
         fig = Figure(figsize=(11, 6), dpi=100)
         grid = fig.add_gridspec(3, 2)
         self.depth_ax = fig.add_subplot(grid[:, 0])
@@ -432,13 +457,201 @@ class Viewer:
         if args.connect:
             self.connect()
 
+    ## @brief Build the firmware update tab with image selection, progress, and persistent status.
+    def build_firmware_tab(self, tabs, port):
+        self.fw_tab = ttk.Frame(tabs, padding=20)
+        tabs.add(self.fw_tab, text='Firmware update')
+        ttk.Label(self.fw_tab, text='Application firmware', font=('TkDefaultFont', 16, 'bold')).pack(anchor='w')
+        ttk.Label(self.fw_tab, text=(
+            'Upload a packaged application to the inactive slot. The device verifies it before activation; '
+            'a failed trial boot falls back to the previous image.'), wraplength=1000).pack(anchor='w', pady=(8, 12))
+        self.fw_target = tk.StringVar()
+        ttk.Label(self.fw_tab, textvariable=self.fw_target).pack(anchor='w')
+        form = ttk.LabelFrame(self.fw_tab, text='New image', padding=12)
+        form.pack(fill='x', pady=12)
+        form.columnconfigure(1, weight=1)
+        self.fw_image = tk.StringVar()
+        self.fw_version = tk.StringVar(value='0')
+        self.fw_port = tk.StringVar(value=str(port))
+        self.fw_reset = tk.BooleanVar(value=True)
+        ttk.Label(form, text='Application binary').grid(row=0, column=0, sticky='w', padx=(0, 16))
+        image_box = ttk.Entry(form, textvariable=self.fw_image)
+        image_box.grid(row=0, column=1, sticky='ew')
+        browse = ttk.Button(form, text='Browse…', command=self.choose_firmware)
+        browse.grid(row=0, column=2, padx=(8, 0))
+        ttk.Label(form, text='Release identifier').grid(row=1, column=0, sticky='w', pady=8)
+        version_box = ttk.Entry(form, textvariable=self.fw_version, width=16)
+        version_box.grid(row=1, column=1, sticky='w', pady=8)
+        ttk.Label(form, text='Unsigned 32-bit number').grid(row=1, column=2, sticky='w', padx=8)
+        ttk.Label(form, text='Update TCP port').grid(row=2, column=0, sticky='w')
+        update_port_box = ttk.Entry(form, textvariable=self.fw_port, width=16)
+        update_port_box.grid(row=2, column=1, sticky='w')
+        ttk.Label(form, text='Ethernet only; default 50003').grid(row=2, column=2, sticky='w', padx=8)
+        reset_box = ttk.Checkbutton(form, variable=self.fw_reset, text='Reset after upload and verify boot confirmation')
+        reset_box.grid(row=3, column=0, columnspan=3, sticky='w', pady=(12, 0))
+        self.fw_inputs = [image_box, browse, version_box, update_port_box, reset_box]
+        actions = ttk.Frame(self.fw_tab)
+        actions.pack(fill='x', pady=(0, 12))
+        self.fw_buttons = {}
+        for action, label in [('upload', 'Upload image'), ('status', 'Read status'),
+                              ('reset', 'Reset staged image'), ('abort', 'Abort incomplete upload'),
+                              ('clear', 'Clear warnings')]:
+            button = ttk.Button(actions, text=label, command=lambda action=action: self.firmware_action(action))
+            button.pack(side='left', padx=(0, 8))
+            self.fw_buttons[action] = button
+        self.fw_cancel = ttk.Button(self.fw_tab, text='Cancel operation', state='disabled', command=self.cancel_firmware)
+        self.fw_cancel.pack(anchor='w')
+        self.fw_message = tk.StringVar(value='Read status to inspect the running and staged images.')
+        ttk.Label(self.fw_tab, textvariable=self.fw_message, wraplength=1000).pack(anchor='w', pady=12)
+        self.fw_progress = ttk.Progressbar(self.fw_tab, maximum=100)
+        self.fw_progress.pack(fill='x')
+        self.fw_progress_text = tk.StringVar(value='No upload in progress')
+        ttk.Label(self.fw_tab, textvariable=self.fw_progress_text).pack(anchor='w', pady=(4, 12))
+        status = ttk.LabelFrame(self.fw_tab, text='Status read from device', padding=12)
+        status.pack(fill='x')
+        self.fw_slots = tk.StringVar(value='Running: —    Confirmed: —    Pending: —')
+        self.fw_versions = tk.StringVar(value='Release A: —    Release B: —')
+        self.fw_flags = tk.StringVar(value='Upload and verification flags: not read')
+        self.fw_warning = tk.StringVar(value='Warnings: not read')
+        for variable in (self.fw_slots, self.fw_versions, self.fw_flags, self.fw_warning):
+            ttk.Label(status, textvariable=variable, wraplength=1000).pack(anchor='w', pady=3)
+        ttk.Label(self.fw_tab, text=(
+            'Choose VL53L9_eval_Appli-signed.bin from a normal flash build. '
+            'USB streaming pauses during updates and resumes afterward. '
+            'Boot confirmation can take up to 60 seconds, including watchdog recovery.'),
+            wraplength=1000).pack(anchor='w', pady=12)
+        self.update_firmware()
+
+    ## @brief Select the packaged STM32 application binary to upload.
+    def choose_firmware(self):
+        path = filedialog.askopenfilename(title='Select packaged application image',
+                                          filetypes=[('Application binary', '*.bin'), ('All files', '*')])
+        if path:
+            self.fw_image.set(path)
+
+    ## @brief Validate and return the selected firmware update transport and endpoint.
+    def firmware_target(self):
+        mode, endpoint = self.mode.get(), self.endpoint.get().strip()
+        port = int(self.fw_port.get()) if mode == 'Ethernet' else 50003
+        if mode not in ('USB', 'Ethernet') or not endpoint or not 1 <= port <= 65535:
+            raise ValueError('Enter a host/serial port and a valid update TCP port.')
+        return mode, endpoint, port
+
+    ## @brief Start one background update action and hand off USB ownership when necessary.
+    def firmware_action(self, action):
+        if self.fw_worker is not None or self.closing:
+            return
+        try:
+            mode, endpoint, port = self.firmware_target()
+            version, image = 0, None
+            if action == 'upload':
+                version = int(self.fw_version.get(), 0)
+                if not 0 <= version <= fw.NONE:
+                    raise ValueError('Release identifier must be between 0 and 4294967295.')
+                image = Path(self.fw_image.get()).expanduser()
+                if not image.is_file():
+                    raise ValueError('Select a packaged application binary first.')
+            r = self.receiver
+            if r and r.thread.is_alive() and (r.mode, r.endpoint) != (mode, endpoint):
+                raise ValueError('Disconnect the current device before updating a different endpoint.')
+            if r and r.thread.is_alive():
+                with r.lock:
+                    if r.pending_command:
+                        raise ValueError('Wait for the sensor command acknowledgement before updating.')
+            self.fw_resume = bool(mode == 'USB' and r and r.thread.is_alive() and not r.stop.is_set())
+            self.fw_report = None
+            self.fw_report_target = (mode, endpoint, port)
+            self.fw_worker = UpdateWorker(mode, endpoint, port, action, image=image, version=version,
+                                          reset=self.fw_reset.get(), receiver=r if mode == 'USB' else None)
+            self.fw_worker.thread.start()
+            self.update_firmware()
+        except (ValueError, OSError) as error:
+            self.fw_message.set(str(error))
+
+    ## @brief Request upload cancellation or stop waiting for boot confirmation.
+    def cancel_firmware(self):
+        if self.fw_worker is not None:
+            self.fw_worker.cancel.set()
+            self.fw_message.set('Cancelling after the current device acknowledgement…')
+
+    ## @brief Refresh update progress and status, then restore streaming after USB handoff.
+    def update_firmware(self):
+        worker = self.fw_worker
+        if worker is not None:
+            # Sample completion before taking the snapshot so a fast worker
+            # cannot finish between an old snapshot and the completion check.
+            finished = not worker.thread.is_alive()
+            state = worker.snapshot()
+            self.fw_message.set('Cancelling after the current device acknowledgement…'
+                                if worker.cancel.is_set() and not finished else state['message'])
+            if state['report'] is not None:
+                self.fw_report = state['report']
+            total, received = state['total'], state['received']
+            self.fw_progress['value'] = 100 * received / total if total else 0
+            self.fw_progress_text.set(f'{received:,} / {total:,} bytes ({100*received/total:.1f}%)'
+                                      if total else 'No upload in progress')
+            if finished:
+                self.fw_worker = None
+                resume, self.fw_resume = self.fw_resume, False
+                if resume and not self.closing:
+                    self.connect()
+        busy = self.fw_worker is not None
+        try:
+            target = self.firmware_target()
+            self.fw_target.set(f'Update device: {target[1]}' +
+                               (f' · TCP {target[2]}' if target[0] == 'Ethernet' else ' · USB'))
+        except ValueError:
+            target = None
+            self.fw_target.set('Select the update device using the connection controls above.')
+        if target != self.fw_report_target and not busy:
+            self.fw_report = None
+        report = self.fw_report
+        if report is not None:
+            self.fw_slots.set(f'Running: {slot_name(report["running"])}    Confirmed: {slot_name(report["confirmed"])}'
+                              f'    Pending: {slot_name(report["pending"])}')
+            self.fw_versions.set(f'Release A: {report["version_a"]}    Release B: {report["version_b"]}')
+            self.fw_flags.set('Uploaded: ' + ('yes' if report['flags'] & 2 else 'no') +
+                              '    Verified: ' + ('yes' if report['flags'] & 4 else 'no') +
+                              '    Boot confirmed: ' + ('yes' if report['flags'] & 8 else 'no'))
+            warnings = [label.replace('_', ' ') for bit, label in fw.FLAGS.items()
+                        if bit >= 16 and report['flags'] & bit]
+            error = report['last_error']
+            self.fw_warning.set('Warnings: ' + (', '.join(warnings) or 'none') +
+                                (f' · Last error: {fw.RESULTS[error] if error < len(fw.RESULTS) else error}' if error else ''))
+        else:
+            self.fw_slots.set('Running: —    Confirmed: —    Pending: —')
+            self.fw_versions.set('Release A: —    Release B: —')
+            self.fw_flags.set('Upload and verification flags: not read')
+            self.fw_warning.set('Warnings: not read')
+        for widget, normal in self.connection_widgets:
+            widget.configure(state='disabled' if busy or self.closing else normal)
+        for widget in self.fw_inputs:
+            widget.configure(state='disabled' if busy or self.closing else 'normal')
+        for action, button in self.fw_buttons.items():
+            enabled = not busy and not self.closing and target is not None
+            if action == 'upload':
+                enabled = enabled and bool(self.fw_image.get().strip())
+            elif action == 'reset':
+                enabled = enabled and report is not None and report['pending'] in (0, 1)
+            elif action == 'abort':
+                enabled = enabled and report is not None and bool(report['flags'] & 1)
+            elif action == 'clear':
+                enabled = enabled and report is not None and bool(report['flags'] & 0x1f0)
+            button.configure(state='normal' if enabled else 'disabled')
+        self.fw_cancel.configure(state='normal' if busy and not self.closing and
+                                 not self.fw_worker.cancel.is_set() else 'disabled')
+
+    ## @brief Add an initially disabled sensor command button to the selected parent.
     def add_tof_button(self, parent, label, operation):
         button = ttk.Button(parent, text=label, state='disabled', command=lambda: self.sensor_command(operation))
         button.pack(side='left', padx=(0, 8))
         self.tof_buttons.append((button, operation))
 
+    ## @brief Validate the displayed settings and queue the requested sensor operation.
     def sensor_command(self, operation):
         try:
+            if self.fw_worker is not None:
+                raise ValueError('Wait for the firmware update operation to finish.')
             config = None
             if operation == SET_CONFIG:
                 microseconds = Decimal(self.tof_period.get()) * 1000
@@ -457,6 +670,7 @@ class Viewer:
                 with self.receiver.lock:
                     self.receiver.command_message = str(error)
 
+    ## @brief Display acknowledged sensor state and update the available controls.
     def show_sensor_status(self, report, settings, received, connected, pending, message):
         self.tof_command_status.set(message)
         state = report['state'] if report else None
@@ -484,7 +698,10 @@ class Viewer:
                       (operation in (START, SET_CONFIG) and state == 1) or (operation == STOP and state == 2))
             button.configure(state='normal' if enabled else 'disabled')
 
+    ## @brief Start a receiver for the selected endpoint after validating connection settings.
     def connect(self):
+        if self.fw_worker is not None or self.closing:
+            return
         if self.receiver and self.receiver.thread.is_alive():
             self.receiver.stop.set()
             self.status.set('Disconnecting previous session; press Connect again shortly')
@@ -504,10 +721,14 @@ class Viewer:
         self.show_profile(None, None)
         self.show_sensor_status(None, None, None, False, False, 'Waiting for sensor status…')
 
+    ## @brief Request that the current receiver stop and close its connection.
     def disconnect(self):
+        self.fw_resume = False
+        self.cancel_firmware()
         if self.receiver:
             self.receiver.stop.set()
 
+    ## @brief Save the latest device parameter packet as a JSON file.
     def save_metadata(self):
         if self.metadata is None:
             self.status.set('No parameter packet received yet')
@@ -517,6 +738,7 @@ class Viewer:
             with open(path, 'w', encoding='utf-8') as file:
                 json.dump(self.metadata, file, indent=2, ensure_ascii=False)
 
+    ## @brief Recursively insert parameter objects and values into the parameter tree.
     def populate(self, parent, data):
         for key, value in data.items():
             if isinstance(value, dict):
@@ -525,6 +747,7 @@ class Viewer:
             else:
                 self.tree.insert(parent, 'end', text=key, values=(json.dumps(value, ensure_ascii=False),))
 
+    ## @brief Refresh the CPU chart and table with the latest profiling interval.
     def show_profile(self, profile, received):
         if profile is not self.last_profile:
             self.profile_chart.show(profile)
@@ -549,7 +772,12 @@ class Viewer:
                                              values=(name, priority, f'{ms:.3f}', f'{percent:.2f}'))
         self.last_profile = profile
 
+    ## @brief Refresh connection status, plots, parameters, and sensor controls from receiver state.
     def update(self):
+        self.update_firmware()
+        if self.closing and self.fw_worker is None:
+            self.root.destroy()
+            return
         r = self.receiver
         if r:
             with r.lock:
@@ -570,7 +798,8 @@ class Viewer:
             else:
                 self.tof_diagnostics.set('Waiting for sensor frame diagnostics…')
             self.show_profile(profile, profile_received)
-            self.show_sensor_status(tof, settings, tof_received, status == 'Connected', pending, command_message)
+            self.show_sensor_status(tof, settings, tof_received, status == 'Connected' and self.fw_worker is None,
+                                    pending, command_message)
             age = '' if last_packet is None else f' · last packet {time.monotonic()-last_packet:.1f}s ago'
             self.status.set(f'{r.mode}: {r.endpoint} · {status}{age}')
             now = time.monotonic()
@@ -620,17 +849,22 @@ class Viewer:
             self.canvas.draw_idle()
         self.root.after(100, self.update)
 
+    ## @brief Stop the receiver and destroy the viewer window.
     def close(self):
+        self.closing = True
         self.disconnect()
-        self.root.destroy()
+        if self.fw_worker is None:
+            self.root.destroy()
 
 
+## @brief Parse viewer options and start the Tk device monitor.
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     transport = parser.add_mutually_exclusive_group()
     transport.add_argument('--host', default='192.168.8.20')
     transport.add_argument('--port', help='USB CDC serial device, e.g. /dev/ttyACM0')
     parser.add_argument('--tcp-port', type=int, default=50002)
+    parser.add_argument('--dfu-port', type=int, default=50003, help='Firmware update TCP port')
     parser.add_argument('--depth-max', type=float, default=4000)
     parser.add_argument('--connect', action='store_true', help='Connect immediately on launch')
     args = parser.parse_args()

@@ -10,11 +10,13 @@ ULONG stream_packet_length;
 static VL53L9_TypeDef_t sensor;
 static tof_status_t state;
 
+/** @brief Encode a 32-bit value in little-endian byte order. */
 static void put_le32(UCHAR *dst, ULONG value)
 {
     for (UINT i = 0; i < 4U; ++i) dst[i] = (UCHAR)(value >> (8U * i));
 }
 
+/** @brief Stop capture and ranging, then publish a latched sensor fault. */
 static void fault(int32_t error)
 {
     (void)platform_stop_csi_pipe();
@@ -26,6 +28,7 @@ static void fault(int32_t error)
     tof_control_publish(&state);
 }
 
+/** @brief Copy the active sensor profile and geometry into the published status. */
 static void update_config(void)
 {
     state.config = (tof_config_t){sensor.profile.frame_period_us, sensor.profile.exposure_ms,
@@ -34,6 +37,7 @@ static void update_config(void)
     state.height = sensor.csi_height;
 }
 
+/** @brief Apply a queued ToF command while enforcing the sensor lifecycle. */
 static uint32_t command(const tof_command_t *c)
 {
     if (c->result) return c->result;
@@ -108,6 +112,7 @@ static uint32_t command(const tof_command_t *c)
     return TOF_OK;
 }
 
+/** @brief Own the ToF sensor, process commands, and publish captured frames. */
 void stream_thread_entry(ULONG argument)
 {
     (void)argument;

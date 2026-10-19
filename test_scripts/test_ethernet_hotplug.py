@@ -79,12 +79,15 @@ static NX_IP ip;
 static bool cable, mac, fail_enable, fail_disable, read_error;
 static unsigned step, starts, stops, scenario;
 static jmp_buf done;
+/** @brief Return the simulated NetX IP instance. */
 NX_IP *nx_get_ip(void) { return &ip; }
+/** @brief Report the physical link state configured by the test scenario. */
 UINT nx_ip_status_check(NX_IP *p, ULONG needed, ULONG *actual, ULONG wait) {
  assert(p==&ip && needed==NX_IP_LINK_ENABLED && wait==TX_NO_WAIT);
  *actual=cable ? NX_IP_LINK_ENABLED : 0;
  return read_error ? NX_DRIVER_ERROR : cable ? NX_SUCCESS : 1;
 }
+/** @brief Emulate MAC enable and disable commands with injected failures. */
 UINT nx_ip_driver_direct_command(NX_IP *p, UINT op, ULONG *ret) {
  (void)ret; assert(p==&ip);
  if(op==NX_LINK_ENABLE) {
@@ -97,12 +100,14 @@ UINT nx_ip_driver_direct_command(NX_IP *p, UINT op, ULONG *ret) {
  if(!mac) return NX_SUCCESS; /* disabled is idempotent in the board driver */
  mac=false; return NX_SUCCESS;
 }
+/** @brief Update simulated event flags and check the expected firmware transition. */
 UINT tx_event_flags_set(TX_EVENT_FLAGS_GROUP *g, ULONG flags, UINT op) {
  assert(g==&app_events);
  if(op==TX_OR) { assert(mac && cable); g->flags|=flags; }
  else { assert(op==TX_AND); g->flags&=flags; }
  return TX_SUCCESS;
 }
+/** @brief Advance the test scenario when the firmware yields. */
 void tx_thread_sleep(ULONG ticks) {
  assert(ticks==200 && ++step<12);
  ULONG ready=app_events.flags&(APP_EVT_ETH_LINK_UP|APP_EVT_ETH_IP_READY);
@@ -136,6 +141,7 @@ void tx_thread_sleep(ULONG ticks) {
  default: assert(0);
  }
 }
+/** @brief Run the selected Ethernet hotplug scenario and assert socket or MAC recovery. */
 int main(int argc, char **argv) {
  (void)argc; scenario=(unsigned)atoi(argv[1]);
  cable=mac=scenario==1;
@@ -165,70 +171,97 @@ static unsigned step, listens, unlistens, disconnects, accepts, usb_writes, scen
 static uint32_t generation;
 static bool listening, unaccepted;
 static jmp_buf done;
+/** @brief Return the simulated NetX IP instance. */
 NX_IP *nx_get_ip(void) { return &ip; }
+/** @brief Provide the packet pool placeholder used by the transport harness. */
 NX_PACKET_POOL *nx_get_app_pool(void) { return NULL; }
+/** @brief Return the simulated Ethernet session generation. */
 uint32_t ethernet_link_generation(void) { return generation; }
+/** @brief Return the simulated ThreadX time base. */
 ULONG tx_time_get(void) { return 0; }
+/** @brief Initialize the simulated TCP socket. */
 UINT nx_tcp_socket_create(NX_IP *p,NX_TCP_SOCKET *s,char *n,UINT a,UINT b,UINT c,ULONG w,void *d,void *e) {
  (void)p;(void)n;(void)a;(void)b;(void)c;(void)w;(void)d;(void)e;
  socket=s; s->nx_tcp_socket_state=NX_TCP_CLOSED; return NX_SUCCESS;
 }
+/** @brief Record disconnection of the simulated TCP socket. */
 UINT nx_tcp_socket_disconnect(NX_TCP_SOCKET *s,ULONG wait) {
  assert(s==socket && wait==0); ++disconnects;
  if(s->nx_tcp_socket_state!=NX_TCP_LISTEN_STATE) s->nx_tcp_socket_state=NX_TCP_LISTEN_STATE;
  return 0;
 }
+/** @brief Clear the simulated accepted or half-open client state. */
 UINT nx_tcp_server_socket_unaccept(NX_TCP_SOCKET *s) {
  assert(s==socket && s->nx_tcp_socket_state==NX_TCP_LISTEN_STATE);
  s->nx_tcp_socket_state=NX_TCP_CLOSED; unaccepted=true; return 0;
 }
+/** @brief Record the simulated TCP listener state. */
 UINT nx_tcp_server_socket_listen(NX_IP *p,UINT port,NX_TCP_SOCKET *s,UINT count,void *cb) {
  (void)p;(void)port;(void)count;(void)cb;
  assert(!listening && s->nx_tcp_socket_state==NX_TCP_CLOSED);
  listening=true; ++listens; s->nx_tcp_socket_state=NX_TCP_LISTEN_STATE; return 0;
 }
+/** @brief Rearm the simulated TCP listener. */
 UINT nx_tcp_server_socket_relisten(NX_IP *p,UINT port,NX_TCP_SOCKET *s) {
  (void)p;(void)port; assert(listening && s->nx_tcp_socket_state==NX_TCP_CLOSED);
  s->nx_tcp_socket_state=NX_TCP_LISTEN_STATE; return 0;
 }
+/** @brief Remove the simulated listener and verify socket cleanup. */
 UINT nx_tcp_server_socket_unlisten(NX_IP *p,UINT port) {
  (void)p;(void)port; assert(listening && unaccepted && socket->nx_tcp_socket_state==NX_TCP_CLOSED);
  listening=false; unaccepted=false; ++unlistens; return 0;
 }
+/** @brief Emulate accepting a TCP client for the current test scenario. */
 UINT nx_tcp_server_socket_accept(NX_TCP_SOCKET *s,ULONG wait) {
  assert(wait==0 && listening); ++accepts;
  if(scenario==2) { s->nx_tcp_socket_state=NX_TCP_ESTABLISHED; return 0; }
  return NX_NO_PACKET;
 }
+/** @brief Supply the simulated TCP receive result. */
 UINT nx_tcp_socket_receive(NX_TCP_SOCKET *s,NX_PACKET **p,ULONG wait) {
  (void)s;(void)p;(void)wait; return NX_NO_PACKET;
 }
+/** @brief Supply the simulated TCP send result. */
 UINT nx_tcp_socket_send(NX_TCP_SOCKET *s,NX_PACKET *p,ULONG wait) {
  (void)s;(void)p;(void)wait; return 0;
 }
+/** @brief Supply the simulated packet allocation result. */
 UINT nx_packet_allocate(NX_PACKET_POOL *pool,NX_PACKET **p,UINT type,ULONG wait) {
  (void)pool;(void)p;(void)type;(void)wait; assert(0); return 1;
 }
+/** @brief Supply the simulated packet append result. */
 UINT nx_packet_data_append(NX_PACKET *p,VOID *data,ULONG len,NX_PACKET_POOL *pool,ULONG wait) {
  (void)p;(void)data;(void)len;(void)pool;(void)wait; assert(0); return 1;
 }
+/** @brief Supply the simulated packet extraction result. */
 UINT nx_packet_data_extract_offset(NX_PACKET *p,ULONG offset,UCHAR *data,ULONG len,ULONG *copied) {
  (void)p;(void)offset;(void)data;(void)len;(void)copied; assert(0); return 1;
 }
+/** @brief Accept release of a simulated network packet. */
 UINT nx_packet_release(NX_PACKET *p) { (void)p; return 0; }
+/** @brief Return the USB session identifier used by the harness. */
 uint32_t stream_usb_session(void) { return 0; }
+/** @brief Accept a USB packet and advance the simulated transport scenario. */
 UINT stream_usb_write(UCHAR *p,ULONG len) { (void)p;(void)len; ++usb_writes; return 0; }
+/** @brief Supply the parameter telemetry fixture or an empty packet. */
 uint8_t *device_parameters_packet(uint32_t *size) { *size=0; return NULL; }
+/** @brief Supply the CPU profiling fixture or an empty packet. */
 uint8_t *thread_profiler_packet(uint32_t *size) { *size=0; return NULL; }
+/** @brief Accept sensor command input in the transport harness. */
 void tof_control_feed(tof_parser_t *p,const uint8_t *data,size_t len,uint32_t route,uint32_t session) {
  (void)p;(void)data;(void)len;(void)route;(void)session;
 }
+/** @brief Report whether the harness has a pending sensor acknowledgement. */
 bool tof_control_next_reply(tof_reply_t *reply) { (void)reply; return false; }
+/** @brief Supply the sensor status packet used by the transport harness. */
 void tof_control_status_packet(uint8_t p[TOF_STATUS_PACKET_SIZE]) { (void)p; }
+/** @brief Take a message from the simulated queue or report that it is empty. */
 UINT tx_queue_receive(TX_QUEUE *q,void *p,UINT wait) { (void)q;(void)p;(void)wait; return 1; }
+/** @brief Update simulated event flags and check the expected firmware transition. */
 UINT tx_event_flags_set(TX_EVENT_FLAGS_GROUP *g,ULONG flags,UINT op) {
  (void)op; g->flags|=flags; return 0;
 }
+/** @brief Return the event flags configured for the current test scenario. */
 UINT tx_event_flags_get(TX_EVENT_FLAGS_GROUP *g,ULONG flags,UINT op,ULONG *actual,ULONG wait) {
  (void)op;(void)wait;
  if(g==&app_events) { *actual=g->flags&flags; return *actual?0:1; }
@@ -256,6 +289,7 @@ UINT tx_event_flags_get(TX_EVENT_FLAGS_GROUP *g,ULONG flags,UINT op,ULONG *actua
  }
  *actual=0; return 1;
 }
+/** @brief Run the selected Ethernet hotplug scenario and assert socket or MAC recovery. */
 int main(int argc,char **argv) {
  (void)argc; scenario=(unsigned)atoi(argv[1]);
  if(setjmp(done)==0) ethernet_stream_thread_entry(0);
@@ -266,6 +300,7 @@ int main(int argc,char **argv) {
 
 @unittest.skipUnless(shutil.which('cc'), 'native C compiler required')
 class EthernetHotplugTests(unittest.TestCase):
+    ## @brief Compile the firmware harness and prepare shared test fixtures.
     @classmethod
     def setUpClass(cls):
         cls.temp = tempfile.TemporaryDirectory()
@@ -287,15 +322,19 @@ class EthernetHotplugTests(unittest.TestCase):
                 raise AssertionError(result.stderr)
             cls.executables[name] = executable
 
+    ## @brief Verify boot without cable insert remove retry and reinsert.
     def test_boot_without_cable_insert_remove_retry_and_reinsert(self):
         subprocess.run([str(self.executables['link']), '0'], check=True, timeout=5)
 
+    ## @brief Verify boot with link already enabled.
     def test_boot_with_link_already_enabled(self):
         subprocess.run([str(self.executables['link']), '1'], check=True, timeout=5)
 
+    ## @brief Verify half open accept is cleared before unlisten and reinsert.
     def test_half_open_accept_is_cleared_before_unlisten_and_reinsert(self):
         subprocess.run([str(self.executables['stream']), '0'], check=True, timeout=5)
 
+    ## @brief Verify completed cable cycle invalidates old tcp session.
     def test_completed_cable_cycle_invalidates_old_tcp_session(self):
         subprocess.run([str(self.executables['stream']), '2'], check=True, timeout=5)
 

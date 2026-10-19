@@ -8,6 +8,7 @@ import Reconstruct_Scene as scene
 from USB_Debug import Packet
 
 
+## @brief Build a synthetic depth packet with valid metadata for reconstruction tests.
 def depth_packet(seq=0):
     metadata = bytearray(100)
     metadata[58:60] = (2 << 6).to_bytes(2, 'little')
@@ -18,6 +19,7 @@ def depth_packet(seq=0):
 
 
 class ReconstructionTests(unittest.TestCase):
+    ## @brief Verify capture ignores profiler and parameter packets.
     def test_capture_ignores_profiler_and_parameter_packets(self):
         import sys
         import types
@@ -31,15 +33,20 @@ class ReconstructionTests(unittest.TestCase):
         wire += HEADER.pack(IMU_MAGIC, 0, len(imu), 10, 1) + imu
 
         class Device:
+            ## @brief Initialize the simulated transport state used by this test.
             def __init__(self):
                 self.buffer = bytearray(wire)
+            ## @brief Return the simulated transport when entering its context manager.
             def __enter__(self):
                 return self
+            ## @brief Finish the simulated transport context without suppressing test failures.
             def __exit__(self, *args):
                 pass
+            ## @brief Report the input currently available from the simulated serial transport.
             @property
             def in_waiting(self):
                 return len(self.buffer)
+            ## @brief Return the next bytes supplied by the simulated input stream.
             def read(self, count):
                 data = bytes(self.buffer[:count])
                 del self.buffer[:count]
@@ -55,6 +62,7 @@ class ReconstructionTests(unittest.TestCase):
                 self.assertEqual(capture['imu_values'].shape, (1, 11))
             self.assertEqual((output / 'usb_stream.bin').read_bytes(), wire)
 
+    ## @brief Verify observed mounting gravity directions.
     def test_observed_mounting_gravity_directions(self):
         config = scene.load_calibration(Path(__file__).with_name('mounting.json'))
         rotation = config['rotation_lidar_to_imu']
@@ -64,6 +72,7 @@ class ReconstructionTests(unittest.TestCase):
         np.testing.assert_allclose(rotation @ [0, 0, 1], [0, 0, -1])
         self.assertAlmostEqual(np.linalg.det(rotation), 1)
 
+    ## @brief Verify radial points keep range.
     def test_radial_points_keep_range(self):
         points = scene.frame_points(depth_packet(), scene.load_calibration(None, True))
         np.testing.assert_allclose(np.linalg.norm(points, axis=1),
@@ -71,6 +80,7 @@ class ReconstructionTests(unittest.TestCase):
         self.assertGreater(points[-1, 0], points[0, 0])
         self.assertGreater(points[-1, 1], points[0, 1])
 
+    ## @brief Verify quaternion sign interpolation.
     def test_quaternion_sign_interpolation(self):
         imu = np.zeros((2, 11))
         imu[0, 10], imu[1, 10] = 1, -1
@@ -78,6 +88,7 @@ class ReconstructionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             scene.orientation_at(1, np.array([0, 0.1]), imu)
 
+    ## @brief Verify icp known translation and rotation.
     def test_icp_known_translation_and_rotation(self):
         source = np.random.default_rng(7).uniform(-0.5, 0.5, (300, 3))
         rotation = scene.quaternion_matrix([0, 0, np.sin(0.02), np.cos(0.02)])
@@ -89,10 +100,12 @@ class ReconstructionTests(unittest.TestCase):
         np.testing.assert_allclose(pose[:3, :3], rotation, atol=1e-5)
         np.testing.assert_allclose(pose[:3, 3], translation, atol=1e-5)
 
+    ## @brief Verify voxels average duplicate points.
     def test_voxels_average_duplicate_points(self):
         result = scene.voxel_downsample(np.array([[0.01, 0, 0], [0.03, 0, 0]]), 0.1)
         np.testing.assert_allclose(result, [[0.02, 0, 0]])
 
+    ## @brief Verify mounting rotation from independent motion.
     def test_mounting_rotation_from_independent_motion(self):
         mounting = scene.quaternion_matrix([0, 0, 1, 0])
         motions = [scene.quaternion_matrix(q) for q in
@@ -104,6 +117,7 @@ class ReconstructionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             scene.solve_mounting_rotation([(np.eye(3), np.eye(3))]*3)
 
+    ## @brief Verify calibration rejects reflection.
     def test_calibration_rejects_reflection(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / 'calibration.json'
@@ -112,6 +126,7 @@ class ReconstructionTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 scene.load_calibration(path)
 
+    ## @brief Verify record replay artifacts.
     def test_record_replay_artifacts(self):
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp)

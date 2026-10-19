@@ -22,6 +22,7 @@
 #include "app_usbx_device.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "firmware_update.h"
 #include "stream_manager.h"
 #include "imu_stream.h"
 #include "tof_control.h"
@@ -65,6 +66,7 @@ static VOID usbx_app_thread_entry(ULONG thread_input);
 /* USER CODE BEGIN PFP */
 UINT stream_usb_write(UCHAR *packet, ULONG length);
 
+/** @brief Signal USB transmit readiness or retry after a CDC write completes. */
 static UINT usb_cdc_write_complete(
     UX_SLAVE_CLASS_CDC_ACM *instance,
     UINT status,
@@ -243,26 +245,25 @@ static VOID usbx_app_thread_entry(ULONG thread_input)
         Error_Handler();
 
     /* Receive commands here; the shared transport remains the only writer. */
-    tof_parser_t parser = {0};
     uint32_t session = 0;
     for (;;)
     {
+        firmware_update_usb_alive();
         UX_SLAVE_CLASS_CDC_ACM *cdc = cdc_acm;
         uint32_t current_session = stream_usb_session();
         if (!current_session || !cdc)
         {
-            parser.used = 0;
             tx_thread_sleep(10);
             continue;
         }
-        if (session != current_session) { parser.used = 0; session = current_session; }
+        if (session != current_session) session = current_session;
         UCHAR input[64];
         ULONG actual = 0;
         (void)ux_device_class_cdc_acm_ioctl(cdc, UX_SLAVE_CLASS_CDC_ACM_IOCTL_SET_READ_TIMEOUT,
                                           (VOID *)(ALIGN_TYPE)100U);
         (void)ux_device_class_cdc_acm_read(cdc, input, sizeof(input), &actual);
         if (actual && cdc == cdc_acm && session == stream_usb_session())
-            tof_control_feed(&parser, input, actual, TOF_USB, session);
+            firmware_update_usb_feed(input, actual, session);
     }
   /* USER CODE END usbx_app_thread_entry */
 }
@@ -311,18 +312,29 @@ UINT MX_USBX_Device_Stack_DeInit(void)
 }
 
 /* USER CODE BEGIN 1 */
-/* Only the shared transport thread calls this; packets cannot interleave. */
+/* The packet mutex serializes telemetry and DFU replies on USB. */
+/** @brief Return the session identifier used to reject stale USB replies. */
 uint32_t stream_usb_session(void)
 {
     UX_SLAVE_CLASS_CDC_ACM *cdc = cdc_acm;
     return cdc && cdc->ux_slave_class_cdc_acm_data_dtr_state ? cdc_session : 0U;
 }
 
+/** @brief Write a complete packet to the active USB CDC session. */
 UINT stream_usb_write(UCHAR *packet, ULONG length)
 {
+    if (firmware_update_usb_lock() != TX_SUCCESS) return UX_ERROR;
+    if (!firmware_update_usb_telemetry() && length >= 4U && memcmp(packet, "DFUS", 4U) != 0)
+    {
+        firmware_update_usb_unlock();
+        return UX_SUCCESS;
+    }
     UX_SLAVE_CLASS_CDC_ACM *cdc = cdc_acm;
     if (cdc == UX_NULL || !cdc->ux_slave_class_cdc_acm_data_dtr_state)
+    {
+        firmware_update_usb_unlock();
         return UX_ERROR;
+    }
     ULONG actual = 0;
 
     UINT status = ux_device_class_cdc_acm_ioctl(cdc,
@@ -331,6 +343,7 @@ UINT stream_usb_write(UCHAR *packet, ULONG length)
     if (status == UX_SUCCESS)
         status = ux_device_class_cdc_acm_write(cdc, packet, length, &actual);
 
+    firmware_update_usb_unlock();
     return status == UX_SUCCESS && actual == length ? UX_SUCCESS : UX_ERROR;
 }
 
