@@ -80,7 +80,14 @@ void HAL_XSPI_MspInit(XSPI_HandleTypeDef* xspiHandle)
   if(xspiHandle->Instance==XSPI1)
   {
   /* USER CODE BEGIN XSPI1_MspInit 0 */
-
+    /* FSBL leaves XSPI1 memory-mapped after copying the LRUN application.
+     * The application runs from internal SRAM, so discard that mapping before
+     * HAL_XSPI_Init() waits for BUSY with the application's fresh HAL handle.
+     * The external flash protocol is reset later by SEMPER_Init(). */
+    __HAL_RCC_XSPI1_CLK_ENABLE();
+    __HAL_RCC_XSPI1_FORCE_RESET();
+    __HAL_RCC_XSPI1_RELEASE_RESET();
+    __DSB();
   /* USER CODE END XSPI1_MspInit 0 */
 
   /** Initializes the peripherals clock
