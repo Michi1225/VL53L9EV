@@ -7,6 +7,7 @@
 - [Installation](#installation)
 - [Connecting](#connecting)
 - [Live sensors](#live-sensors)
+- [Viewer performance](#viewer-performance)
 - [Sensor controls](#sensor-controls)
 - [Firmware updates](#firmware-updates)
 - [Device and firmware parameters](#device-and-firmware-parameters)
@@ -48,6 +49,41 @@ Hz, received bytes, missing sequence numbers and parser errors. These are host
 measurements, not the PHY's negotiated link speed. Live sensors shows the decoded
 lidar zone grid and radial depths in mm, accelerometer in mg, gyro in degrees/s,
 and SFLP quaternion XYZW. `--depth-max` controls the heatmap range in mm.
+
+## Viewer performance
+
+The live display defaults to **20 FPS**. Use `--fps` (1–60) to change the display
+limit; 10 FPS reduces CPU use on battery, while 30 FPS provides smoother motion:
+
+```sh
+python3 test_scripts/Board_Viewer.py --host 192.168.8.20 --connect --fps 10
+```
+
+Reception runs independently of the display rate. The viewer renders the latest
+depth frame and up to 1000 IMU samples within the latest ten seconds, without
+queuing old frames for display. Packet counters and sensor frame-rate estimates
+continue at the incoming rate. Hidden live plots and the hidden CPU donut do not
+redraw; returning to a tab shows the latest data. Minimizing pauses plot updates.
+Unchanged telemetry does not trigger a plot redraw.
+
+The renderer caches axes, ticks, grids, legends and the colorbar, then updates
+the heatmap and traces using Matplotlib blitting. IMU scales expand immediately
+for new peaks and shrink at most every two seconds, avoiding a full redraw for
+small fluctuations. Resizing and binning changes rebuild the cache automatically.
+Status and control widgets refresh separately at 5 Hz. Existing Python packages
+are sufficient; no additional GUI toolkit or compiler is needed.
+
+Compare the former full-redraw path with the cached renderer on your machine:
+
+```sh
+python3 test_scripts/benchmark_viewer.py
+python3 test_scripts/benchmark_viewer.py --width 1600 --height 900
+```
+
+The benchmark uses synthetic 54×42 depth frames and 1000 IMU samples, reports
+median/p95 frame time and CPU time, and needs neither a board nor a display.
+It measures Agg rendering and excludes Tk's transfer of pixels to the display;
+actual GUI performance also depends on window size and display scaling.
 
 ## Sensor controls
 

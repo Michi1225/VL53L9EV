@@ -23,6 +23,98 @@ def destroy_root(root):
 
 @unittest.skipUnless(os.environ.get('DISPLAY'), 'requires a display (or xvfb-run)')
 class ProfilerViewerTests(unittest.TestCase):
+    def test_hidden_plots_catch_up_without_redrawing_or_duplicate_timers(self):
+        import tkinter as tk
+        from matplotlib.backend_bases import MouseEvent
+        from Board_Viewer import Viewer
+        from benchmark_viewer import depth_frame, imu_samples
+        from USB_Debug import PacketParser, decode_profile
+        from test_sensor_control import SensorConnection, wait_for
+
+        try:
+            root = tk.Tk()
+        except tk.TclError as error:
+            self.skipTest(f'display unavailable: {error}')
+        args = argparse.Namespace(port=None, host='test-device', tcp_port=50002,
+                                  depth_max=4000, connect=True, fps=1)
+        viewer = None
+        try:
+            with patch.object(socket, 'create_connection', return_value=SensorConnection()):
+                viewer = Viewer(root, args)
+                wait_for(lambda: viewer.last_tof_settings is not None, root.update)
+                r = viewer.receiver
+                # Leave the live tab while packets continue arriving.
+                viewer.tabs.select(viewer.profiler_tab)
+                root.update()
+                latest = depth_frame(123)
+                samples = imu_samples()
+                profile = decode_profile(PacketParser().feed(wire_profile())[0])
+                with r.lock:
+                    r.depth = latest
+                    r.samples.extend(samples)
+                    r.profile, r.profile_received = profile, time.monotonic()
+                with patch.object(viewer.plots.renderer, 'draw') as render:
+                    viewer.update()
+                    self.assertEqual(render.call_count, 0)
+                self.assertIs(viewer.profile_chart.profile, profile)
+
+                # Hover must reuse the donut background rather than rebuilding it.
+                root.update_idletasks()
+                chart = viewer.profile_chart
+                wedge = chart.slices[0]
+                import math
+                angle = math.radians((wedge.theta1 + wedge.theta2) / 2)
+                x, y = chart.ax.transData.transform((.86 * math.cos(angle), .86 * math.sin(angle)))
+                event = MouseEvent('motion_notify_event', chart.canvas, x, y)
+                with patch.object(chart.canvas, 'draw', wraps=chart.canvas.draw) as draw:
+                    chart.hover(event)
+                    self.assertTrue(chart.tooltip.get_visible())
+                    chart.hover(MouseEvent('motion_notify_event', chart.canvas, 0, 0))
+                    self.assertFalse(chart.tooltip.get_visible())
+                    self.assertEqual(draw.call_count, 0)
+
+                # Returning to live renders only the newest depth and IMU history.
+                viewer.tabs.select(viewer.sensor_tab)
+                root.update()
+                self.assertIs(viewer.plots.last_depth, latest)
+                self.assertEqual(len(viewer.plots.lines[0][0].get_xdata()), len(samples))
+                with patch.object(viewer.plots.renderer, 'draw') as render:
+                    for _ in range(3):
+                        viewer.update()
+                    self.assertEqual(render.call_count, 0, 'unchanged telemetry must not draw')
+                callbacks = root.tk.call('after', 'info')
+                ticks = [job for job in callbacks if root.tk.call('after', 'info', job)[0].endswith('tick')]
+                self.assertEqual(ticks, [viewer.update_job])
+
+                # Even at one display FPS, command/status polling stays at 5 Hz.
+                with patch.object(viewer, 'show_sensor_status', wraps=viewer.show_sensor_status) as status:
+                    with patch.object(viewer.plots, 'update', wraps=viewer.plots.update) as plot:
+                        until = time.monotonic() + .5
+                        while time.monotonic() < until:
+                            root.update()
+                            time.sleep(.01)
+                        self.assertGreaterEqual(status.call_count, 2)
+                        self.assertLessEqual(plot.call_count, 1)
+
+                # Reconnect/stop clearing must also wait until a hidden plot is visible.
+                viewer.tabs.select(viewer.profiler_tab)
+                root.update()
+                with r.lock:
+                    r.depth = None
+                    r.samples.clear()
+                with patch.object(viewer.plots.renderer, 'draw') as render:
+                    viewer.update()
+                    self.assertEqual(render.call_count, 0)
+                viewer.tabs.select(viewer.sensor_tab)
+                root.update()
+                self.assertIsNone(viewer.plots.last_depth)
+                self.assertFalse(viewer.plots.have_samples)
+        finally:
+            if viewer:
+                viewer.disconnect()
+                viewer.receiver.thread.join(timeout=1)
+            destroy_root(root)
+
     ## @brief Verify sensor configuration tab and acknowledged controls.
     def test_sensor_configuration_tab_and_acknowledged_controls(self):
         import tkinter as tk

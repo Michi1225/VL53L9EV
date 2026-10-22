@@ -4,6 +4,7 @@ import argparse
 from decimal import Decimal, InvalidOperation
 from collections import deque
 import json
+from math import ceil
 from pathlib import Path
 import socket
 import threading
@@ -14,7 +15,6 @@ try:
 except ImportError as error:
     raise SystemExit("Tk is required. On Ubuntu/Debian install python3-tk, then rerun this viewer.") from error
 
-import numpy as np
 import serial
 from serial.tools import list_ports
 from matplotlib.figure import Figure
@@ -30,10 +30,11 @@ except ImportError as error:
     ) from error
 
 from USB_Debug import (PacketParser, MAGIC, IMU_MAGIC, PARAM_MAGIC, IMU_PAYLOAD,
-                       decode_depth, decode_depth_metadata, SensorFrameTiming, PROFILE_MAGIC, decode_profile, profile_rows, TOF_MAGIC)
+                       decode_depth_metadata, SensorFrameTiming, PROFILE_MAGIC, decode_profile, profile_rows, TOF_MAGIC)
 from Sensor_Control import (GET_CONFIG, START, STOP, SET_CONFIG, RESET, POWER_DOWN, STATE_NAMES, POWER_NAMES,
                             RANGING_MODES, ranging_mode, RESULT_NAMES, OPERATION_NAMES, build_command, decode_status)
 from Firmware_Update import UpdateWorker, fw, slot_name
+from Viewer_Plots import BlitRenderer, SensorPlots
 
 
 class CpuShareChart:
@@ -50,11 +51,13 @@ class CpuShareChart:
         self.figure = Figure(figsize=(5, 5), dpi=100, facecolor='#f8fafc')
         self.ax = self.figure.add_axes((.08, .24, .84, .70))
         self.canvas = FigureCanvasTkAgg(self.figure, parent)
+        self.renderer = BlitRenderer(self.canvas, [])
         self.canvas.get_tk_widget().pack(fill='both', expand=True)
         self.canvas.mpl_connect('motion_notify_event', self.hover)
         self.slices = []
         self.rows = []
         self.tooltip = None
+        self.profile = None
         self.show(None)
 
     ## @brief Return a stable chart color for a thread or accounting category.
@@ -67,6 +70,9 @@ class CpuShareChart:
 
     ## @brief Render the current CPU usage profile and retain hover details for each slice.
     def show(self, profile):
+        self.profile = profile
+        self.renderer.invalidate()
+        self.renderer.artists.clear()
         self.ax.clear()
         self.ax.set_aspect('equal')
         self.ax.set_axis_off()
@@ -112,6 +118,8 @@ class CpuShareChart:
                 ha='center', va='bottom', fontsize=9, color='#f8fafc', zorder=10,
                 bbox=dict(boxstyle='round,pad=.6', fc='#0f172a', ec='none', alpha=.95))
             self.tooltip.set_visible(False)
+            self.tooltip.set_animated(self.renderer.enabled)
+            self.renderer.artists.append(self.tooltip)
         self.canvas.draw_idle()
 
     ## @brief Show CPU usage details for the chart slice under the pointer.
@@ -123,13 +131,13 @@ class CpuShareChart:
         if selected is None:
             if self.tooltip.get_visible():
                 self.tooltip.set_visible(False)
-                self.canvas.draw_idle()
+                self.renderer.draw()
             return
         _, name, _, ms, percent = self.rows[selected]
         self.tooltip.xy = (event.xdata, event.ydata)
         self.tooltip.set_text(f'{name}\n{ms:.3f} ms · {percent:.2f}%')
         self.tooltip.set_visible(True)
-        self.canvas.draw_idle()
+        self.renderer.draw()
 
 
 class Receiver:
@@ -315,6 +323,11 @@ class Viewer:
         self.fw_resume = False
         self.fw_report = self.fw_report_target = None
         self.closing = False
+        self.update_job = None
+        self.next_status_update = 0.
+        self.next_plot_update = 0.
+        self.frame_ms = round(1000 / getattr(args, 'fps', 20))
+        self.last_sample = None
         self.last_tof_settings = None
         self.metadata = None
         self.last_metadata = None
@@ -345,13 +358,13 @@ class Viewer:
         ttk.Label(root, textvariable=self.status, padding=(12, 4)).pack(fill='x')
         self.stats = tk.StringVar(value='No data')
         ttk.Label(root, textvariable=self.stats, padding=(12, 8), font=('TkDefaultFont', 11)).pack(fill='x')
-        tabs = ttk.Notebook(root)
+        tabs = self.tabs = ttk.Notebook(root)
         tabs.pack(fill='both', expand=True, padx=12, pady=8)
-        sensor = ttk.Frame(tabs)
+        sensor = self.sensor_tab = ttk.Frame(tabs)
         identity = ttk.Frame(tabs)
         tabs.add(sensor, text='Live sensors')
         tabs.add(identity, text='Device & firmware parameters')
-        profiler = ttk.Frame(tabs, padding=12)
+        profiler = self.profiler_tab = ttk.Frame(tabs, padding=12)
         tabs.add(profiler, text='CPU profiler')
         self.profile_status = tk.StringVar(value='Waiting for profiler data…')
         ttk.Label(profiler, textvariable=self.profile_status).pack(anchor='w', pady=(0, 8))
@@ -424,24 +437,11 @@ class Viewer:
         ttk.Label(configuration, text='Power down holds XSHUT low. Use Reset ToF to wake the sensor, then Start ToF to range.').pack(anchor='w', pady=(6, 0))
         ttk.Label(configuration, textvariable=self.tof_command_status, wraplength=1000).pack(anchor='w', pady=16)
         self.build_firmware_tab(tabs, getattr(args, 'dfu_port', 50003))
-        fig = Figure(figsize=(11, 6), dpi=100)
-        grid = fig.add_gridspec(3, 2)
-        self.depth_ax = fig.add_subplot(grid[:, 0])
-        self.depth_ax.set_title('Lidar radial depth (mm)')
-        self.depth_image = self.depth_ax.imshow(np.full((42, 54), np.nan), vmin=0, vmax=args.depth_max, cmap='turbo', interpolation='nearest')
-        fig.colorbar(self.depth_image, ax=self.depth_ax, label='mm', shrink=.7)
-        self.axes = [fig.add_subplot(grid[i, 1]) for i in range(3)]
-        self.lines = []
-        for ax, title, labels in zip(self.axes, ['Acceleration (mg)', 'Gyroscope (°/s)', 'SFLP quaternion'], [('X','Y','Z'), ('X','Y','Z'), ('X','Y','Z','W')]):
-            ax.set_title(title)
-            ax.set_xlim(-10, 0)
-            ax.grid(alpha=.2)
-            self.lines.append([ax.plot([], [], label=label)[0] for label in labels])
-            ax.legend(loc='upper left', ncol=len(labels), fontsize=8)
-        self.axes[-1].set_xlabel('Seconds relative to latest sample')
-        fig.tight_layout()
-        self.canvas = FigureCanvasTkAgg(fig, sensor)
+        self.plots = SensorPlots(args.depth_max)
+        self.canvas = FigureCanvasTkAgg(self.plots.figure, sensor)
+        self.plots.attach(self.canvas)
         self.canvas.get_tk_widget().pack(fill='both', expand=True)
+        tabs.bind('<<NotebookTabChanged>>', self.tab_changed)
         ttk.Button(identity, text='Save received JSON…', command=self.save_metadata).pack(anchor='w', padx=8, pady=8)
         self.tree = ttk.Treeview(identity, columns=('value',), show='tree headings')
         self.tree.heading('#0', text='Parameter')
@@ -453,7 +453,7 @@ class Viewer:
         scroll.pack(side='right', fill='y')
         self.tree.pack(fill='both', expand=True)
         root.protocol('WM_DELETE_WINDOW', self.close)
-        root.after(100, self.update)
+        self.update_job = root.after(self.frame_ms, self.tick)
         if args.connect:
             self.connect()
 
@@ -717,6 +717,8 @@ class Viewer:
         self.last_stats = (time.monotonic(), 0, 0, 0)
         self.last_session = -1
         self.last_depth = self.last_metadata = self.metadata = None
+        self.last_sample = None
+        self.plots.update(None, [])
         self.tree.delete(*self.tree.get_children())
         self.show_profile(None, None)
         self.show_sensor_status(None, None, None, False, False, 'Waiting for sensor status…')
@@ -749,7 +751,8 @@ class Viewer:
 
     ## @brief Refresh the CPU chart and table with the latest profiling interval.
     def show_profile(self, profile, received):
-        if profile is not self.last_profile:
+        if (self.tabs.select() == str(self.profiler_tab) and self.root.state() != 'iconic' and
+                profile is not self.profile_chart.profile):
             self.profile_chart.show(profile)
         if profile is None:
             self.profile_status.set('Waiting for profiler data…')
@@ -772,82 +775,83 @@ class Viewer:
                                              values=(name, priority, f'{ms:.3f}', f'{percent:.2f}'))
         self.last_profile = profile
 
-    ## @brief Refresh connection status, plots, parameters, and sensor controls from receiver state.
-    def update(self):
-        self.update_firmware()
+    def tab_changed(self, event=None):
+        # A hidden canvas may have been resized. Refresh from the latest state
+        # when it becomes visible, without queuing old frames for playback.
+        if self.tabs.select() == str(self.sensor_tab):
+            self.plots.invalidate()
+            self.next_plot_update = 0.
+        self.update()
+
+    def tick(self):
+        self.update(refresh_status=time.monotonic() >= self.next_status_update)
+
+    ## @brief Refresh live plots independently of the slower status and control widgets.
+    def update(self, refresh_status=True):
+        if self.update_job is not None:
+            self.root.after_cancel(self.update_job)
+            self.update_job = None
+        started = time.monotonic()
+        if refresh_status:
+            self.update_firmware()
+            self.next_status_update = started + .2
         if self.closing and self.fw_worker is None:
             self.root.destroy()
             return
         r = self.receiver
+        live_visible = False
         if r:
+            live_visible = self.tabs.select() == str(self.sensor_tab) and self.root.state() != 'iconic'
+            plot_due = live_visible and started >= self.next_plot_update
             with r.lock:
                 status, total, lidar, imu, gaps = r.status, r.total, r.lidar_count, r.imu_count, r.gaps
-                depth, samples, metadata = r.depth, list(r.samples), r.metadata
+                depth, metadata = r.depth, r.metadata
+                sample_token = r.samples[-1] if r.samples else None
+                samples = (list(r.samples) if plot_due and
+                           (sample_token is not self.last_sample or r.session != self.last_session) else None)
                 profile, profile_received = r.profile, r.profile_received
                 tof, settings, tof_received = r.tof_status, r.tof_settings, r.tof_received
                 pending, command_message = r.pending_command, r.command_message
                 sensor_meta, sensor_received, sensor_fps = r.sensor_metadata, r.sensor_metadata_received, r.sensor_timing.fps
                 discarded, invalid, last_packet, session = r.discarded, r.invalid, r.last_packet, r.session
-            if sensor_meta:
-                mode = ranging_mode(sensor_meta['context'], sensor_meta['dss_mode'] != 0)
-                fps = 'measuring' if sensor_fps is None else f'{sensor_fps:.1f} fps (estimated)'
-                age = time.monotonic() - sensor_received
-                self.tof_diagnostics.set(f"Sensor {fps} · die {sensor_meta['temperature_c']} °C · {mode} · "
-                                         f"reported period {sensor_meta['period_us']/1000:g} ms · "
-                                         f"sensor frame {sensor_meta['counter']} · error 0x{sensor_meta['error']:04x} · last frame {age:.1f}s ago")
-            else:
-                self.tof_diagnostics.set('Waiting for sensor frame diagnostics…')
-            self.show_profile(profile, profile_received)
-            self.show_sensor_status(tof, settings, tof_received, status == 'Connected' and self.fw_worker is None,
-                                    pending, command_message)
-            age = '' if last_packet is None else f' · last packet {time.monotonic()-last_packet:.1f}s ago'
-            self.status.set(f'{r.mode}: {r.endpoint} · {status}{age}')
-            now = time.monotonic()
-            then, old_total, old_lidar, old_imu = self.last_stats
-            dt = now - then
-            if dt >= .5:
-                self.stats.set(f'RX {(total-old_total)*8/dt/1e6:.2f} Mbit/s · {(total-old_total)/dt/1024:.1f} KiB/s   |   Lidar {(lidar-old_lidar)/dt:.1f} fps   |   IMU {(imu-old_imu)/dt:.1f} Hz   |   Total {total/1048576:.2f} MiB   |   Missing seq {gaps}   |   Discarded {discarded} B / malformed {invalid}')
-                self.last_stats = (now, total, lidar, imu)
-            if session != self.last_session:
-                self.last_depth = self.last_metadata = None
-                self.last_session = session
-            if metadata != self.last_metadata:
-                self.tree.delete(*self.tree.get_children())
-                if metadata is not None:
-                    self.populate('', metadata)
-                self.last_metadata = metadata
-            self.metadata = metadata
-            if depth is not None and depth is not self.last_depth:
-                try:
-                    decoded = decode_depth(depth)
-                    # Shared decoder returns depth array plus metadata.
-                    values = decoded[0] if isinstance(decoded, tuple) else decoded
-                    self.depth_image.set_data(np.ma.masked_equal(values, 0))
-                    h, w = values.shape
-                    self.depth_image.set_extent((-.5, w-.5, h-.5, -.5))
-                    self.depth_ax.set_xlim(-.5, w-.5)
-                    self.depth_ax.set_ylim(h-.5, -.5)
-                    self.depth_ax.set_title(f'Lidar {w} × {h} · depth (mm) · seq {depth.sequence}')
-                except (ValueError, TypeError) as error:
-                    self.depth_ax.set_title(f'Invalid depth: {error}')
+            if refresh_status:
+                if sensor_meta:
+                    mode = ranging_mode(sensor_meta['context'], sensor_meta['dss_mode'] != 0)
+                    fps = 'measuring' if sensor_fps is None else f'{sensor_fps:.1f} fps (estimated)'
+                    age = time.monotonic() - sensor_received
+                    self.tof_diagnostics.set(f"Sensor {fps} · die {sensor_meta['temperature_c']} °C · {mode} · "
+                                             f"reported period {sensor_meta['period_us']/1000:g} ms · "
+                                             f"sensor frame {sensor_meta['counter']} · error 0x{sensor_meta['error']:04x} · last frame {age:.1f}s ago")
+                else:
+                    self.tof_diagnostics.set('Waiting for sensor frame diagnostics…')
+                self.show_profile(profile, profile_received)
+                self.show_sensor_status(tof, settings, tof_received, status == 'Connected' and self.fw_worker is None,
+                                        pending, command_message)
+                age = '' if last_packet is None else f' · last packet {time.monotonic()-last_packet:.1f}s ago'
+                self.status.set(f'{r.mode}: {r.endpoint} · {status}{age}')
+                now = time.monotonic()
+                then, old_total, old_lidar, old_imu = self.last_stats
+                dt = now - then
+                if dt >= .5:
+                    self.stats.set(f'RX {(total-old_total)*8/dt/1e6:.2f} Mbit/s · {(total-old_total)/dt/1024:.1f} KiB/s   |   Lidar {(lidar-old_lidar)/dt:.1f} fps   |   IMU {(imu-old_imu)/dt:.1f} Hz   |   Total {total/1048576:.2f} MiB   |   Missing seq {gaps}   |   Discarded {discarded} B / malformed {invalid}')
+                    self.last_stats = (now, total, lidar, imu)
+                if session != self.last_session:
+                    self.last_depth = self.last_metadata = None
+                    self.last_session = session
+                if metadata != self.last_metadata:
+                    self.tree.delete(*self.tree.get_children())
+                    if metadata is not None:
+                        self.populate('', metadata)
+                    self.last_metadata = metadata
+                self.metadata = metadata
+            if plot_due:
+                self.plots.update(depth, samples)
                 self.last_depth = depth
-            if depth is None:
-                self.depth_image.set_data(np.full((42,54), np.nan))
-            if samples:
-                times = np.array([s[0] for s in samples])
-                data = np.array([s[1][1:] for s in samples])
-                x = times - times[-1]
-                for ax, lines, offset, scale in zip(self.axes, self.lines, [0,3,6], [1,.001,1]):
-                    for j, line in enumerate(lines):
-                        line.set_data(x, data[:,offset+j]*scale)
-                    ax.relim()
-                    ax.autoscale_view(scalex=False)
-            else:
-                for lines in self.lines:
-                    for line in lines:
-                        line.set_data([], [])
-            self.canvas.draw_idle()
-        self.root.after(100, self.update)
+                self.last_sample = sample_token
+                self.next_plot_update = started + self.frame_ms / 1000
+        deadline = min(self.next_plot_update, self.next_status_update) if live_visible else self.next_status_update
+        delay = max(1, ceil((deadline - time.monotonic()) * 1000))
+        self.update_job = self.root.after(delay, self.tick)
 
     ## @brief Stop the receiver and destroy the viewer window.
     def close(self):
@@ -866,6 +870,8 @@ def main():
     parser.add_argument('--tcp-port', type=int, default=50002)
     parser.add_argument('--dfu-port', type=int, default=50003, help='Firmware update TCP port')
     parser.add_argument('--depth-max', type=float, default=4000)
+    parser.add_argument('--fps', type=int, default=20, choices=range(1, 61), metavar='1..60',
+                        help='Maximum live display refresh rate (default: 20; receiving is independent)')
     parser.add_argument('--connect', action='store_true', help='Connect immediately on launch')
     args = parser.parse_args()
     root = tk.Tk()
