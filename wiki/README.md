@@ -5,6 +5,8 @@ sensor board. This folder is the maintained home of the project guides.
 
 **[Full table of contents](SUMMARY.md)**
 
+The [board datasheet](../datasheet/README.md) gives a compact specification overview.
+
 ## Start here
 
 | Task | Guide |

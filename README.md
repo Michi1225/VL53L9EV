@@ -16,6 +16,7 @@ Start with the **[project wiki](wiki/README.md)** or browse the
 - [Firmware updates and recovery](wiki/firmware/firmware-updates.md)
 - [Wire protocol](wiki/protocols/wire-protocol.md)
 - [Board bring-up and testing](wiki/hardware/bring-up-and-testing.md)
+- [Board datasheet (LaTeX source and PDF build instructions)](datasheet/README.md)
 
 ## Hardware revision standard
 

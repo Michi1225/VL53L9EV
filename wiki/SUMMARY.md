@@ -15,6 +15,7 @@
 
 ## Hardware and validation
 
+- [Board datasheet (LaTeX)](../datasheet/README.md)
 - [Current flash layout](hardware/flash-layout.md)
 - [Board bring-up and system testing](hardware/bring-up-and-testing.md)
   - [Power rails](hardware/bring-up-and-testing.md#3-power-rails)
