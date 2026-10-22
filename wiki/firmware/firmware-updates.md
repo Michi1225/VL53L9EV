@@ -7,6 +7,7 @@
 - [First installation](#first-installation)
 - [Uploading and inspecting status](#uploading-and-inspecting-status)
 - [Flash allocation and limits](#flash-allocation-and-limits)
+- [Diagnosing standalone boot](#diagnosing-standalone-boot)
 - [Persistent state and boot behavior](#persistent-state-and-boot-behavior)
 - [Wire format](#wire-format)
 - [Validation](#validation)
@@ -127,6 +128,35 @@ using CubeProgrammer and the external loader, then reprogram/boot the baseline.
 This discards update history and causes validated-image adoption again. Parameter
 programming alone does not require or erase these sectors. `PARM` JSON build
 metadata is not rewritten by DFU; current DFU versions/flags come from `DFUS`.
+
+## Diagnosing standalone boot
+
+The ROM copies FSBL from external flash to SRAM; loading the FSBL ELF directly
+in development mode bypasses that flash-loading step and its inherited hardware
+state. ROM uses **XSPI1 on XSPIM port 2** for this board's serial NOR. FSBL must
+reset XSPI1 as well as XSPIM before reinitializing the flash controller.
+
+The secure handoff stops SysTick, disables and clears pending NVIC interrupts,
+cleans/disables D-cache, invalidates/disables I-cache, disables the inherited MPU,
+and installs VTOR at `0x34000400`. The final assembly branch clears stack limits
+and interrupt masks, selects privileged MSP, installs the application's stack,
+and branches without returning through the FSBL's old C stack. Clock settings
+are inherited by the persistent application; it owns subsequent MPU configuration.
+See [ST's boot ROM manual, sections 3.2.2 and 3.4.5](https://www.st.com/resource/en/user_manual/um3234-how-to-proceed-with-boot-rom-on-stm32n6-mcus-stmicroelectronics.pdf)
+for the differences in ROM cache/MPU state and serial NOR initialization.
+
+To build and install only the updated FSBL (the flashing script also refreshes
+the parameter record):
+
+```sh
+./scripts/build.sh --target fsbl --config Release
+./scripts/flash.sh --target fsbl --config Release
+```
+
+Then select normal flash boot (BOOT1 low) and fully power-cycle the board,
+including its flash supply, for the first test. Record the LED sequence. A CPU
+reset and a complete flash power cycle are different tests: the running flash
+driver changes volatile SPI/OPI mode, while ROM expects legacy SPI access.
 
 ## Persistent state and boot behavior
 

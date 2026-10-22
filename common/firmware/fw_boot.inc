@@ -2,9 +2,29 @@
  * here avoids edits to CubeMX-generated source lists and boot middleware. */
 #include "fw_update.c"
 #include "fw_flash.c"
+#include "fw_handoff.h"
 extern SEMPER_Handle_t Flash;
-extern BOOTStatus_TypeDef JumpToApplication(void);
 static fw_update_t fw_boot_state;
+/** @brief Branch without executing compiler stack accesses after replacing MSP. */
+__attribute__((naked, noreturn))
+static void fw_boot_branch(uint32_t stack __attribute__((unused)),
+                           uint32_t reset __attribute__((unused)))
+{
+    __asm volatile (
+        "movs r2, #0\n"
+        "msr msplim, r2\n"
+        "msr psplim, r2\n"
+        "msr basepri, r2\n"
+        "msr faultmask, r2\n"
+        "msr control, r2\n"
+        "isb\n"
+        "msr msp, r0\n"
+        "mvn lr, r2\n"
+        "dsb\n"
+        "isb\n"
+        "cpsie i\n"
+        "bx r1\n");
+}
 
 /** @brief Select and verify a boot slot, load its image into SRAM, and jump to the application. */
 static int fw_boot_run(void)
@@ -20,7 +40,7 @@ static int fw_boot_run(void)
     uint32_t size=fw_boot_state.meta.image[slot].size;
     uint8_t *destination=(uint8_t *)FW_RAM_BASE;
     /* The application is LRUN: load its signed header/padding plus payload,
-     * leaving the vector table at 0x34000400 for the existing jump helper. */
+     * leaving the vector table at 0x34000400. */
     for(uint32_t offset=0;offset<size;){
         uint32_t count=size-offset;if(count>512U)count=512U;
         if(io.read(io.context,fw_slot_address(slot)+offset,destination+offset,count))return FW_IO_ERROR;
@@ -29,7 +49,8 @@ static int fw_boot_run(void)
     uint8_t digest[32];fw_sha256(destination,size,digest);
     if(memcmp(digest,fw_boot_state.meta.image[slot].sha256,32))return FW_BAD_HASH;
     fw_watchdog_refresh();
-    __DSB();__ISB();
-    (void)JumpToApplication();
-    return FW_BAD_IMAGE; /* A valid application's reset handler never returns. */
+    const uint32_t *vectors=(const uint32_t *)(FW_RAM_BASE+FW_VECTOR_OFFSET);
+    uint32_t stack=vectors[0],reset=vectors[1];
+    fw_prepare_handoff(FW_RAM_BASE+FW_VECTOR_OFFSET);
+    fw_boot_branch(stack,reset);
 }
