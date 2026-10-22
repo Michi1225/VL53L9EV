@@ -128,7 +128,15 @@ static HAL_StatusTypeDef led_update_config(LEDController *controller)
         out[8] = p->sloper2 | (p->sloper3 << 4);
     }
     const uint8_t stop = 0xAA, update = 0x55, start = 0xFF;
-    const uint8_t current[] = {LED_DC_RED, LED_DC_GREEN, LED_DC_BLUE};
+    uint8_t current[] = {LED_DC_RED, LED_DC_GREEN, LED_DC_BLUE};
+    /* Brighten red and its amber/magenta mixtures. White and colors without
+     * red retain the normal drive settings; all PWM values/timing stay intact. */
+    if (controller->config.out0_en &&
+            !(controller->config.out1_en && controller->config.out2_en)) {
+        current[0] = LED_DC_BRIGHT_RED;
+        current[1] = LED_DC_BRIGHT_GREEN;
+        current[2] = LED_DC_BRIGHT_BLUE;
+    }
     HAL_StatusTypeDef status = led_write(LED_STOP_CMD, &stop, 1);
     if (status == HAL_OK) status = led_write(LED_REG_DC, current, sizeof(current));
     if (status == HAL_OK) status = led_write(0, config, sizeof(config));

@@ -18,9 +18,14 @@ extern "C" {
 #define LED_STOP_CMD 0x11U
 #define LED_PATTERN_REG_START 0x1CU
 #define LED_REG_DC 0x14U
-#define LED_DC_RED 0x05U
-#define LED_DC_GREEN 0x04U
-#define LED_DC_BLUE 0x06U
+/* Normal colors retain the previously tested brightness. */
+#define LED_DC_RED 0x06U
+#define LED_DC_GREEN 0x05U
+#define LED_DC_BLUE 0x07U
+/* Red, amber and magenta use twice these drive codes, with color ratios retained. */
+#define LED_DC_BRIGHT_RED 0x0CU
+#define LED_DC_BRIGHT_GREEN 0x0AU
+#define LED_DC_BRIGHT_BLUE 0x0EU
 
 typedef struct __attribute__((packed))
 {
