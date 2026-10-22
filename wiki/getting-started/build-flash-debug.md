@@ -100,9 +100,9 @@ Examples:
 Building `appli` produces:
 
 ```text
-Appli/build/VL53L9_eval_Appli.elf
-Appli/build/VL53L9_eval_Appli.bin
-Appli/build/VL53L9_eval_Appli-signed.bin
+Appli/build/magnecko-sense-fw_Appli.elf
+Appli/build/magnecko-sense-fw_Appli.bin
+Appli/build/magnecko-sense-fw_Appli-signed.bin
 ```
 
 The signed application image is the file used for programming external flash.
@@ -112,9 +112,9 @@ The signed application image is the file used for programming external flash.
 Building `fsbl` produces:
 
 ```text
-FSBL/build/VL53L9_eval_FSBL.elf
-FSBL/build/VL53L9_eval_FSBL.bin
-FSBL/build/VL53L9_eval_FSBL-trusted.bin
+FSBL/build/magnecko-sense-fw_FSBL.elf
+FSBL/build/magnecko-sense-fw_FSBL.bin
+FSBL/build/magnecko-sense-fw_FSBL-trusted.bin
 ```
 
 The trusted FSBL image is the file used for programming external flash.
@@ -124,8 +124,8 @@ The trusted FSBL image is the file used for programming external flash.
 Building `extmem` produces:
 
 ```text
-ExtMemLoader/build/VL53L9_eval_ExtMemLoader.elf
-ExtMemLoader/build/VL53L9_eval_ExtMemLoader.stldr
+ExtMemLoader/build/magnecko-sense-fw_ExtMemLoader.elf
+ExtMemLoader/build/magnecko-sense-fw_ExtMemLoader.stldr
 ```
 
 The `.stldr` file is still an ELF file internally. It is copied from the generated ELF and must not be converted to a raw binary.
@@ -268,7 +268,7 @@ or:
 The script automatically uses:
 
 ```text
-ExtMemLoader/build/VL53L9_eval_ExtMemLoader.stldr
+ExtMemLoader/build/magnecko-sense-fw_ExtMemLoader.stldr
 ```
 
 with `STM32_Programmer_CLI`.

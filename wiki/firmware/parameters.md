@@ -64,13 +64,33 @@ always stops the operation.
 
 Editable sections:
 
-- `device`: product, name, description, serial number, hardware/PCB/assembly revisions.
+- `device`: product, PCB identifier, board version, name, description, serial number,
+  hardware/PCB/assembly revisions.
 - `firmware`: manually maintained version, release number and protocol version.
 - `manufacturing`: date, batch and test timestamp.
 - `calibration`: confirmed calibration values, initially empty.
 
 Use `null` for unassigned values. These fields are stored and displayed by the
 PC app; firmware does not apply them as runtime configuration.
+
+The default product is `Magnecko Sense`, PCB identifier `MGS`, hardware version
+`1.0`, and PCB revision `-` (revision 0), giving board version `MGS-1.0-`.
+Revisions A and B are written `MGS-1.0A` and `MGS-1.0B`. These are hardware
+identifiers; `firmware.version` remains a separate software version.
+
+When changing a board revision, keep `device.hardware_revision`,
+`device.pcb_revision`, and `device.board_version` consistent with
+[`common/board/board_identity.h`](../../common/board/board_identity.h) and the USB
+product string in [`magnecko-sense-fw.ioc`](../../magnecko-sense-fw.ioc).
+The shared header supplies the firmware's USB, sensor interface, and external
+loader identities. After CubeMX regeneration, keep `USBD_PRODUCT_STRING` mapped
+to `MGS_USB_PRODUCT_STRING` in `ux_device_descriptors.h`.
+
+Previously programmed identity values are preserved during ordinary firmware
+flashes. To apply the new branding to an existing board, merge the new identity
+fields into its device-specific settings file and program it with
+`--target parameters --parameters /path/to/settings.json`, retaining its serial
+number, calibration, and other per-device values.
 
 ## Generated metadata
 
@@ -140,7 +160,7 @@ Rebuild the custom external loader before retrying the 256 KiB parameter image:
 ./scripts/build.sh --target extmem --config Release
 ```
 
-Use the newly generated `ExtMemLoader/build/VL53L9_eval_ExtMemLoader.stldr`, including
+Use the newly generated `ExtMemLoader/build/magnecko-sense-fw_ExtMemLoader.stldr`, including
 when selecting the loader manually in CubeProgrammer. The first 256 KiB consists
 of **32 × 4 KiB + 1 × 128 KiB** sectors. The previous uniform-sector wrapper used
 256 KiB erase commands for this hybrid area: it could leave the 4 KiB overlay

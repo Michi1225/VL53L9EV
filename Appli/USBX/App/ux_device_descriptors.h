@@ -30,6 +30,7 @@ extern "C" {
 #include "ux_device_class_cdc_acm.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "board_identity.h"
 
 /* USER CODE END Includes */
 
@@ -264,7 +265,7 @@ uint16_t USBD_Get_Configuration_Number(uint8_t class_type, uint8_t interface_typ
 #define USBD_PID                                      22288
 #define USBD_LANGID_STRING                            1033
 #define USBD_MANUFACTURER_STRING                      "magnecko"
-#define USBD_PRODUCT_STRING                           "VL53L9EV REV1.0"
+#define USBD_PRODUCT_STRING                           MGS_USB_PRODUCT_STRING
 #define USBD_SERIAL_NUMBER                            "000000000001"
 
 #define USB_DESC_TYPE_INTERFACE                       0x04U

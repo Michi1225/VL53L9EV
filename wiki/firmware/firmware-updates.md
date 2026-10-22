@@ -49,14 +49,14 @@ Use the packaged application binary from a **non-DEV_MODE** build:
 ```bash
 ./scripts/build.sh --target appli --config Release
 python3 scripts/firmware_update.py --tcp 192.168.8.20 \
-  --image Appli/build/VL53L9_eval_Appli-signed.bin --version 2
+  --image Appli/build/magnecko-sense-fw_Appli-signed.bin --version 2
 ```
 
 For USB, close Device Monitor/other serial owners first:
 
 ```bash
 python3 scripts/firmware_update.py --usb /dev/ttyACM0 \
-  --image Appli/build/VL53L9_eval_Appli-signed.bin --version 2
+  --image Appli/build/magnecko-sense-fw_Appli-signed.bin --version 2
 ```
 
 The USB uploader requires `pyserial`. `--version` is a uint32 release identifier,

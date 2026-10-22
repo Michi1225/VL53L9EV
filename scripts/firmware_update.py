@@ -29,7 +29,7 @@ def validate_image(data):
         raise ValueError('Image must be an aligned signed application fitting 512 KiB SRAM')
     word = lambda offset: struct.unpack_from('<I', data, offset)[0]
     if word(0) != 0x324d5453 or word(0x68) != 0x00020300 or word(0x6c) + 0x240 != len(data):
-        raise ValueError('Use VL53L9_eval_Appli-signed.bin (STM32 header v2.3 with --align)')
+        raise ValueError('Use magnecko-sense-fw_Appli-signed.bin (STM32 header v2.3 with --align)')
     sp, entry = struct.unpack_from('<II', data, 0x400)
     if (not 0x34080000 < sp <= 0x34200000 or sp % 8 or not entry & 1 or
             not 0x34000400 <= (entry & ~1) < 0x34000000 + len(data) or word(0x70) != entry):

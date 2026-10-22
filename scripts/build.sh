@@ -32,9 +32,9 @@ DEV_MODE=0
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-FSBL_TARGET="VL53L9_eval_FSBL"
-APPLI_TARGET="VL53L9_eval_Appli"
-EXTMEM_TARGET="VL53L9_eval_ExtMemLoader"
+FSBL_TARGET="magnecko-sense-fw_FSBL"
+APPLI_TARGET="magnecko-sense-fw_Appli"
+EXTMEM_TARGET="magnecko-sense-fw_ExtMemLoader"
 
 FSBL_ELF="${ROOT_DIR}/FSBL/build/${FSBL_TARGET}.elf"
 FSBL_BIN="${ROOT_DIR}/FSBL/build/${FSBL_TARGET}.bin"

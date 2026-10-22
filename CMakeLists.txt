@@ -12,7 +12,7 @@ include(ExternalProject)
 set(CMAKE_CXX_COMPILER_FORCED "true")
 
 # Set the project name
-set(CMAKE_PROJECT_NAME VL53L9_eval)
+set(CMAKE_PROJECT_NAME magnecko-sense-fw)
 
 # Core project settings
 project(${CMAKE_PROJECT_NAME})

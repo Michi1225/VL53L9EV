@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Desktop viewer for VL53L9EV USB CDC / Ethernet sensor and identity packets."""
+"""Desktop viewer for Magnecko Sense USB CDC / Ethernet sensor and identity packets."""
 import argparse
 from decimal import Decimal, InvalidOperation
 from collections import deque
@@ -303,7 +303,7 @@ class Viewer:
     ## @brief Build the device monitor tabs, sensor controls, plots, and periodic refresh loop.
     def __init__(self, root, args):
         self.root = root
-        root.title('VL53L9EV · Device Monitor')
+        root.title('Magnecko Sense · Device Monitor')
         root.geometry('1200x850')
         # Treeview's fixed row height does not follow the DPI-scaled font.
         # Share font-based spacing between the profiler and parameter tables.
@@ -516,7 +516,7 @@ class Viewer:
         for variable in (self.fw_slots, self.fw_versions, self.fw_flags, self.fw_warning):
             ttk.Label(status, textvariable=variable, wraplength=1000).pack(anchor='w', pady=3)
         ttk.Label(self.fw_tab, text=(
-            'Choose VL53L9_eval_Appli-signed.bin from a normal flash build. '
+            'Choose magnecko-sense-fw_Appli-signed.bin from a normal flash build. '
             'USB streaming pauses during updates and resumes afterward. '
             'Boot confirmation can take up to 60 seconds, including watchdog recovery.'),
             wraplength=1000).pack(anchor='w', pady=12)

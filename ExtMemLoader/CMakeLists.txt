@@ -30,7 +30,7 @@ set(STM32_LINKER_SCRIPT stm32n6xx_extmemloader_stm32cube.ld)
 set(STM32_LINKER_OPTION  )
 
 # Set the project name
-set(CMAKE_PROJECT_NAME VL53L9_eval_ExtMemLoader)
+set(CMAKE_PROJECT_NAME magnecko-sense-fw_ExtMemLoader)
 project(${CMAKE_PROJECT_NAME})
 
 # Create an executable object type
@@ -40,6 +40,9 @@ set_property(TARGET ${CMAKE_PROJECT_NAME} APPEND PROPERTY LINK_DEPENDS
 
 # Include mx-generated
 include("mx-generated.cmake")
+
+# Board identity is also used by middleware that consumes application headers.
+target_include_directories(stm32cubemx INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/../common/board")
 
 
 # In order to use CMake for cross-compiling

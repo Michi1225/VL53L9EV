@@ -236,12 +236,12 @@ class FlashWorkflowTests(unittest.TestCase):
             shutil.copyfile(ROOT / 'scripts' / name, self.root / 'scripts' / name)
         (self.root / 'config').mkdir()
         shutil.copyfile(ROOT / 'config/flash_parameters.json', self.root / 'config/flash_parameters.json')
-        self.loader = self.root / 'ExtMemLoader/build/VL53L9_eval_ExtMemLoader.stldr'
+        self.loader = self.root / 'ExtMemLoader/build/magnecko-sense-fw_ExtMemLoader.stldr'
         self.loader.parent.mkdir(parents=True)
         self.loader.write_bytes(b'fake external loader')
         self.images = {}
-        for label, name in [('fsbl', 'FSBL/build/VL53L9_eval_FSBL-trusted.bin'),
-                            ('application', 'Appli/build/VL53L9_eval_Appli-signed.bin')]:
+        for label, name in [('fsbl', 'FSBL/build/magnecko-sense-fw_FSBL-trusted.bin'),
+                            ('application', 'Appli/build/magnecko-sense-fw_Appli-signed.bin')]:
             image = self.root / name
             image.parent.mkdir(parents=True)
             image.write_bytes(label.encode())

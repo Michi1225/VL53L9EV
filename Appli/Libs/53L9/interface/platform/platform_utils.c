@@ -21,6 +21,7 @@
 #include "stm32n6xx_hal_dcmipp.h"
 #include "vl53l9_device.h"
 #include "vl53l9_interface.h"
+#include "board_identity.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -64,7 +65,8 @@ int platform_get_version(platform_version_t *version) {
     version->driver =
         (_version_t){ .major = VL53L9_CORE_MAJOR, .minor = VL53L9_CORE_MINOR, .patch = VL53L9_CORE_PATCH };
 
-    strncpy(version->board_name, "nucleo-n657x0-q", BOARD_NAME_STR_SIZE);
+    _Static_assert(sizeof(MGS_BOARD_NAME) <= BOARD_NAME_STR_SIZE, "Board name must fit the interface");
+    memcpy(version->board_name, MGS_BOARD_NAME, sizeof(MGS_BOARD_NAME));
 
     return 0;
 }

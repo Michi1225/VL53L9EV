@@ -1,4 +1,4 @@
-# STM32N6 Sensor Board – Bring-Up & System Test Protocol
+# Magnecko Sense (MGS) – Bring-Up & System Test Protocol
 
 [Wiki home](../README.md) · [Full contents](../SUMMARY.md)
 

@@ -3,7 +3,7 @@ set(ST_MULTICONTEXT BOOT_FLASH CACHE STRING "Type of multi-context")
 #-----------------------Build Appli Project-----------------------#
 if((${BUILD_CONTEXT} MATCHES .*Appli.*) OR (NOT DEFINED BUILD_CONTEXT))
     message("   Build context: " Appli)
-    ExternalProject_Add(VL53L9_eval_Appli
+    ExternalProject_Add(magnecko-sense-fw_Appli
         BINARY_DIR                  ${CMAKE_SOURCE_DIR}/Appli/build
         SOURCE_DIR                  ${PROJECT_SOURCE_DIR}/Appli
         PREFIX                      Appli
@@ -14,12 +14,12 @@ if((${BUILD_CONTEXT} MATCHES .*Appli.*) OR (NOT DEFINED BUILD_CONTEXT))
     )
 
 	set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${CMAKE_SOURCE_DIR}/Appli/build")
-	set(ST_BOOT_FLASH_APPLI_PROJECT_BUILD_TARGET ${CMAKE_SOURCE_DIR}/Appli/build/VL53L9_eval_Appli${CMAKE_EXECUTABLE_SUFFIX_CXX} CACHE FILEPATH "Path to appli project target")
+	set(ST_BOOT_FLASH_APPLI_PROJECT_BUILD_TARGET ${CMAKE_SOURCE_DIR}/Appli/build/magnecko-sense-fw_Appli${CMAKE_EXECUTABLE_SUFFIX_CXX} CACHE FILEPATH "Path to appli project target" FORCE)
 endif()
 #-----------------------Build ExtMemLoader Project-----------------------#
 if((${BUILD_CONTEXT} MATCHES .*ExtMemLoader.*) OR (NOT DEFINED BUILD_CONTEXT))
     message("   Build context: " ExtMemLoader)
-    ExternalProject_Add(VL53L9_eval_ExtMemLoader
+    ExternalProject_Add(magnecko-sense-fw_ExtMemLoader
         BINARY_DIR                  ${CMAKE_SOURCE_DIR}/ExtMemLoader/build
         SOURCE_DIR                  ${PROJECT_SOURCE_DIR}/ExtMemLoader
         PREFIX                      ExtMemLoader
@@ -30,12 +30,12 @@ if((${BUILD_CONTEXT} MATCHES .*ExtMemLoader.*) OR (NOT DEFINED BUILD_CONTEXT))
     )
 
 	set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${CMAKE_SOURCE_DIR}/ExtMemLoader/build")
-	set(ST_BOOT_FLASH_EXTMEMLOADER_PROJECT_BUILD_TARGET ${CMAKE_SOURCE_DIR}/ExtMemLoader/build/VL53L9_eval_ExtMemLoader${CMAKE_EXECUTABLE_SUFFIX_CXX} CACHE FILEPATH "Path to extmemloader project target")
+	set(ST_BOOT_FLASH_EXTMEMLOADER_PROJECT_BUILD_TARGET ${CMAKE_SOURCE_DIR}/ExtMemLoader/build/magnecko-sense-fw_ExtMemLoader${CMAKE_EXECUTABLE_SUFFIX_CXX} CACHE FILEPATH "Path to extmemloader project target" FORCE)
 endif()
 #-----------------------Build FSBL Project-----------------------#
 if((${BUILD_CONTEXT} MATCHES .*FSBL.*) OR (NOT DEFINED BUILD_CONTEXT))
     message("   Build context: " FSBL)
-    ExternalProject_Add(VL53L9_eval_FSBL
+    ExternalProject_Add(magnecko-sense-fw_FSBL
         BINARY_DIR                  ${CMAKE_SOURCE_DIR}/FSBL/build
         SOURCE_DIR                  ${PROJECT_SOURCE_DIR}/FSBL
         PREFIX                      FSBL
@@ -46,6 +46,6 @@ if((${BUILD_CONTEXT} MATCHES .*FSBL.*) OR (NOT DEFINED BUILD_CONTEXT))
     )
 
 	set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${CMAKE_SOURCE_DIR}/FSBL/build")
-	set(ST_BOOT_FLASH_FSBL_PROJECT_BUILD_TARGET ${CMAKE_SOURCE_DIR}/FSBL/build/VL53L9_eval_FSBL${CMAKE_EXECUTABLE_SUFFIX_CXX} CACHE FILEPATH "Path to fsbl project target")
+	set(ST_BOOT_FLASH_FSBL_PROJECT_BUILD_TARGET ${CMAKE_SOURCE_DIR}/FSBL/build/magnecko-sense-fw_FSBL${CMAKE_EXECUTABLE_SUFFIX_CXX} CACHE FILEPATH "Path to fsbl project target" FORCE)
 endif()
 

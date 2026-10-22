@@ -1,4 +1,4 @@
-# VL53L9EV project wiki
+# Magnecko Sense project wiki
 
 Firmware, hardware, protocol, and desktop-tool documentation for the STM32N657
 sensor board. This folder is the maintained home of the project guides.

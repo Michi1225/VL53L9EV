@@ -37,7 +37,8 @@ extern "C" {
   * @{
   */
 
-#ifndef STM32N6570_DISCOVERY_USBPD_PWR_H
+#ifndef MGS_USBPD_PWR_USER_H
+#define MGS_USBPD_PWR_USER_H
 /** @defgroup POWER_Exported_Types Exported Types
   * @{
   */
@@ -171,7 +172,7 @@ typedef void USBPD_PWR_VBUSDetectCallbackFunc(uint32_t Instance,
   * @}
   */
 
-#endif /* STM32N6570_DISCOVERY_USBPD_PWR_H */
+#endif /* MGS_USBPD_PWR_USER_H */
 
 /** @defgroup POWER_Exported_Functions Exported Functions
   * @{

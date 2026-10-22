@@ -1,4 +1,4 @@
-"""VL53L9EV control protocol helpers (USB CDC and streaming TCP connection)."""
+"""Magnecko Sense control protocol helpers (USB CDC and streaming TCP connection)."""
 from USB_Debug import HEADER, TOF_MAGIC, TOF_STATUS, TOF_STATUS_V2
 
 CTRL_MAGIC = b'CTRL'

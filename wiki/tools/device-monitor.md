@@ -83,7 +83,7 @@ once using SWD before using this tab.
    The update port is editable in the tab or through `--dfu-port`.
 2. Choose **Read status** to inspect running, confirmed, and pending slots,
    release identifiers, upload/verification flags, and persistent warnings.
-3. Browse to `Appli/build/VL53L9_eval_Appli-signed.bin` from a normal flash build
+3. Browse to `Appli/build/magnecko-sense-fw_Appli-signed.bin` from a normal flash build
    and enter its unsigned 32-bit release identifier. Raw application binaries,
    corrupt images, and images marked `DEV_MODE` in their manifest are rejected.
 4. Press **Upload image**. The progress bar advances after each acknowledged

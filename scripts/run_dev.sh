@@ -202,11 +202,11 @@ esac
 case "${TARGET}" in
     appli|application)
         TARGET="appli"
-        ELF="${ROOT_DIR}/Appli/build/VL53L9_eval_Appli.elf"
+        ELF="${ROOT_DIR}/Appli/build/magnecko-sense-fw_Appli.elf"
         DISPLAY_NAME="Application"
         ;;
     fsbl)
-        ELF="${ROOT_DIR}/FSBL/build/VL53L9_eval_FSBL.elf"
+        ELF="${ROOT_DIR}/FSBL/build/magnecko-sense-fw_FSBL.elf"
         DISPLAY_NAME="FSBL"
         ;;
     *)

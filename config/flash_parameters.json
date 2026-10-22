@@ -1,12 +1,14 @@
 {
   "schema_version": 2,
   "device": {
-    "product": "VL53L9EV",
+    "product": "Magnecko Sense",
+    "pcb_identifier": "MGS",
+    "board_version": "MGS-1.0-",
     "name": null,
     "description": null,
     "serial_number": null,
-    "hardware_revision": null,
-    "pcb_revision": null,
+    "hardware_revision": "1.0",
+    "pcb_revision": "-",
     "assembly_revision": null
   },
   "firmware": {

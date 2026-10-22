@@ -30,7 +30,7 @@ set(STM32_LINKER_SCRIPT STM32N657XX_AXISRAM2_fsbl.ld)
 set(STM32_LINKER_OPTION  )
 
 # Set the project name
-set(CMAKE_PROJECT_NAME VL53L9_eval_FSBL)
+set(CMAKE_PROJECT_NAME magnecko-sense-fw_FSBL)
 project(${CMAKE_PROJECT_NAME})
 
 # Create an executable object type
@@ -38,6 +38,9 @@ add_executable(${CMAKE_PROJECT_NAME})
 
 # Include mx-generated
 include("mx-generated.cmake")
+
+# Board identity is also used by middleware that consumes application headers.
+target_include_directories(stm32cubemx INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/../common/board")
 
 
 # In order to use CMake for cross-compiling

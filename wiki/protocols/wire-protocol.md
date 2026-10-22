@@ -1,4 +1,4 @@
-# VL53L9EV wire protocol
+# Magnecko Sense wire protocol
 
 [Wiki home](../README.md) · [Full contents](../SUMMARY.md)
 

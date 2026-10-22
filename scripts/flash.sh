@@ -21,9 +21,9 @@ PARAMETERS=""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-LOADER="${ROOT_DIR}/ExtMemLoader/build/VL53L9_eval_ExtMemLoader.stldr"
-FSBL_IMAGE="${ROOT_DIR}/FSBL/build/VL53L9_eval_FSBL-trusted.bin"
-APPLI_IMAGE="${ROOT_DIR}/Appli/build/VL53L9_eval_Appli-signed.bin"
+LOADER="${ROOT_DIR}/ExtMemLoader/build/magnecko-sense-fw_ExtMemLoader.stldr"
+FSBL_IMAGE="${ROOT_DIR}/FSBL/build/magnecko-sense-fw_FSBL-trusted.bin"
+APPLI_IMAGE="${ROOT_DIR}/Appli/build/magnecko-sense-fw_Appli-signed.bin"
 
 FSBL_ADDR="0x90040000"
 APPLI_A_ADDR="0x90100000"

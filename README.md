@@ -1,4 +1,8 @@
-# VL53L9EV
+# Magnecko Sense
+
+Firmware repository: **`magnecko-sense-fw`**. PCB identifier: **MGS**.
+Board versions are **`MGS-1.0-`**, **`MGS-1.0A`**, **`MGS-1.0B`**, and so on;
+revision 0 is written as `-`.
 
 STM32N657 firmware and desktop tools for the VL53L9 depth sensor and LSM6DSV16X IMU,
 with USB CDC and Ethernet streaming, device configuration, CPU profiling, and A/B

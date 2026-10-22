@@ -1,6 +1,6 @@
-# VL53L9EV wire protocol
+# Magnecko Sense wire protocol
 
 This guide is now maintained in the project wiki:
 
-- [VL53L9EV wire protocol](../wiki/protocols/wire-protocol.md)
+- [Magnecko Sense wire protocol](../wiki/protocols/wire-protocol.md)
 - [Wiki contents](../wiki/SUMMARY.md)

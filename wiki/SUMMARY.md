@@ -41,7 +41,7 @@
 
 ## Protocol reference
 
-- [VL53L9EV wire protocol](protocols/wire-protocol.md)
+- [Magnecko Sense wire protocol](protocols/wire-protocol.md)
   - [Connections and lifecycle](protocols/wire-protocol.md#connections-and-lifecycle)
   - [Common header](protocols/wire-protocol.md#common-16-byte-header)
   - [Sensor commands: CTRL](protocols/wire-protocol.md#commands-ctrl)

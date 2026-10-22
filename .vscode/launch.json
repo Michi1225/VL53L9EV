@@ -22,8 +22,8 @@
             "runEntry": "main",
             "imagesAndSymbols": [
                 {
-                    "imageFileName": "${workspaceFolder}/Appli/build/VL53L9_eval_Appli.elf",
-                    "symbolFileName": "${workspaceFolder}/Appli/build/VL53L9_eval_Appli.elf"
+                    "imageFileName": "${workspaceFolder}/Appli/build/magnecko-sense-fw_Appli.elf",
+                    "symbolFileName": "${workspaceFolder}/Appli/build/magnecko-sense-fw_Appli.elf"
                 }
             ],
             "verbose": false
@@ -40,8 +40,8 @@
             "runEntry": "main",
             "imagesAndSymbols": [
                 {
-                    "imageFileName": "${workspaceFolder}/FSBL/build/VL53L9_eval_FSBL.elf",
-                    "symbolFileName": "${workspaceFolder}/FSBL/build/VL53L9_eval_FSBL.elf"
+                    "imageFileName": "${workspaceFolder}/FSBL/build/magnecko-sense-fw_FSBL.elf",
+                    "symbolFileName": "${workspaceFolder}/FSBL/build/magnecko-sense-fw_FSBL.elf"
                 }
             ],
             "verbose": false
@@ -57,7 +57,7 @@
             "serverReset": "None",
             "imagesAndSymbols": [
                 {
-                    "symbolFileName": "${workspaceFolder}/Appli/build/VL53L9_eval_Appli.elf"
+                    "symbolFileName": "${workspaceFolder}/Appli/build/magnecko-sense-fw_Appli.elf"
                 }
             ],
             "verbose": false
@@ -73,7 +73,7 @@
             "serverReset": "None",
             "imagesAndSymbols": [
                 {
-                    "symbolFileName": "${workspaceFolder}/FSBL/build/VL53L9_eval_FSBL.elf"
+                    "symbolFileName": "${workspaceFolder}/FSBL/build/magnecko-sense-fw_FSBL.elf"
                 }
             ],
             "verbose": false

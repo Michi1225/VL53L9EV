@@ -23,9 +23,10 @@
 #define __EXTMEMLOADER_CONF_H_
 
 #include "stm32_extmem_conf.h"
+#include "board_identity.h"
 
 #define STM32EXTLOADER_DEVICE_MEMORY_ID           EXTMEMORY_1
-#define	STM32EXTLOADER_DEVICE_NAME                "S28HS512TGABHI013_VL53L9EV"
+#define	STM32EXTLOADER_DEVICE_NAME                "S28HS512TGABHI013_" MGS_BOARD_VERSION
 #define STM32EXTLOADER_DEVICE_TYPE                NOR_FLASH
 #define	STM32EXTLOADER_DEVICE_ADDR                0x70000000
 #define	STM32EXTLOADER_DEVICE_SIZE                0x4000000
