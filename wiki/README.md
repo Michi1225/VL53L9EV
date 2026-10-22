@@ -11,6 +11,7 @@ sensor board. This folder is the maintained home of the project guides.
 | --- | --- |
 | Set up the toolchain, build, flash, or debug | [Build, flash, and debug](getting-started/build-flash-debug.md) |
 | Inspect a new board and record hardware tests | [Board bring-up and testing](hardware/bring-up-and-testing.md) |
+| Interpret boot, initialization and ranging LED patterns | [Status LED](firmware/status-led.md) |
 | Check programming addresses and reserved regions | [Current flash layout](hardware/flash-layout.md) |
 | View depth, IMU, parameters, and CPU usage | [Device Monitor](tools/device-monitor.md) |
 | Upload a new application and understand rollback | [Firmware updates and A/B recovery](firmware/firmware-updates.md) |
@@ -42,6 +43,7 @@ wiki/
 │   └── bring-up-and-testing.md        Board checklist and acceptance plan
 ├── firmware/
 │   ├── parameters.md                 Identity, JSON, image provenance
+│   ├── status-led.md                 Boot and sensor lifecycle patterns
 │   └── firmware-updates.md            USB/Ethernet DFU and A/B recovery
 ├── protocols/
 │   └── wire-protocol.md               Commands and binary packet formats

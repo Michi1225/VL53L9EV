@@ -136,6 +136,35 @@ in development mode bypasses that flash-loading step and its inherited hardware
 state. ROM uses **XSPI1 on XSPIM port 2** for this board's serial NOR. FSBL must
 reset XSPI1 as well as XSPIM before reinitializing the flash controller.
 
+FSBL drives the existing I2C LED controller before initializing flash, so these
+indications do not require debug access with BOOT1 low:
+
+| Indication | Meaning |
+| --- | --- |
+| Amber blinking (2 Hz, then 5 Hz) | FSBL reached GPIO/I2C initialization, then is checking/loading an application. |
+| Counted amber burst, then 2 s dark | FSBL error; the count identifies flash initialization, metadata/slot validation, or SRAM copy/verification. See the LED code table. |
+| Solid magenta | The SRAM application copy passed SHA-256 verification and FSBL is preparing the branch. Persistent magenta without the application's blue startup indication narrows the failure to handoff or early application startup. |
+| Blue blinking | Application reached GPIO/I2C initialization, before its remaining peripherals. |
+| Cyan double pulse | Application entry thread started after RTOS/middleware setup. Sensor initialization may still be running. |
+| Green breathing | ToF entered ranging state. |
+| Counted red, blue, or magenta burst, then 2 s dark | Application error; color and count identify the failing peripheral or RTOS/middleware setup. |
+| No FSBL indication | Failure may be in ROM loading, FSBL early clock/GPIO/I2C setup, or LED communication. This alone does not identify the failing component. |
+
+See the [complete LED legend and counted fault codes](status-led.md#counted-startup-failure-codes)
+for the full decoder. Older double-pulse presets repeated their inner pattern
+infinitely and skipped the pause, so continuous red on those builds could also
+be an FSBL error; it did not establish successful application entry.
+The early boot transitions may be brief. The LED controller generates its
+patterns independently; faults after the last successful LED write can leave that
+indication displayed. The LED writes are diagnostic and their acknowledgement
+does not gate boot. A trial watchdog is not refreshed in the FSBL error handler,
+preserving automatic rollback.
+
+When debug access is available, `fw_boot_stage` records 1 = LED setup,
+2 = flash initialization, 3 = metadata read, 4 = slot validation/selection,
+5 = SRAM copy, 6 = copy verification, 7 = handoff preparation.
+`fw_boot_result` records the returned updater result if selection/loading fails.
+
 The secure handoff stops SysTick, disables and clears pending NVIC interrupts,
 cleans/disables D-cache, invalidates/disables I-cache, disables the inherited MPU,
 and installs VTOR at `0x34000400`. The final assembly branch clears stack limits

@@ -5,6 +5,7 @@
 #include "main.h"
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -141,7 +142,19 @@ typedef enum
     LED_ANIMATION_UNCAUGHT_EXCEPTION,
     LED_ANIMATION_CHARGER_NOT_RESPONDING,
     LED_ANIMATION_CYAN,
-    LED_ANIMATION_GREEN
+    LED_ANIMATION_GREEN,
+    LED_ANIMATION_FSBL_STARTED,
+    LED_ANIMATION_FSBL_LOADING,
+    LED_ANIMATION_FSBL_HANDOFF,
+    LED_ANIMATION_FSBL_ERROR,
+    LED_ANIMATION_APP_STARTED,
+    LED_ANIMATION_APP_INIT_FINISHED,
+    LED_ANIMATION_APP_RANGING,
+    LED_ANIMATION_APP_IDLE,
+    LED_ANIMATION_APP_POWER_DOWN,
+    LED_ANIMATION_APP_RESETTING,
+    LED_ANIMATION_APP_FAULT,
+    LED_ANIMATION_COUNT
 } LED_Animation_t;
 
 typedef struct
@@ -149,14 +162,37 @@ typedef struct
     LED_Controller_Pattern_t patterns[4];
     LED_Controller_Engine_t engines[4];
     LED_Controller_Config_t config;
+    LED_Animation_t animation;
+    HAL_StatusTypeDef last_status;
+    uint32_t next_retry_ms;
+    bool initialized, animation_valid;
+    volatile bool busy;
 } LEDController;
 
-/** @brief Initialize the LED controller state and program its default configuration. */
-void LEDController_Init(LEDController *controller);
-/** @brief Select an LED animation and write its patterns to the controller. */
-void LEDController_SetAnimation(LEDController *controller, LED_Animation_t animation);
+/** @brief Initialize once after I2C setup, before starting application threads. */
+HAL_StatusTypeDef LEDController_Init(LEDController *controller);
+/** @brief Apply an autonomous pattern; unchanged successful requests generate no I2C traffic.
+ * Returns HAL_BUSY for a concurrent writer. Failed writes can be retried by
+ * requesting the same animation (failed repeats are limited to every 500 ms).
+ * Do not call from an interrupt handler.
+ */
+HAL_StatusTypeDef LEDController_SetAnimation(LEDController *controller, LED_Animation_t animation);
 
-static LEDController led_controller;
+extern LEDController led_controller;
+
+typedef enum {
+    LED_DIAGNOSTIC_RED = 1,
+    LED_DIAGNOSTIC_AMBER = 3,
+    LED_DIAGNOSTIC_BLUE = 4,
+    LED_DIAGNOSTIC_MAGENTA = 5
+} LED_DiagnosticColor_t;
+
+/** @brief Play 1--14 flashes (200 ms on/off), then a 2 s gap, autonomously.
+ * Best effort from a fatal startup path after LED initialization. Does not
+ * require a CPU animation loop; returns the I2C status or HAL_BUSY.
+ */
+HAL_StatusTypeDef LEDController_SetFaultCode(LEDController *controller,
+                                            LED_DiagnosticColor_t color, uint8_t pulses);
 
 #ifdef __cplusplus
 }

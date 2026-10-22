@@ -37,6 +37,8 @@
 /* USER CODE BEGIN Includes */
 #include "device_parameters.h"
 #include "IMU.h"
+#include "LEDController.h"
+#include "boot_diagnostics.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -83,12 +85,15 @@ int main(void)
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
-  HAL_Init();
+  app_boot_stage = APP_BOOT_HAL;
+  if (HAL_Init() != HAL_OK) Error_Handler();
 
   /* USER CODE BEGIN Init */
 #ifdef DEV_MODE
+  app_boot_stage = APP_BOOT_CLOCKS;
   App_SystemClock_Config();
 #endif
+  app_boot_stage = APP_BOOT_CLOCKS;
   PeriphCommonClock_Config();
   /* USER CODE END Init */
 
@@ -97,24 +102,41 @@ int main(void)
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
+  app_boot_stage = APP_BOOT_GPIO;
   MX_GPIO_Init();
-  MX_GPDMA1_Init();
-  MX_DCMIPP_Init();
-  MX_ETH1_Init();
-  MX_UCPD1_Init();
-  MX_USB2_OTG_HS_PCD_Init();
-  MX_SPI4_Init();
-  MX_I3C2_Init();
+  /* Show application entry before the remaining peripheral initialization. */
+  app_boot_stage = APP_BOOT_I2C;
   MX_I2C2_Init();
+  (void)LEDController_Init(&led_controller);
+  (void)LEDController_SetAnimation(&led_controller, LED_ANIMATION_APP_STARTED);
+  app_boot_stage = APP_BOOT_DMA;
+  MX_GPDMA1_Init();
+  app_boot_stage = APP_BOOT_DCMIPP;
+  MX_DCMIPP_Init();
+  app_boot_stage = APP_BOOT_ETHERNET;
+  MX_ETH1_Init();
+  app_boot_stage = APP_BOOT_UCPD;
+  MX_UCPD1_Init();
+  app_boot_stage = APP_BOOT_USB;
+  MX_USB2_OTG_HS_PCD_Init();
+  app_boot_stage = APP_BOOT_SPI;
+  MX_SPI4_Init();
+  app_boot_stage = APP_BOOT_I3C;
+  MX_I3C2_Init();
+  app_boot_stage = APP_BOOT_XSPI;
   MX_XSPI1_Init();
+  app_boot_stage = APP_BOOT_ISOLATION;
   SystemIsolation_Config();
   /* Call PreOsInit function */
+  app_boot_stage = APP_BOOT_PD_PREINIT;
   USBPD_PreInitOs();
   /* USER CODE BEGIN 2 */
+  app_boot_stage = APP_BOOT_PARAMETERS;
   device_parameters_init();
   
   /* USER CODE END 2 */
 
+  app_boot_stage = APP_BOOT_KERNEL;
   MX_ThreadX_Init();
 
   /* We should never get here as control is now taken by the scheduler */
@@ -275,10 +297,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   * @brief  This function is executed in case of error occurrence.
   * @retval None
   */
-void Error_Handler(void)
+__attribute__((noinline)) void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
+  /* Best effort before interrupts stop; pre-I2C errors leave the prior boot LED. */
+  app_boot_error_return_address = (uint32_t)(uintptr_t)__builtin_return_address(0);
+  app_boot_report_failure();
   __disable_irq();
   while (1)
   {

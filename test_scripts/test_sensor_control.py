@@ -288,6 +288,10 @@ HARNESS = r'''
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+static uint32_t led_state = UINT32_MAX;
+/* Record LED publication separately from the wire status; the adapter's
+ * hardware mappings are exercised by test_led_controller.py. */
+void status_led_tof(uint32_t state) { led_state = state; }
 /** @brief Initialize an in-memory queue with the requested capacity and message size. */
 unsigned tx_queue_create(TX_QUEUE *q, char *name, unsigned words, void *storage, unsigned size) {
     (void)name; *q = (TX_QUEUE){.words=words, .capacity=size/(words*4), .data=storage}; return 0;
@@ -356,6 +360,7 @@ static void submit(uint32_t id, uint32_t opcode, bool set) {
 static void emit_reply(unsigned id, unsigned result) {
     tof_reply_t reply; assert(tof_control_next_reply(&reply));
     assert(reply.route==TOF_TCP && reply.session==17 && reply.packet[4]==id && reply.packet[39]==result);
+    assert(led_state == reply.packet[38]);
     assert(fwrite(reply.packet,1,sizeof(reply.packet),stdout)==sizeof(reply.packet));
 }
 /** @brief Advance the test scenario when the firmware yields. */

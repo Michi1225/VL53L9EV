@@ -1,5 +1,6 @@
 #include "stream_manager.h"
 #include "tof_control.h"
+#include "status_led.h"
 #include "dcmipp.h"
 #include <stdbool.h>
 #include <string.h>
@@ -9,6 +10,13 @@ UCHAR stream_packet[STREAM_HEADER_SIZE + CSI_OUTPUT_PAYLOAD_SIZE];
 ULONG stream_packet_length;
 static VL53L9_TypeDef_t sensor;
 static tof_status_t state;
+
+/** @brief Publish sensor state and update the LED outside the status critical section. */
+static void publish(void)
+{
+    tof_control_publish(&state);
+    status_led_tof(state.state);
+}
 
 /** @brief Encode a 32-bit value in little-endian byte order. */
 static void put_le32(UCHAR *dst, ULONG value)
@@ -25,7 +33,7 @@ static void fault(int32_t error)
     state.state = TOF_FAULT;
     state.error = error ? error : -1;
     ++state.revision;
-    tof_control_publish(&state);
+    publish();
 }
 
 /** @brief Copy the active sensor profile and geometry into the published status. */
@@ -50,13 +58,13 @@ static uint32_t command(const tof_command_t *c)
         platform_acknowledge_event(PLATFORM_CAM_PIPE_FRAME_EVT);
         state.state = TOF_INITIALIZING;
         ++state.revision;
-        tof_control_publish(&state);
+        publish();
         if (VL53L9_init(&sensor) != HAL_OK) { fault(-1); return TOF_SENSOR_ERROR; }
         update_config();
         state.error = 0;
         state.state = TOF_STOPPED;
         ++state.revision;
-        tof_control_publish(&state);
+        publish();
         return TOF_OK;
     }
     if (c->operation == TOF_POWER_DOWN)
@@ -70,7 +78,7 @@ static uint32_t command(const tof_command_t *c)
         { fault(-1); return TOF_SENSOR_ERROR; }
         state.state = TOF_OFF;
         ++state.revision;
-        tof_control_publish(&state);
+        publish();
         return capture_result ? TOF_SENSOR_ERROR : TOF_OK;
     }
     if (state.state == TOF_OFF) return c->operation == TOF_STOP ? TOF_OK : TOF_POWERED_DOWN;
@@ -108,7 +116,7 @@ static uint32_t command(const tof_command_t *c)
     }
     else return TOF_BAD_COMMAND;
     ++state.revision;
-    tof_control_publish(&state);
+    publish();
     return TOF_OK;
 }
 
@@ -123,10 +131,13 @@ void stream_thread_entry(ULONG argument)
     {
         update_config();
         if (VL53L9_start_ranging(&sensor) != HAL_OK) fault(-1);
-        else { state.state = TOF_STREAMING; state.revision = 1; armed = true; tof_control_publish(&state); }
+        else { state.state = TOF_STREAMING; state.revision = 1; armed = true; publish(); }
     }
     for (;;)
     {
+        /* Successful repeats are cached. Failed LED writes retry at most twice
+         * per second, including while stopped or waiting for a sensor frame. */
+        status_led_tof(state.state);
         /* The transport must finish the previous packet before Stop can be
          * acknowledged or a new geometry can be applied to the shared buffer. */
         if (packet_in_flight)
@@ -201,7 +212,7 @@ void stream_thread_entry(ULONG argument)
 #endif
         armed = true;
         packet_in_flight = true;
-        tof_control_publish(&state);
+        publish();
         tx_event_flags_set(&stream_events, STREAM_PACKET_READY, TX_OR);
     }
 }

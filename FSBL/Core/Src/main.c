@@ -93,13 +93,18 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_GPDMA1_Init();
-  MX_XSPI1_Init();
   MX_I2C2_Init();
+  /* Indicate FSBL entry before touching the ROM-used flash controller. */
+  fw_boot_stage = 1U;
+  fw_boot_led_init();
+  MX_GPDMA1_Init();
+  fw_boot_stage = 2U;
+  MX_XSPI1_Init();
   MX_EXTMEM_MANAGER_Init();
   /* USER CODE BEGIN 2 */
   /* A/B selection validates before copying; it returns only on failure. */
-  if (fw_boot_run() != FW_OK)
+  fw_boot_result = fw_boot_run();
+  if (fw_boot_result != FW_OK)
   {
     Error_Handler();
   }
@@ -325,7 +330,13 @@ uint32_t BOOT_GetApplicationSize(uint32_t img_addr)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
+  /* The LED engine runs independently after IRQs stop. Do not feed the
+     watchdog here: a failed trial must still roll back automatically. */
+  if (fw_boot_led_ready)
+  {
+    uint8_t pulses = (fw_boot_stage >= 1U && fw_boot_stage <= 7U) ? (uint8_t)fw_boot_stage : 1U;
+    LEDController_SetFaultCode(&led_controller, LED_DIAGNOSTIC_AMBER, pulses);
+  }
   __disable_irq();
   while (1)
   {

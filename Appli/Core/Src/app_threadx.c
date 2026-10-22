@@ -24,6 +24,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "LEDController.h"
+#include "boot_diagnostics.h"
 #include "control_server.h"
 #include "housekeeping.h"
 #include "app_events.h"
@@ -77,8 +78,6 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   TX_BYTE_POOL *byte_pool = (TX_BYTE_POOL*)memory_ptr;
 
   /* USER CODE BEGIN App_ThreadX_MEM_POOL */
-  LEDController_Init(&led_controller);
-  LEDController_SetAnimation(&led_controller, LED_ANIMATION_CYAN);
   /* USER CODE END App_ThreadX_MEM_POOL */
   CHAR *pointer;
 
@@ -181,6 +180,10 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
 void tx_app_thread_entry(ULONG thread_input)
 {
   /* USER CODE BEGIN tx_app_thread_entry */
+  /* Runs after tx_application_define has completed all middleware setup.
+     Sensor initialization follows in the lower-priority stream thread. */
+  app_boot_stage = APP_BOOT_RUNNING;
+  (void)LEDController_SetAnimation(&led_controller, LED_ANIMATION_APP_INIT_FINISHED);
 
   /* USER CODE END tx_app_thread_entry */
 }

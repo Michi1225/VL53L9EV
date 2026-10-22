@@ -44,7 +44,8 @@
 /* USER CODE END EC */
 
 /* Private defines -----------------------------------------------------------*/
-#define TX_APP_STACK_SIZE                       512
+/* Entry now programs the status LED through the HAL I2C call chain. */
+#define TX_APP_STACK_SIZE                       1024
 #define TX_APP_THREAD_PRIO                      10
 
 /* USER CODE BEGIN PD */

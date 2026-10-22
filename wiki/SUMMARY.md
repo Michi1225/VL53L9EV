@@ -25,6 +25,7 @@
 
 ## Firmware and persistent state
 
+- [Boot and application status LED](firmware/status-led.md)
 - [Device parameters and build metadata](firmware/parameters.md)
   - [Programming](firmware/parameters.md#programming-parameters)
   - [Editable fields](firmware/parameters.md#editable-fields)
