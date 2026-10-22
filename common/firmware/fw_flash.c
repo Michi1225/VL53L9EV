@@ -1,4 +1,5 @@
 #include "fw_flash.h"
+#include "fw_fsbl.h"
 
 /** @brief Wait for flash readiness with a timeout and an optional idle callback. */
 static int fw_flash_wait(fw_flash_t *f)
@@ -50,6 +51,27 @@ static int fw_flash_erase(void *ctx,uint32_t address)
 /** @brief Build the bounded flash callbacks used by the portable updater. */
 fw_io_t fw_flash_io(fw_flash_t *f)
 { return (fw_io_t){f,fw_flash_read,fw_flash_write,fw_flash_erase}; }
+static bool fw_flash_fsbl_range(uint32_t a,uint32_t n)
+{ return n && a>=FW_FSBL_BASE && a-FW_FSBL_BASE<FW_FSBL_MAX && n<=FW_FSBL_MAX-(a-FW_FSBL_BASE); }
+static int fw_flash_fsbl_read(void *ctx,uint32_t a,void *p,uint32_t n)
+{ return fw_flash_fsbl_range(a,n)?fw_flash_read(ctx,a,p,n):-1; }
+static int fw_flash_fsbl_write(void *ctx,uint32_t a,const void *p,uint32_t n)
+{
+    fw_flash_t *f=ctx;
+    if(f->idle)f->idle(); /* Feed IWDG and service USB between bounded writes. */
+    if(!fw_flash_fsbl_range(a,n) || fw_flash_wait(f) || SEMPER_Write(f->flash,a,p,n)!=SEMPER_OK)return -1;
+    return fw_flash_wait(f);
+}
+static int fw_flash_fsbl_erase(void *ctx,uint32_t a)
+{
+    fw_flash_t *f=ctx;
+    if(f->idle)f->idle();
+    if(a!=FW_FSBL_BASE || fw_flash_wait(f) || SEMPER_Erase256K(f->flash,a)!=SEMPER_OK)return -1;
+    return fw_flash_wait(f);
+}
+/** @brief Separate, narrowly bounded IO for explicitly requested bootloader installation. */
+fw_io_t fw_flash_fsbl_io(fw_flash_t *f)
+{ return (fw_io_t){f,fw_flash_fsbl_read,fw_flash_fsbl_write,fw_flash_fsbl_erase}; }
 /** @brief Restore the single-line SPI protocol expected by the boot ROM after a CPU reset. */
 int fw_flash_prepare_reset(fw_flash_t *f)
 {

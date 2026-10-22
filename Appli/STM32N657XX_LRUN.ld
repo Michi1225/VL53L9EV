@@ -229,6 +229,16 @@ SECTIONS
   PROVIDE( __bss_size = __bss_end - __bss_start );
 
 
+  /* RAM staging/rollback for FSBL updates, above the fixed Ethernet DMA descriptors.
+     Not startup BSS: fw_fsbl_open initializes its control fields explicitly. */
+  .fsbl_workspace 0x34110000 (NOLOAD) :
+  {
+    . = ALIGN(32);
+    KEEP(*(.fsbl_workspace))
+    . = ALIGN(32);
+  } >RAM
+  ASSERT(_ebss <= 0x34100000, "Application BSS overlaps Ethernet DMA descriptors")
+
   /* User_heap_stack section, used to check that there is enough "RAM" Ram  type memory left */
   ._user_heap_stack (NOLOAD) :
   {
