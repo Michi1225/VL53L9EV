@@ -28,7 +28,7 @@ static void Control_HandleClient(NX_TCP_SOCKET *socket, uint32_t generation)
             status = nx_tcp_socket_send(
                 socket,
                 packet,
-                NX_NO_WAIT);
+                2U * TX_TIMER_TICKS_PER_SECOND);
 
             if (status != NX_SUCCESS)
             {

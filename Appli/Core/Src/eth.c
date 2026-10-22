@@ -43,6 +43,7 @@ ETH_BufferTypeDef Txbuffer[ETH_TX_DESC_CNT * 2U];
 ETH_TxPacketConfig TxConfig;
 
 /* USER CODE BEGIN 0 */
+#include "ethernet_mac.h"
 
 /* USER CODE END 0 */
 
@@ -83,6 +84,8 @@ void MX_ETH1_Init(void)
   heth1.Init.RxBuffLen = 1536;
 
   /* USER CODE BEGIN MACADDRESS */
+  const uint32_t uid[3] = {HAL_GetUIDw0(), HAL_GetUIDw1(), HAL_GetUIDw2()};
+  ethernet_mac(uid, MACAddr);
   HAL_ETH_MspInit(&heth1);
 
   /* Select RGMII */

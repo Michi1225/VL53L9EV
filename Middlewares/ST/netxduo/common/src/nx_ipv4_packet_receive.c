@@ -116,6 +116,15 @@ UINT            packet_consumed;
     compute_checksum = 0;
 #endif /* NX_DISABLE_IP_RX_CHECKSUM */
 
+    /* Validate the fixed IPv4 header before trace, endian conversion or access.
+       DHCP starts with address zero and exercises the unicast receive path. */
+    if (packet_ptr -> nx_packet_length < sizeof(NX_IPV4_HEADER) ||
+        (ULONG)(packet_ptr -> nx_packet_append_ptr - packet_ptr -> nx_packet_prepend_ptr) < sizeof(NX_IPV4_HEADER))
+    {
+        _nx_packet_release(packet_ptr);
+        return;
+    }
+
     /* It's assumed that the IP link driver has positioned the top pointer in the
        packet to the start of the IP address... so that's where we will start.  */
     /*lint -e{927} -e{826} suppress cast of pointer to pointer, since it is necessary  */
@@ -679,6 +688,14 @@ UINT            packet_consumed;
         /* Check if this packet is UDP message.  */
         if (protocol == NX_IP_UDP)
         {
+            /* Check the complete UDP header before reading/swapping its ports
+               in the zero-address DHCP path (CVE-2025-55093). */
+            if (packet_ptr -> nx_packet_length < sizeof(NX_IPV4_HEADER) + sizeof(NX_UDP_HEADER) ||
+                (ULONG)(packet_ptr -> nx_packet_append_ptr - packet_ptr -> nx_packet_prepend_ptr) < sizeof(NX_IPV4_HEADER) + sizeof(NX_UDP_HEADER))
+            {
+                _nx_packet_release(packet_ptr);
+                return;
+            }
 
             /* Remove the IP header from the packet.  */
             packet_ptr -> nx_packet_prepend_ptr =  packet_ptr -> nx_packet_prepend_ptr + sizeof(NX_IPV4_HEADER);

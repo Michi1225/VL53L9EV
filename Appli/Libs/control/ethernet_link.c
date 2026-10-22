@@ -1,12 +1,14 @@
 #include "ethernet_link.h"
 #include "app_netxduo.h"
 #include "app_events.h"
+#include "ethernet_network.h"
 #include <stdbool.h>
 
 static volatile uint32_t generation;
 
 /** @brief Return the generation counter used to detect Ethernet reconnections. */
 uint32_t ethernet_link_generation(void) { return generation; }
+void ethernet_link_invalidate(void) { ++generation; }
 
 /** @brief Monitor the PHY, recover MAC operation, and publish Ethernet readiness. */
 void ethernet_link_thread_entry(ULONG argument)
@@ -16,11 +18,17 @@ void ethernet_link_thread_entry(ULONG argument)
     bool ready = false;
     /* Reconcile NetX's boot attempt, and retry a failed stop before re-enable. */
     bool disable_pending = true;
+    unsigned read_failures = 0;
     for (;;)
     {
         ULONG physical = 0, unused = 0;
-        UINT status = nx_ip_status_check(ip, NX_IP_LINK_ENABLED, &physical, TX_NO_WAIT);
-        bool up = status == NX_SUCCESS && (physical & NX_IP_LINK_ENABLED);
+        UINT status = nx_ip_driver_direct_command(ip, NX_LINK_GET_STATUS, &physical);
+        bool phy_error = status != NX_SUCCESS;
+        bool up = status == NX_SUCCESS && physical;
+        /* One failed MDIO read is not evidence of a removed cable. Preserve
+         * an established link for two polls; a real PHY-down result is immediate. */
+        if (phy_error) { if (++read_failures < 3U && ready) up = true; }
+        else read_failures = 0;
         if (!up)
         {
             /* This driver's GET_STATUS reports the PHY only. It neither stops
@@ -47,12 +55,13 @@ void ethernet_link_thread_entry(ULONG argument)
                     ready = true;
                     disable_pending = true;
                     ++generation;
-                    /* Static IPv4: publish readiness only after MAC/DMA enable. */
+                    /* Address readiness is owned by DHCP/static addressing. */
                     tx_event_flags_set(&app_events,
-                        APP_EVT_ETH_LINK_UP | APP_EVT_ETH_IP_READY, TX_OR);
+                        APP_EVT_ETH_LINK_UP, TX_OR);
                 }
             }
         }
+        ethernet_network_poll(ip, ready, up, phy_error);
         tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 5U);
     }
 }

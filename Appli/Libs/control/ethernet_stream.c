@@ -1,5 +1,7 @@
 #include "ethernet_stream.h"
 #include "ethernet_link.h"
+#include "ethernet_network.h"
+#include "ethernet_send.h"
 #include "stream_manager.h"
 #include "imu_stream.h"
 #include "imu_control.h"
@@ -16,8 +18,9 @@ static bool client_connected;
 static uint32_t client_session;
 static tof_parser_t command_parser;
 /** @brief Disconnect the stream client and discard its partial command. */
-static void disconnect_client(void)
+static void disconnect_client(uint32_t reason, UINT status)
 {
+    ethernet_network_client(false, reason, status);
     nx_tcp_socket_disconnect(&stream_socket, TX_NO_WAIT);
     nx_tcp_server_socket_unaccept(&stream_socket);
     client_connected = false;
@@ -26,26 +29,7 @@ static void disconnect_client(void)
 /** @brief Send stream bytes through bounded TCP packets, returning the first transport error. */
 static UINT tcp_write(const UCHAR *data, ULONG length)
 {
-    while (length)
-    {
-        ULONG count = length > 1460U ? 1460U : length;
-        NX_PACKET *packet = NX_NULL;
-        UINT status = nx_packet_allocate(nx_get_app_pool(), &packet, NX_TCP_PACKET,
-                                        TX_TIMER_TICKS_PER_SECOND / 4U);
-        if (status != NX_SUCCESS) return status;
-        status = nx_packet_data_append(packet, (VOID *)data, count,
-                                       nx_get_app_pool(), TX_TIMER_TICKS_PER_SECOND / 4U);
-        if (status == NX_SUCCESS)
-            status = nx_tcp_socket_send(&stream_socket, packet, TX_TIMER_TICKS_PER_SECOND / 4U);
-        if (status != NX_SUCCESS)
-        {
-            nx_packet_release(packet);
-            return status;
-        }
-        data += count;
-        length -= count;
-    }
-    return NX_SUCCESS;
+    return ethernet_send(&stream_socket, data, length);
 }
 /** @brief Read available TCP data and feed the current client's ToF command parser. */
 static void read_commands(void)
@@ -55,7 +39,7 @@ static void read_commands(void)
         NX_PACKET *packet;
         UINT status = nx_tcp_socket_receive(&stream_socket, &packet, TX_NO_WAIT);
         if (status == NX_NO_PACKET) break;
-        if (status != NX_SUCCESS) { disconnect_client(); break; }
+        if (status != NX_SUCCESS) { disconnect_client(NET_CLOSE_RECEIVE, status); break; }
         ULONG offset = 0;
         while (offset < packet->nx_packet_length)
         {
@@ -73,8 +57,10 @@ static void read_commands(void)
 static void write_transports(UCHAR *data, ULONG size)
 {
     (void)stream_usb_write(data, size);
-    if (client_connected && tcp_write(data, size) != NX_SUCCESS)
-        disconnect_client(); /* A partial frame must end this TCP session. */
+    if (client_connected) {
+        UINT result = tcp_write(data, size);
+        if (result != NX_SUCCESS) disconnect_client(NET_CLOSE_SEND, result);
+    } /* A permanently incomplete frame must end this TCP session. */
 }
 /** @brief Manage stream clients and forward sensor packets, metadata, and command replies. */
 void ethernet_stream_thread_entry(ULONG argument)
@@ -97,13 +83,13 @@ void ethernet_stream_thread_entry(ULONG argument)
         {
             /* Unaccept even a half-open SYN_RECEIVED socket before unlisten.
              * The generation catches an entire cable cycle during a USB write. */
-            disconnect_client();
+            disconnect_client(NET_CLOSE_LINK, 0);
             nx_tcp_server_socket_unlisten(ip, ETHERNET_STREAM_PORT);
             listening = false;
         }
         link_generation = current_generation;
         if (client_connected && stream_socket.nx_tcp_socket_state != NX_TCP_ESTABLISHED)
-            disconnect_client();
+            disconnect_client(NET_CLOSE_PEER, stream_socket.nx_tcp_socket_state);
         if (socket_ready && (link_flags & APP_EVT_ETH_IP_READY))
         {
             if (!listening)
@@ -114,7 +100,7 @@ void ethernet_stream_thread_entry(ULONG argument)
                 if (stream_socket.nx_tcp_socket_state == NX_TCP_CLOSED)
                     (void)nx_tcp_server_socket_relisten(ip, ETHERNET_STREAM_PORT, &stream_socket);
                 client_connected = nx_tcp_server_socket_accept(&stream_socket, TX_NO_WAIT) == NX_SUCCESS;
-                if (client_connected) { ++client_session; command_parser.used = 0; }
+                if (client_connected) { ++client_session; command_parser.used = 0; ethernet_network_client(true, 0, 0); }
             }
         }
         read_commands();
@@ -125,7 +111,8 @@ void ethernet_stream_thread_entry(ULONG argument)
                 (void)stream_usb_write(reply.packet, sizeof(reply.packet));
             else if (reply.route == TOF_TCP && client_connected && reply.session == client_session)
             {
-                if (tcp_write(reply.packet, sizeof(reply.packet)) != NX_SUCCESS) disconnect_client();
+                UINT status = tcp_write(reply.packet, sizeof(reply.packet));
+                if (status != NX_SUCCESS) disconnect_client(NET_CLOSE_SEND, status);
             }
         }
         imu_reply_t imu_reply;
@@ -136,7 +123,7 @@ void ethernet_stream_thread_entry(ULONG argument)
             else if (imu_reply.route == TOF_TCP && client_connected && imu_reply.session == client_session)
             {
                 UINT status = tcp_write(imu_reply.packet, sizeof(imu_reply.packet));
-                if (status != NX_SUCCESS) disconnect_client();
+                if (status != NX_SUCCESS) disconnect_client(NET_CLOSE_SEND, status);
             }
         }
         /* Repeat metadata for late USB opens and reconnects on either link. */
@@ -156,6 +143,9 @@ void ethernet_stream_thread_entry(ULONG argument)
             UCHAR imu_status[IMU_STATUS_PACKET_SIZE];
             imu_control_status_packet(imu_status);
             write_transports(imu_status, sizeof(imu_status));
+            UCHAR network_status[NETWORK_STATUS_SIZE];
+            ethernet_network_status_packet(network_status);
+            write_transports(network_status, sizeof(network_status));
             last_status = now;
         }
         if ((ULONG)(now - last_profile) >= TX_TIMER_TICKS_PER_SECOND)

@@ -99,7 +99,7 @@ UINT MX_NetXDuo_Init(VOID *memory_ptr)
   }
 
    /* Create the main NX_IP instance */
-  ret = nx_ip_create(&NetXDuoEthIpInstance, "NetX Ip instance", NX_APP_DEFAULT_IP_ADDRESS, NX_APP_DEFAULT_NET_MASK, &NxAppPool, nx_stm32_eth_driver,
+  ret = nx_ip_create(&NetXDuoEthIpInstance, "NetX Ip instance", NX_APP_INITIAL_IP_ADDRESS, NX_APP_INITIAL_NET_MASK, &NxAppPool, nx_stm32_eth_driver,
                      pointer, Nx_IP_INSTANCE_THREAD_SIZE, NX_APP_INSTANCE_PRIORITY);
 
   if (ret != NX_SUCCESS)

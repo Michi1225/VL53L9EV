@@ -2241,6 +2241,11 @@ static UINT  _nx_driver_hardware_get_status(NX_IP_DRIVER *driver_req_ptr)
 
   /* Get link status. */
   PHYLinkState = nx_eth_phy_get_link_state();
+  if (PHYLinkState == ETH_PHY_STATUS_LINK_ERROR)
+  {
+    *(driver_req_ptr->nx_ip_driver_return_ptr) = NX_FALSE;
+    return NX_DRIVER_ERROR;
+  }
 
   /* Check link status. */
   if(PHYLinkState <= ETH_PHY_STATUS_LINK_DOWN)
