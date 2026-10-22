@@ -5,6 +5,7 @@ sensor board. This folder is the maintained home of the project guides.
 
 **[Full table of contents](SUMMARY.md)**
 
+For a printable reference, use the [LaTeX User Guide and Reference Manual](../manual/README.md).
 The [board datasheet](../datasheet/README.md) gives a compact specification overview.
 
 ## Start here
@@ -42,6 +43,7 @@ wiki/
 │   └── build-flash-debug.md           Tools, builds, SWD, SRAM, VS Code
 ├── hardware/
 │   ├── flash-layout.md               Current programming layout
+│   ├── electrical-ratings.md         Shared electrical rating tables
 │   └── bring-up-and-testing.md        Board checklist and acceptance plan
 ├── firmware/
 │   ├── parameters.md                 Identity, JSON, image provenance
@@ -75,6 +77,10 @@ application. See its [first-installation instructions](firmware/firmware-updates
 Each guide has its own section contents and links back to this index. Keep the
 [full contents](SUMMARY.md) in sync when adding or renaming pages, and use
 relative links so the documentation works in a local checkout and on GitHub.
+After edits, run `python3 scripts/build_docs.py` from the repository root to
+refresh the LaTeX manual and shared datasheet ratings, then run
+`python3 scripts/build_docs.py --check`. Add new technical pages to
+`manual/sources.json`. See the [manual build instructions](../manual/README.md).
 The previous documentation locations contain links to their new home.
 
 The [original flash-layout proposal](reference/flash-layout-proposal.md) is

@@ -259,6 +259,56 @@ Mechanical / connector definition & Released outline, mounting, and pinout drawi
 
 \newpage
 % --------------------------------------------------------------------------
+% Electrical ratings, generated from the maintained wiki table source.
+% --------------------------------------------------------------------------
+% BEGIN GENERATED ELECTRICAL RATINGS
+\section{Electrical ratings}\label{sec:ratings}
+\pageintro{Blank value cells are intentionally unassigned. Populate them from approved
+design limits and board characterization; they do not represent zero or an established rating.}
+\begingroup\renewcommand{\arraystretch}{1.65}
+\subsection{Absolute maximum ratings}
+{\small\begin{tabularx}{\linewidth}{@{}Y L{19mm}L{17mm}L{17mm}L{16mm}@{}}
+\toprule
+\rowcolor{MGSGray}\thead{Parameter} & \thead{Symbol} & \thead{Min} & \thead{Max} & \thead{Unit} \\
+\midrule
+Board input voltage & VIN &  &  & V \\
+USB VBUS voltage & VBUS &  &  & V \\
+Exposed signal pin voltage & VIO &  &  & V \\
+Board input current & IIN &  &  & A \\
+Storage temperature & TSTG &  &  & $^{\circ}$C \\
+\bottomrule
+\end{tabularx}}
+\subsection{Recommended operating conditions}
+{\small\begin{tabularx}{\linewidth}{@{}Y L{19mm}L{15mm}L{15mm}L{15mm}L{16mm}@{}}
+\toprule
+\rowcolor{MGSGray}\thead{Parameter} & \thead{Symbol} & \thead{Min} & \thead{Typ} & \thead{Max} & \thead{Unit} \\
+\midrule
+Board input voltage & VIN &  &  &  & V \\
+Digital interface voltage & VIO &  &  &  & V \\
+Ambient operating temperature & TA &  &  &  & $^{\circ}$C \\
+Relative humidity & RH &  &  &  & \% \\
+\bottomrule
+\end{tabularx}}
+\subsection{Electrical characteristics}
+{\small\begin{tabularx}{\linewidth}{@{}Y L{18mm}L{23mm}L{12mm}L{12mm}L{12mm}L{13mm}@{}}
+\toprule
+\rowcolor{MGSGray}\thead{Parameter} & \thead{Symbol} & \thead{Conditions} & \thead{Min} & \thead{Typ} & \thead{Max} & \thead{Unit} \\
+\midrule
+Input current, ToF idle & IIDLE &  &  &  &  & mA \\
+Input current, ToF ranging & IRANGE &  &  &  &  & mA \\
+Input power, ToF idle & PIDLE &  &  &  &  & W \\
+Input power, ToF ranging & PRANGE &  &  &  &  & W \\
+USB VBUS inrush current & IINRUSH &  &  &  &  & A \\
+Supply ripple & VRIPPLE &  &  &  &  & mVpp \\
+Power-on startup time & TSTART &  &  &  &  & ms \\
+\bottomrule
+\end{tabularx}}
+\endgroup
+\source{wiki/hardware/electrical-ratings.md}
+% END GENERATED ELECTRICAL RATINGS
+
+\newpage
+% --------------------------------------------------------------------------
 % Host interface information.
 % --------------------------------------------------------------------------
 \section{Host interfaces and data format}\label{sec:interfaces}

@@ -17,6 +17,7 @@ Start with the **[project wiki](wiki/README.md)** or browse the
 - [Wire protocol](wiki/protocols/wire-protocol.md)
 - [Board bring-up and testing](wiki/hardware/bring-up-and-testing.md)
 - [Board datasheet (LaTeX source and PDF build instructions)](datasheet/README.md)
+- [User Guide and Reference Manual (LaTeX, generated from the wiki)](manual/README.md)
 
 ## Hardware revision standard
 

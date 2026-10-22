@@ -38,6 +38,14 @@ Hardware identity must agree with `common/board/board_identity.h`,
 specifications against the listed firmware sources and the wiki when behavior
 changes. Most sections are maintained manually, not generated from the firmware.
 
+Absolute maximum ratings, recommended operating conditions, and electrical
+characteristics are shared with the wiki and
+[User Guide and Reference Manual](../manual/README.md). Their value cells are
+intentionally blank. Edit [the wiki ratings page](../wiki/hardware/electrical-ratings.md),
+then run `python3 scripts/build_docs.py` from the repository root. Do not edit
+the generated ratings block directly. After any datasheet edit, regenerate and
+run `python3 scripts/build_docs.py --check` to refresh and verify the manifest.
+
 This is preliminary engineering documentation. Firmware validation bounds and
 configured sampling rates are labeled separately from measured performance.
 Supply ratings, optical limits, thermal ratings, pinout, and mechanical dimensions

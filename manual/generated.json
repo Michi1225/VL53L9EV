@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "inputs": {
+    "README.md": "6c3242b6fd8f0ccd862c5f34f365ddac734b992a3fe37c55e4ab2a38b1c260a3",
+    "config/flash_parameters.json": "4236bd301d116202718e8a435464d9409f951565ed69a6df4d5ddfdae03f6ffd",
+    "manual/sources.json": "04f76bc584decd4665504f0fea06b4c051565666b0253fc6841dde5e80d7f8a4",
+    "manual/template.tex": "5bebb65bfffdebf320850726249351c2ca0fbad61690fd5b0f08b177dda2d67c",
+    "scripts/build_docs.py": "d5a809ac86944a6355577202b4e317f0fcc194f3c6e69d63a4331f69d616d3e5",
+    "wiki/README.md": "c572d884d4465a6b0ab6b33080979219f404884f620f1427aa64c2129bc08963",
+    "wiki/SUMMARY.md": "49d4d0e94d234b8d263002ec3d466aba16f37c6e4ccff452366d0a0c1feb9d65",
+    "wiki/firmware/firmware-updates.md": "21342d667f0594989d8dc1a02045350f5e02ab54363dc74f098a5875cb2ecd95",
+    "wiki/firmware/parameters.md": "9a42da1c1305b855375224c2dcd7a0bd6f1b38b16b9376ebef67ad7f8117af41",
+    "wiki/firmware/status-led.md": "7954fec2de0c65d9205dca2368ca2be682d8119d267867367865b24e7faf344c",
+    "wiki/getting-started/build-flash-debug.md": "d8fafde4dda5962538a91ab8346789a4f47a104632e77c3a449a1e6154168a06",
+    "wiki/hardware/bring-up-and-testing.md": "a9ecdd12fc3760a80cf51e67c2c7cb2d76f59462fd4b42471c90ad0335e061b8",
+    "wiki/hardware/electrical-ratings.md": "699496210e7eed553cb0b644fc29c13b002c79d0d98892e729acd0c0c2381bda",
+    "wiki/hardware/flash-layout.md": "da4a4395780afdd55889938e2cedf212bb3b9cb66b9b270c6fb7552cee757179",
+    "wiki/protocols/wire-protocol.md": "2cd3073f6cb5cbeac1b7879e479d14574cf496d3ca2dc3afaac89459f7369dae",
+    "wiki/reference/dependencies.md": "45aacb917eab9cbea2304a67ae0f56704bee435de35f387091125334b416238c",
+    "wiki/reference/flash-layout-proposal.md": "368acdaa10214b3f5241116bc8f5eeb943685e25da0ae783dbbe62876fcea0be",
+    "wiki/tools/device-monitor.md": "64922343edabd28e4104cc96eb8a2d031569e29c73aca0dcf774fb74c8626c39",
+    "wiki/tools/scene-reconstruction.md": "0921dfcc64a3a1fde46b75cba7d69970c4ea3fda66f93409381c7c2665e9e1d4",
+    "wiki/tools/streaming-and-diagnostics.md": "f45e6afbe4fc93cf852232cd7973fb1609e4e837a869c7ecabb79dcf643ac354"
+  },
+  "outputs": {
+    "manual/magnecko-sense-user-guide.tex": "ba9444d5fae2b3c82070446bc790fe06e533845d33e20242c82bfc4e96c10bfe",
+    "datasheet/magnecko-sense-datasheet.tex": "ac4d3022ee8c126af7e16756ce19212056a647136d44cfde84c8da4f0e6f1711"
+  },
+  "pandoc": "pandoc 3.12.1"
+}

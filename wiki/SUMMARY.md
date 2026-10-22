@@ -2,6 +2,8 @@
 
 [Wiki home](README.md)
 
+- [Printable User Guide and Reference Manual (LaTeX)](../manual/README.md)
+
 ## Getting started
 
 - [Build, flash, and debug](getting-started/build-flash-debug.md)
@@ -16,6 +18,7 @@
 ## Hardware and validation
 
 - [Board datasheet (LaTeX)](../datasheet/README.md)
+- [Electrical ratings and characteristics](hardware/electrical-ratings.md)
 - [Current flash layout](hardware/flash-layout.md)
 - [Board bring-up and system testing](hardware/bring-up-and-testing.md)
   - [Power rails](hardware/bring-up-and-testing.md#3-power-rails)
