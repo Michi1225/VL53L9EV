@@ -50,6 +50,17 @@ measurements, not the PHY's negotiated link speed. Live sensors shows the decode
 lidar zone grid and radial depths in mm, accelerometer in mg, gyro in degrees/s,
 and SFLP quaternion XYZW. `--depth-max` controls the heatmap range in mm.
 
+Gray depth pixels represent a received distance of **0 mm**, which the monitor
+treats as a missing return. Positive distances, including very small values,
+use the color scale; values above `--depth-max` use its upper endpoint color.
+The text below the heatmap counts zero returns and shows the nonzero min/max.
+Point to a pixel to see its row, column and received distance. The distance is
+the packet's lower 15 bits; bit 15 selects the ranging step. Earlier versions
+displayed masked zero returns as white/transparent pixels. An entirely gray
+heatmap can also mean no frame or an invalid frame; the accompanying text
+distinguishes those cases. These readouts show what reached the host and do not
+establish why the sensor produced a zero return.
+
 ## Viewer performance
 
 The live display defaults to **20 FPS**. Use `--fps` (1–60) to change the display

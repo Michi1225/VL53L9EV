@@ -1,5 +1,7 @@
 """Rendering correctness and cache invalidation without a display or board."""
 import unittest
+import struct
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import numpy as np
@@ -25,6 +27,46 @@ class SensorPlotTests(unittest.TestCase):
             artist.set_animated(False)
         canvas.draw()
         np.testing.assert_array_equal(actual, np.asarray(canvas.buffer_rgba()))
+
+    def test_zero_returns_are_gray_and_small_positive_distances_keep_their_colors(self):
+        plots, canvas = self.make_plots()
+        frame = depth_frame()
+        payload = bytearray(frame.payload)
+        # Bit 15 selects a ranging step; it must not hide positive distances.
+        struct.pack_into('<5H', payload, 0, 0, 1, 0x8000, 0x8005, 32767)
+        frame = Packet(frame.sequence, frame.width, frame.height, bytes(payload))
+        plots.update(frame)
+        colors = plots.depth_image.to_rgba(plots.depth_image.get_array())
+        gray = np.array([1 / 3, 1 / 3, 1 / 3, 1.])
+        for col in (0, 2):
+            np.testing.assert_allclose(colors[0, col], gray)
+        for col in (1, 3, 4):
+            self.assertFalse(np.ma.is_masked(plots.depth_values[0, col]))
+            self.assertFalse(np.allclose(colors[0, col], gray))
+            self.assertFalse(np.allclose(colors[0, col], np.ones(4)))
+        self.assertIn('Zero returns: 2/2268', plots.depth_note.get_text())
+        self.assertIn('valid range: 1–32767 mm', plots.depth_note.get_text())
+        self.assert_matches_full_draw(plots, canvas)
+
+    def test_hover_reports_received_zero_and_updates_without_extra_draws(self):
+        plots, canvas = self.make_plots()
+        frame = depth_frame()
+        plots.update(frame)
+        event = SimpleNamespace(inaxes=plots.depth_ax, xdata=0, ydata=0)
+        with patch.object(plots.renderer, 'draw', wraps=plots.renderer.draw) as draw:
+            plots.hover(event)
+            self.assertIn('received 0 mm (masked / no return)', plots.depth_note.get_text())
+            self.assertEqual(draw.call_count, 0, 'hover must use the regular display tick')
+            plots.update(frame)
+            self.assertEqual(draw.call_count, 1)
+        plots.update(depth_frame(1))
+        self.assertIn('Column 0, row 0: received 1 mm', plots.depth_note.get_text())
+        plots.hover(SimpleNamespace(inaxes=None, xdata=None, ydata=None))
+        self.assertIn('Point to a pixel', plots.depth_note.get_text())
+        plots.update(None)
+        self.assertIsNone(plots.depth_values)
+        self.assertIn('No depth frame', plots.depth_note.get_text())
+        self.assert_matches_full_draw(plots, canvas)
 
     def test_cached_updates_match_full_render_without_ghost_traces(self):
         plots, canvas = self.make_plots()
