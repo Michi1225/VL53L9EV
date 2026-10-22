@@ -130,8 +130,11 @@ void stream_thread_entry(ULONG argument)
     else
     {
         update_config();
-        if (VL53L9_start_ranging(&sensor) != HAL_OK) fault(-1);
-        else { state.state = TOF_STREAMING; state.revision = 1; armed = true; publish(); }
+        /* Initialize the profile without emission or capture. Only an explicit
+         * Start command may enter ranging, including after a board reset. */
+        state.state = TOF_STOPPED;
+        state.revision = 1;
+        publish();
     }
     for (;;)
     {
