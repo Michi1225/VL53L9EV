@@ -8,3 +8,7 @@ Appli/build/*
 FSBL/build/*
 ExtMemLoader/build/*
 .vscode/c_cpp_properties.json
+
+# Python bytecode is local build output.
+__pycache__/
+*.py[cod]
