@@ -124,11 +124,15 @@ int fw_store(fw_update_t *f,const fw_metadata_t *next)
     fw_metadata_t m=*next;m.generation=f->meta.generation+1U;
     uint8_t r[FW_RECORD_SIZE],verify[FW_RECORD_SIZE];fw_encode(r,&m);
     int dest=f->record==0?1:0;uint32_t address=dest?FW_META_B:FW_META_A;
-    /* The currently valid sector survives until the replacement's commit word
-     * is programmed last. A torn erase/body/commit leaves the old copy usable. */
-    if(f->io.erase(f->io.context,address) || f->io.write(f->io.context,address,r,120) ||
-       f->io.read(f->io.context,address,verify,120) || memcmp(r,verify,120) ||
-       f->io.write(f->io.context,address+120,r+120,4) ||
+    /* SEMPER uses 16-byte ECC units. Writing bytes 0..119 followed by the
+     * commit word at 120 programs unit 112..127 twice, which 2-bit ECC rejects.
+     * Keep the existing 124-byte format: verify 0..111 first, then program the
+     * last digest word, CRC and commit together in the untouched final unit.
+     * The previous valid sector survives every erase/program/readback step. */
+    const uint32_t tail=112U;
+    if(f->io.erase(f->io.context,address) || f->io.write(f->io.context,address,r,tail) ||
+       f->io.read(f->io.context,address,verify,tail) || memcmp(r,verify,tail) ||
+       f->io.write(f->io.context,address+tail,r+tail,FW_RECORD_SIZE-tail) ||
        f->io.read(f->io.context,address,verify,sizeof(verify)) || memcmp(r,verify,sizeof(r)))return FW_IO_ERROR;
     f->meta=m;f->record=dest;return FW_OK;
 }

@@ -58,7 +58,7 @@ void fw_sha256(const void *data, size_t size, uint8_t digest[32]);
 uint32_t fw_slot_address(uint32_t slot);
 /** @brief Load the newest valid metadata copy or initialize an uncommitted update state. */
 int fw_open(fw_update_t *fw, const fw_io_t *io);
-/** @brief Commit replacement metadata while preserving the previous valid copy until completion. */
+/** @brief Commit metadata with single-program ECC units, preserving the previous valid copy. */
 int fw_store(fw_update_t *fw, const fw_metadata_t *meta);
 /** @brief Verify an image's header, vectors, checksum, and optional recorded SHA-256 digest. */
 int fw_validate(fw_update_t *fw, uint32_t slot, fw_image_t *image, bool compare);
