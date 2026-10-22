@@ -2,6 +2,7 @@
 #include "ethernet_link.h"
 #include "stream_manager.h"
 #include "imu_stream.h"
+#include "imu_control.h"
 #include "app_netxduo.h"
 #include "app_events.h"
 #include "device_parameters.h"
@@ -127,6 +128,17 @@ void ethernet_stream_thread_entry(ULONG argument)
                 if (tcp_write(reply.packet, sizeof(reply.packet)) != NX_SUCCESS) disconnect_client();
             }
         }
+        imu_reply_t imu_reply;
+        for (unsigned i = 0; i < 8U && imu_control_next_reply(&imu_reply); ++i)
+        {
+            if (imu_reply.route == TOF_USB && imu_reply.session == stream_usb_session())
+                (void)stream_usb_write(imu_reply.packet, sizeof(imu_reply.packet));
+            else if (imu_reply.route == TOF_TCP && client_connected && imu_reply.session == client_session)
+            {
+                UINT status = tcp_write(imu_reply.packet, sizeof(imu_reply.packet));
+                if (status != NX_SUCCESS) disconnect_client();
+            }
+        }
         /* Repeat metadata for late USB opens and reconnects on either link. */
         ULONG now = tx_time_get();
         if ((ULONG)(now - last_parameters) >= 2U * TX_TIMER_TICKS_PER_SECOND)
@@ -141,6 +153,9 @@ void ethernet_stream_thread_entry(ULONG argument)
             UCHAR status_packet[TOF_STATUS_PACKET_SIZE];
             tof_control_status_packet(status_packet);
             write_transports(status_packet, sizeof(status_packet));
+            UCHAR imu_status[IMU_STATUS_PACKET_SIZE];
+            imu_control_status_packet(imu_status);
+            write_transports(imu_status, sizeof(imu_status));
             last_status = now;
         }
         if ((ULONG)(now - last_profile) >= TX_TIMER_TICKS_PER_SECOND)

@@ -6,7 +6,6 @@
 
 #define IMU_STREAM_STACK_SIZE 2048U
 #define IMU_STREAM_PRIO       9U /* Sample before USB application work (priority 10). */
-#define IMU_STREAM_RATE_HZ    100U
 #define IMU_PACKET_SIZE       60U
 #define IMU_PACKET_WORDS      (IMU_PACKET_SIZE / sizeof(ULONG))
 #define IMU_QUEUE_DEPTH       16U

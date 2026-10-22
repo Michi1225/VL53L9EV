@@ -4,6 +4,7 @@
 #include "main.h"
 #include "lsm6dsv16x_reg.h"
 #include "platform.h"
+#include "imu_config.h"
 #include "stm32n6xx_hal_def.h"
 #include <string.h>
 
@@ -34,10 +35,13 @@ typedef struct
     float_t gyro_mdps[3];
     uint32_t timestamp_gyro;
     uint8_t valid_data;
+    imu_config_t config;
 } IMU;
 
 /** @brief Initialize the IMU transport, sampling, FIFO, and SFLP game rotation output. */
 HAL_StatusTypeDef imu_init(IMU *imu);
+/** @brief Change sampling/ranges and restart FIFO/SFLP without mixing sample scales. */
+HAL_StatusTypeDef imu_configure(IMU *imu, const imu_config_t *config);
 /** @brief Drain available FIFO entries into the latest acceleration, gyro, and quaternion samples. */
 HAL_StatusTypeDef imu_get_data_blocking(IMU *imu);
 /** @brief Flush the IMU FIFO and clear sample validity before resuming streaming. */

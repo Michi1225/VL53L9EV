@@ -107,6 +107,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ./Libs/control/status_led.c
     ./Libs/control/boot_diagnostics.c
     ./Libs/control/imu_stream.c
+    ./Libs/control/imu_control.c
     ../common/s28hs512t/semper_flash.c
     ../common/s28hs512t/s28hs512t.c
     ./Libs/control/device_parameters.c

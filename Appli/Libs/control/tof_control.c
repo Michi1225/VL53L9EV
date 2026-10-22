@@ -1,4 +1,5 @@
 #include "tof_control.h"
+#include "imu_control.h"
 #include "main.h"
 #include "tx_api.h"
 #include <string.h>
@@ -113,6 +114,13 @@ void tof_control_feed(tof_parser_t *parser, const uint8_t *data, size_t length,
             continue;
         }
         if (parser->used < 16U + size) continue;
+        uint32_t operation = get16(parser->data + 14);
+        if (operation >= IMU_GET && operation <= IMU_RESET)
+        {
+            imu_control_submit(get32(parser->data + 4), operation, parser->data + 16, size, route, session);
+            parser->used = 0;
+            continue;
+        }
         tof_command_t c = {.request_id = get32(parser->data + 4),
             .operation = get16(parser->data + 14), .route = route, .session = session};
         if (c.operation < TOF_GET || c.operation > TOF_POWER_DOWN) c.result = TOF_BAD_COMMAND;

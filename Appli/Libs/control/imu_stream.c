@@ -1,10 +1,12 @@
 #include "imu_stream.h"
 #include "IMU.h"
+#include "imu_control.h"
+#include "tof_control.h"
 #include "stream_manager.h"
 #include <string.h>
 
-#if TX_TIMER_TICKS_PER_SECOND % IMU_STREAM_RATE_HZ != 0
-#error "ThreadX tick rate must be a multiple of the IMU publish rate"
+#if TX_TIMER_TICKS_PER_SECOND < 1000
+#error "IMU scheduling requires at least a 1 kHz ThreadX clock"
 #endif
 
 _Static_assert(sizeof(float_t) == 4 && sizeof(ULONG) == 4,
@@ -12,6 +14,43 @@ _Static_assert(sizeof(float_t) == 4 && sizeof(ULONG) == 4,
 TX_QUEUE imu_packet_queue;
 static ULONG queue_storage[IMU_QUEUE_DEPTH * IMU_PACKET_WORDS];
 static IMU imu;
+static imu_status_t state = {.config = IMU_CONFIG_DEFAULT};
+
+/** @brief Latch an IMU fault while keeping its command service available for reset. */
+static void fault(HAL_StatusTypeDef error)
+{
+    state.error = (int32_t)error;
+    state.state = IMU_FAULT;
+    ++state.revision;
+    imu_control_publish(&state);
+}
+
+/** @brief Execute profile changes only in the thread that owns the IMU SPI device. */
+static uint32_t command(const imu_command_t *c)
+{
+    if (c->result) return c->result;
+    if (c->operation == IMU_GET) return TOF_OK;
+    if (c->operation == IMU_SET && state.state == IMU_FAULT) return TOF_FAULT_LATCHED;
+    HAL_StatusTypeDef result;
+    if (c->operation == IMU_RESET) {
+        (void)tx_queue_flush(&imu_packet_queue);
+        result = imu_init(&imu);
+    } else if (c->operation == IMU_SET) {
+        /* A publish-only edit must not restart the sensor fusion or FIFO. */
+        bool sampling_changed = c->config.sample_hz != state.config.sample_hz ||
+            c->config.acc_g != state.config.acc_g || c->config.gyro_dps != state.config.gyro_dps;
+        result = sampling_changed ? imu_configure(&imu, &c->config) : HAL_OK;
+        (void)tx_queue_flush(&imu_packet_queue);
+        if (result == HAL_OK) imu.config = c->config;
+    } else return TOF_BAD_COMMAND;
+    if (result != HAL_OK) { fault(result); return TOF_SENSOR_ERROR; }
+    state.config = imu.config;
+    state.state = IMU_STREAMING;
+    state.error = 0;
+    ++state.revision;
+    imu_control_publish(&state);
+    return TOF_OK;
+}
 
 /** @brief Encode a 32-bit integer in little-endian byte order. */
 static void put_u32(UCHAR *dst, uint32_t value)
@@ -31,6 +70,8 @@ static void put_float(UCHAR *dst, float value)
 /** @brief Create the bounded queue of complete IMU telemetry packets. */
 UINT imu_stream_queue_init(void)
 {
+    UINT result = imu_control_init();
+    if (result != TX_SUCCESS) return result;
     return tx_queue_create(&imu_packet_queue, "IMU packets", IMU_PACKET_WORDS,
                            queue_storage, sizeof(queue_storage));
 }
@@ -38,45 +79,60 @@ UINT imu_stream_queue_init(void)
 /** @brief Sample the IMU and enqueue telemetry at the configured publish rate. */
 void imu_stream_thread_entry(ULONG argument)
 {
-    const ULONG period = TX_TIMER_TICKS_PER_SECOND / IMU_STREAM_RATE_HZ;
     HAL_StatusTypeDef status;
     ULONG sequence = 0;
     (void)argument;
 
     status = imu_init(&imu);
-    if (status != HAL_OK)
-    {
-        return;
+    if (status != HAL_OK) fault(status);
+    else {
+        state.state = IMU_STREAMING;
+        state.revision = 1;
+        imu_control_publish(&state);
     }
-    ULONG next = tx_time_get() + period;
+    ULONG last = tx_time_get();
+    uint32_t phase = 0;
     for (;;)
     {
-        LONG remaining = (LONG)(next - tx_time_get());
-        if (remaining > 0)
-            tx_thread_sleep((ULONG)remaining);
-        else
-        {
-            next = tx_time_get();
+        /* Drain the FIFO independently of publishing, even at 1 Hz output.
+         * Fractional tick periods use a phase accumulator rather than rounding
+         * the requested rate to an integer number of scheduler ticks. */
+        tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 500U);
+        imu_command_t c;
+        if (imu_control_next(&c)) {
+            uint32_t result = command(&c);
+            imu_control_reply(&c, result);
+            if (result == TOF_OK && c.operation != IMU_GET) {
+                phase = 0;
+                last = tx_time_get();
+            }
         }
-        next += period;
+        if (state.state != IMU_STREAMING) continue;
 
         status = imu_get_data_blocking(&imu);
 
         if (status == HAL_BUSY && imu.fifo_status.fifo_ovr)
         {
             ++sequence; /* A sequence gap also makes it visible to the host. */
+            ++state.dropped;
             status = imu_reset_fifo(&imu);
 
             if (status == HAL_OK)
             {
+                imu_control_publish(&state);
                 continue;
             }
         }
         if (status != HAL_OK)
         {
-            return;
+            fault(status);
+            continue;
         }
-        if (imu.valid_data != IMU_DATA_ALL)
+        ULONG now = tx_time_get();
+        uint64_t elapsed_phase = phase + (uint64_t)(ULONG)(now - last) * state.config.publish_hz;
+        last = now;
+        phase = (uint32_t)(elapsed_phase % TX_TIMER_TICKS_PER_SECOND);
+        if (elapsed_phase < TX_TIMER_TICKS_PER_SECOND || imu.valid_data != IMU_DATA_ALL)
         {
             continue; /* Wait for first acc, gyro and SFLP outputs. */
         }
@@ -99,6 +155,11 @@ void imu_stream_thread_entry(ULONG argument)
 
         /* Sampling never waits on USB; a full queue drops this sample. */
         if (tx_queue_send(&imu_packet_queue, words, TX_NO_WAIT) == TX_SUCCESS)
+        {
+            ++state.published;
             tx_event_flags_set(&stream_events, STREAM_IMU_READY, TX_OR);
+        }
+        else ++state.dropped;
+        imu_control_publish(&state);
     }
 }
