@@ -1,6 +1,3 @@
 [submodule "Appli/Libs/lsm6dsv16x-pid"]
 	path = Appli/Libs/lsm6dsv16x-pid
 	url = git@github.com:STMicroelectronics/lsm6dsv16x-pid.git
-[submodule "magnecko-sense-sdk"]
-	path = magnecko-sense-sdk
-	url = git@github.com:Michi1225/magnecko-sense-sdk.git

@@ -2,14 +2,6 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Docs: Build PDFs",
-            "type": "process",
-            "command": "python3",
-            "args": ["${workspaceFolder}/scripts/build_docs.py", "--pdf"],
-            "problemMatcher": [],
-            "detail": "Regenerate the wiki manual and shared datasheet ratings, then compile both PDFs. Requires Pandoc and Tectonic, LuaLaTeX or XeLaTeX."
-        },
-        {
             "label": "Build",
             "type": "process",
             "command": "${workspaceFolder}/scripts/build.sh",
@@ -121,16 +113,6 @@
             ],
             "problemMatcher": [],
             "detail": "Replace editable settings, refresh parameter_build.built_at_utc and repository/flash metadata, and preserve on-board firmware build dates. No local firmware images required."
-        },
-        {
-            "label": "Monitor: Board Viewer",
-            "type": "process",
-            "command": "python3",
-            "args": [
-                "${workspaceFolder}/test_scripts/Board_Viewer.py"
-            ],
-            "problemMatcher": [],
-            "detail": "Open desktop USB/Ethernet sensor and device-parameter monitor. Requires numpy, matplotlib, pyserial and Tk."
         }
     ],
     "inputs": [

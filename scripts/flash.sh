@@ -201,7 +201,7 @@ if [[ "${RESET_BOOT_METADATA}" -eq 1 ]]; then
 from pathlib import Path
 import sys
 sys.path.insert(0, sys.argv[1])
-from firmware_update import validate_image
+from firmware_image import validate_image
 try:
     validate_image(Path(sys.argv[2]).read_bytes())
 except ValueError as error:
