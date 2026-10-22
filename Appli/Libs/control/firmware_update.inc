@@ -4,6 +4,7 @@
 #include "../../../common/firmware/fw_update.c"
 #include "../../../common/firmware/fw_flash.c"
 #include "../../../common/firmware/fw_wire.c"
+#include "../../../common/firmware/fw_reset.h"
 #include "app_netxduo.h"
 #include "app_events.h"
 #include "tof_control.h"
@@ -94,6 +95,18 @@ static void dfu_status(uint8_t p[FW_STATUS_SIZE],uint32_t id,uint32_t op,int res
     fw_put32(p+60,FW_CHUNK_SIZE);
 }
 typedef struct { uint32_t route,session; } dfu_route_t;
+/** @brief Supply the ROM's default clock inputs and restore the external flash protocol. */
+static int dfu_prepare_reset(void)
+{
+    LL_RCC_HSI_Enable();LL_RCC_LSI_Enable();
+    uint32_t start=HAL_GetTick();
+    while(!LL_RCC_HSI_IsReady() || !LL_RCC_LSI_IsReady()){
+        if(HAL_GetTick()-start>1000U)return FW_IO_ERROR;
+        dfu_idle();
+    }
+    fw_flash_t flash={&dfu_flash,dfu_idle};
+    return fw_flash_prepare_reset(&flash)?FW_IO_ERROR:FW_OK;
+}
 /** @brief Validate and execute a DFU request or forward a multiplexed ToF command. */
 static void dfu_command(void *context,const uint8_t *p,uint32_t size)
 {
@@ -123,7 +136,7 @@ static void dfu_command(void *context,const uint8_t *p,uint32_t size)
         else if(op==FW_OP_ABORT && !length)result=(!dfu_owner_route || owner)?fw_abort(&dfu_update):FW_BUSY;
         else if(op==FW_OP_CLEAR && !length && !dfu_update.uploading)result=fw_clear_warnings(&dfu_update);
         else if(op==FW_OP_RESET && !length)
-            result=dfu_update.meta.pending!=FW_NONE && !dfu_update.meta.trial && !dfu_update.uploading?FW_OK:FW_NOT_READY;
+            result=dfu_update.meta.pending!=FW_NONE && !dfu_update.meta.trial && !dfu_update.uploading?dfu_prepare_reset():FW_NOT_READY;
     }
 #else
     else if(id)result=FW_NOT_READY; /* SRAM development images never mutate boot metadata/slots. */
@@ -202,7 +215,13 @@ static void dfu_thread_entry(ULONG argument)
            (dfu_owner_route==TOF_USB && dfu_owner_session!=stream_usb_session()))){
             (void)fw_abort(&dfu_update);dfu_owner_route=0;dfu_suppress_telemetry=false;
         }
-        if(dfu_reset_at && (int32_t)(now-dfu_reset_at)>=0)NVIC_SystemReset();
+        if(dfu_reset_at && (int32_t)(now-dfu_reset_at)>=0){
+            /* Let the host observe disconnect before the newly booted USB stack starts. */
+            (void)HAL_PCD_DevDisconnect(&hpcd_USB_OTG_HS2);
+            tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND/50U);
+            fw_prepare_reset_clocks();
+            NVIC_SystemReset();
+        }
         /* Confirmation is automatic only after the update server and USB task
          * have run for five seconds. A trial that hangs earlier is reset by
          * IWDG and rejected by FSBL on the next boot. No cable is required. */

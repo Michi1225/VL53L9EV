@@ -1,0 +1,4 @@
+# Magnecko Sense application CDC port. Grant the active desktop user access on
+# every enumeration, including after a firmware-update reboot. Other USB devices
+# (including ST-LINK's virtual COM port) do not match this rule.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5710", GROUP="dialout", MODE="0660", TAG+="uaccess"

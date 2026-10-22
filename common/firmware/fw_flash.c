@@ -50,6 +50,25 @@ static int fw_flash_erase(void *ctx,uint32_t address)
 /** @brief Build the bounded flash callbacks used by the portable updater. */
 fw_io_t fw_flash_io(fw_flash_t *f)
 { return (fw_io_t){f,fw_flash_read,fw_flash_write,fw_flash_erase}; }
+/** @brief Restore the single-line SPI protocol expected by the boot ROM after a CPU reset. */
+int fw_flash_prepare_reset(fw_flash_t *f)
+{
+    if(!f || !f->flash || f->flash->access!=SEMPER_ACCESS_INDIRECT || fw_flash_wait(f))return -1;
+    /* Octal DDR normally runs at 200 MHz. Slow down before entering legacy SPI. */
+    SEMPER_Handle_t *dev=f->flash;
+    if(HAL_XSPI_SetClockPrescaler(dev->hxspi,3U)!=HAL_OK ||
+       S28HS512T_ResetEnable(dev->hxspi,dev->interface,dev->transfer)!=S28HS512T_OK ||
+       S28HS512T_ResetMemory(dev->hxspi,dev->interface,dev->transfer)!=S28HS512T_OK)return -1;
+    /* Restore all volatile protocol/latency registers together. Switching only
+     * CFR5 leaves the octal driver's register-read latency active in SPI mode. */
+    HAL_Delay(S28HS512T_RESET_MAX_TIME);
+    dev->interface=S28HS512T_SPI_MODE;dev->transfer=S28HS512T_STR_TRANSFER;
+    dev->address_width=S28HS512T_3BYTES_SIZE;
+    uint8_t id[3]={0};
+    if(S28HS512T_ReadID(f->flash->hxspi,S28HS512T_SPI_MODE,S28HS512T_STR_TRANSFER,id)!=S28HS512T_OK ||
+       id[0]==0U || id[0]==0xFFU)return -1;
+    return 0;
+}
 /** @brief Reload the independent watchdog if it is already running. */
 void fw_watchdog_refresh(void)
 {

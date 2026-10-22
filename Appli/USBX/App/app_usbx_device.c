@@ -257,7 +257,9 @@ static VOID usbx_app_thread_entry(ULONG thread_input)
             continue;
         }
         if (session != current_session) session = current_session;
-        UCHAR input[64];
+        /* High-speed bulk OUT packets can contain 512 bytes. USBX reads
+         * must provide at least one complete endpoint packet. */
+        UCHAR input[512];
         ULONG actual = 0;
         (void)ux_device_class_cdc_acm_ioctl(cdc, UX_SLAVE_CLASS_CDC_ACM_IOCTL_SET_READ_TIMEOUT,
                                           (VOID *)(ALIGN_TYPE)100U);
