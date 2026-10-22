@@ -123,10 +123,38 @@ images for other load layouts are rejected.
 
 **SWD reprogramming after A/B metadata exists:** replacing a slot directly does
 not update its stored SHA-256 descriptor. To reprovision a baseline with the
-legacy programming script, explicitly erase just the two update metadata sectors
-using CubeProgrammer and the external loader, then reprogram/boot the baseline.
-This discards update history and causes validated-image adoption again. Parameter
-programming alone does not require or erase these sectors. `PARM` JSON build
+programming script, run the VS Code task **Flash: Reprovision Release Baseline**,
+or use:
+
+```sh
+./scripts/flash.sh --target all --config Release --build --reset-boot-metadata
+```
+
+The option is valid only with `all` or `appli-a`. It validates the application
+header/vectors/checksum and build manifest, backs up exactly the two metadata
+sectors to `build/boot-metadata-backup.*.bin`, then programs/verifies the selected
+firmware and parameter JSON. Only after those operations succeed does it replace
+`0x91100000`–`0x9117FFFF` with erased bytes. Programming verification and an
+independent full 512 KiB readback must both succeed. No mass erase is used; device
+identity/calibration are preserved by the ordinary parameter merge. The backup
+is diagnostic history; restoring it alone does not restore an older application.
+
+This discards update/trial history and causes validated-image adoption again,
+preferring A, on the next normal boot. Return to normal flash boot mode and
+reset/power-cycle after programming. The usual **Build + Program** task retains
+boot metadata; use DFU for routine A/B updates, or this explicit reprovisioning
+task when deliberately replacing the slot A baseline over SWD. `appli-b` is
+rejected with the reset option because first-image adoption prefers A.
+
+Four amber flashes identify stage 4 (slot selection/validation or trial-watchdog
+startup). Stale image size/hash descriptors after direct SWD replacement can
+produce this code even though the newly programmed image verifies correctly.
+The reprovisioning regression reproduces this case with the real boot policy.
+If the code persists after a verified metadata reset, investigate flash image
+readback, metadata erase/program operations, or trial-watchdog setup; the code
+alone does not distinguish those causes.
+
+Parameter programming alone does not require or erase these sectors. `PARM` JSON build
 metadata is not rewritten by DFU; current DFU versions/flags come from `DFUS`.
 
 ## Diagnosing standalone boot

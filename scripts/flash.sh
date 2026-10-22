@@ -17,6 +17,7 @@ TARGET=""
 CONFIG="Debug"
 BUILD_FIRST=0
 PARAMETERS=""
+RESET_BOOT_METADATA=0
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -30,6 +31,8 @@ APPLI_A_ADDR="0x90100000"
 APPLI_B_ADDR="0x90900000"
 PARAMETERS_ADDR="0x90000000"
 PARAMETERS_IMAGE="${ROOT_DIR}/build/flash_parameters.bin"
+BOOT_METADATA_ADDR="0x91100000"
+BOOT_METADATA_SIZE=524288 # Exactly the two 256 KiB A/B metadata sectors.
 
 CONNECT_MODE="${STM32_CONNECT_MODE:-HOTPLUG}"
 
@@ -47,6 +50,13 @@ usage()
 Usage:
   $0 --target fsbl|appli-a|appli-b|parameters|all [--build] [--config Debug|Release]
      [--parameters /path/to/parameters.json]
+     [--reset-boot-metadata]
+
+--reset-boot-metadata: Reprovision application A after direct SWD replacement.
+  Only valid with --target all or appli-a. Back up the two boot-metadata sectors,
+  then reset them after all selected images and parameters have been verified.
+  Discards A/B update/trial history; the next FSBL boot adopts validated images,
+  preferring A. The reset itself does not erase parameter or application regions.
 EOF
 }
 
@@ -101,6 +111,10 @@ while [[ $# -gt 0 ]]; do
             CONFIG="$2"
             shift 2
             ;;
+        --reset-boot-metadata)
+            RESET_BOOT_METADATA=1
+            shift
+            ;;
         --parameters)
             [[ $# -ge 2 ]] || die "Missing value after $1"
             PARAMETERS="$2"
@@ -124,6 +138,13 @@ case "${TARGET}" in
     fsbl|appli-a|appli-b|parameters|all) ;;
     *) usage; die "Target must be fsbl, appli-a, appli-b, parameters or all" ;;
 esac
+
+if [[ "${RESET_BOOT_METADATA}" -eq 1 ]]; then
+    case "${TARGET}" in
+        all|appli-a) ;;
+        *) die "--reset-boot-metadata requires --target all or appli-a (the new baseline is slot A)" ;;
+    esac
+fi
 
 case "${CONFIG}" in
     Debug|Release) ;;
@@ -166,13 +187,49 @@ PARAMETERS="${PARAMETERS:-${ROOT_DIR}/config/flash_parameters.json}"
 # Read this board's existing settings rather than borrowing provenance from
 # a previous board or from unrelated binaries in the local build directory.
 PARAMETER_READBACK="$(mktemp --suffix=.bin -t vl53l9-parameters.XXXXXX)"
-trap 'rm -f "${PARAMETER_READBACK}"' EXIT
+TEMP_FILES=("${PARAMETER_READBACK}")
+trap 'rm -f "${TEMP_FILES[@]}"' EXIT
 "${PROGRAMMER}" \
     -c "port=SWD" "mode=${CONNECT_MODE}" \
     -el "${LOADER}" -hardRst \
     -u "${PARAMETERS_ADDR}" 16384 "${PARAMETER_READBACK}"
 python3 "${SCRIPT_DIR}/pack_parameters.py" "${PARAMETERS}" "${PARAMETERS_IMAGE}" \
     --existing "${PARAMETER_READBACK}" "${PACK_ARGS[@]}"
+
+if [[ "${RESET_BOOT_METADATA}" -eq 1 ]]; then
+    python3 - "${SCRIPT_DIR}" "${APPLI_IMAGE}" <<'PY'
+from pathlib import Path
+import sys
+sys.path.insert(0, sys.argv[1])
+from firmware_update import validate_image
+try:
+    validate_image(Path(sys.argv[2]).read_bytes())
+except ValueError as error:
+    raise SystemExit(f'Reprovisioning requires a valid persistent application image: {error}')
+PY
+    # Preserve the actual records before any writes. A short/failed backup aborts
+    # reprovisioning, rather than silently destroying the only diagnostic record.
+    BOOT_METADATA_BACKUP="$(mktemp "${ROOT_DIR}/build/boot-metadata-backup.XXXXXX.bin")"
+    "${PROGRAMMER}" \
+        -c "port=SWD" "mode=${CONNECT_MODE}" \
+        -el "${LOADER}" -hardRst \
+        -u "${BOOT_METADATA_ADDR}" "${BOOT_METADATA_SIZE}" "${BOOT_METADATA_BACKUP}"
+    python3 - "${BOOT_METADATA_BACKUP}" "${BOOT_METADATA_SIZE}" <<'PY'
+from pathlib import Path
+import sys
+if Path(sys.argv[1]).stat().st_size != int(sys.argv[2]):
+    raise SystemExit('Boot metadata backup must contain exactly 512 KiB; no images were programmed')
+PY
+    BOOT_METADATA_BLANK="$(mktemp --suffix=.bin -t mgs-boot-metadata.XXXXXX)"
+    BOOT_METADATA_VERIFY="$(mktemp --suffix=.bin -t mgs-boot-metadata-verify.XXXXXX)"
+    TEMP_FILES+=("${BOOT_METADATA_BLANK}" "${BOOT_METADATA_VERIFY}")
+    python3 - "${BOOT_METADATA_BLANK}" "${BOOT_METADATA_SIZE}" <<'PY'
+from pathlib import Path
+import sys
+Path(sys.argv[1]).write_bytes(b'\xff' * int(sys.argv[2]))
+PY
+    echo "Boot metadata backup: ${BOOT_METADATA_BACKUP}"
+fi
 
 # @brief Program and verify the selected image at its configured flash address.
 program()
@@ -217,8 +274,29 @@ case "${TARGET}" in
         ;;
 esac
 
-# Commit metadata only after every selected firmware image has been verified.
+# Commit parameter JSON only after every selected firmware image has been verified.
 program "${PARAMETERS_IMAGE}" "${PARAMETERS_ADDR}" "Parameters (reserved first 256 KiB)"
+
+if [[ "${RESET_BOOT_METADATA}" -eq 1 ]]; then
+    # Address-based programming avoids sector-number differences between loader
+    # versions. CubeProgrammer's normal auto-erase replaces only these two full
+    # sectors. Verify both via -v and an independent readback of all 512 KiB.
+    program "${BOOT_METADATA_BLANK}" "${BOOT_METADATA_ADDR}" "A/B boot metadata reset"
+    "${PROGRAMMER}" \
+        -c "port=SWD" "mode=${CONNECT_MODE}" \
+        -el "${LOADER}" -hardRst \
+        -u "${BOOT_METADATA_ADDR}" "${BOOT_METADATA_SIZE}" "${BOOT_METADATA_VERIFY}"
+    python3 - "${BOOT_METADATA_VERIFY}" "${BOOT_METADATA_SIZE}" <<'PY'
+from pathlib import Path
+import sys
+if Path(sys.argv[1]).read_bytes() != b'\xff' * int(sys.argv[2]):
+    raise SystemExit('Boot metadata reset did not read back as erased; baseline adoption is not ready')
+PY
+    echo "Boot metadata reset verified; next boot will adopt the validated slot A baseline."
+elif [[ "${TARGET}" == "appli-a" || "${TARGET}" == "appli-b" || "${TARGET}" == "all" ]]; then
+    echo "Existing A/B boot records were retained. Changed SWD images may no longer match them."
+    echo "For deliberate slot A reprovisioning, use --target all or appli-a with --reset-boot-metadata."
+fi
 
 echo
 echo "Programming complete."

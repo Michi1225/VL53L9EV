@@ -118,6 +118,27 @@ static void rollback(void){
  flash[FW_SLOT_B+1600]^=1;f=reopened();boot_is(&f,0,false);assert(f.meta.flags&FW_FALLBACK);
  puts("Unconfirmed, pending-corrupt and confirmed-corrupt image fallback");
 }
+/** @brief Reproduce rejection of a valid SWD replacement with stale boot records and verify recovery. */
+static void direct_swd_reprovision(void){
+ fw_update_t f=initial();
+ /* An external programmer replaces A with a different, structurally valid image
+  * while its descriptor still holds the previous SHA. This is a stage-4 failure. */
+ memcpy(flash+FW_SLOT_A,image_b,sizeof(image_b));
+ fw_image_t fresh={0};assert(fw_validate(&f,0,&fresh,false)==FW_OK);
+ f=reopened();uint32_t slot;bool trial;
+ assert(fw_boot_select(&f,&slot,&trial)==FW_BAD_IMAGE);
+ assert(f.meta.flags&FW_NO_VALID_IMAGE);
+ /* Reprovisioning clears exactly the two boot-record sectors; firmware and
+  * parameter/FSBL bytes remain unchanged and A is adopted on the next boot. */
+ flash[0]=0x5a;flash[0x40000]=0xa5;
+ memset(flash+FW_META_A,255,2*FW_ERASE_SIZE);
+ f=reopened();assert(f.record==-1);boot_is(&f,0,false);
+ assert(!memcmp(f.meta.image[0].sha256,fresh.sha256,32));
+ assert(!memcmp(flash+FW_SLOT_A,image_b,sizeof(image_b)));
+ assert(flash[0]==0x5a && flash[0x40000]==0xa5);
+ assert(flash[FW_SLOT_B]==0xff && flash[FW_META_B+FW_ERASE_SIZE-1]==0xff);
+ puts("Direct SWD stale-descriptor boot failure and baseline re-adoption after metadata reset");
+}
 /** @brief Verify rejection of invalid sizes, offsets, hashes, vectors, and incomplete uploads. */
 static void bad_uploads(void){
  fw_update_t f=initial();uint8_t hash[32];fw_sha256(image_b,2048,hash);
@@ -220,7 +241,7 @@ int main(int argc,char **argv){
  (void)argv;
  if(argc>1){static uint8_t data[FW_MAX_IMAGE];size_t n=fread(data,1,sizeof(data),stdin);
   uint8_t digest[32];fw_sha256(data,n,digest);assert(fwrite(digest,1,32,stdout)==32);return 0;}
- crypto();lifecycle();rollback();bad_uploads();torn_metadata();failed_programs_and_commits();wire();
+ crypto();lifecycle();rollback();direct_swd_reprovision();bad_uploads();torn_metadata();failed_programs_and_commits();wire();
  printf("Firmware update tests passed (%u reads, %u programs, %u erases)\n",reads,writes,erases);return 0;}
 '''
 

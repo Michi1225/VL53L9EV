@@ -31,6 +31,14 @@ The project contains three firmware contexts:
 
 The scripts are intended to be called either directly from a terminal or through the VS Code tasks in `.vscode/tasks.json`.
 
+When replacing an existing application A baseline over SWD, use **Flash:
+Reprovision Release Baseline** (or `scripts/flash.sh --target all --config Release
+--build --reset-boot-metadata`). The normal flash tasks retain A/B boot records;
+those records can reject a rebuilt image whose size/hash has changed. The
+reprovisioning task preserves device settings, backs up the boot records, and
+resets only those records after verified programming. It discards update/trial
+history. See [A/B baseline reprovisioning](../firmware/firmware-updates.md#flash-allocation-and-limits).
+
 ---
 
 ## 1. Initial setup

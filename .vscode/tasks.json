@@ -73,7 +73,22 @@
                 "--build"
             ],
             "problemMatcher": [],
-            "detail": "Build/sign firmware, program external SEMPER flash and refresh the selected Appli/FSBL build timestamps and device parameters."
+            "detail": "Build/sign firmware and refresh device parameters; retain A/B boot records. Use Reprovision Release Baseline when replacing an existing application A baseline over SWD."
+        },
+        {
+            "label": "Flash: Reprovision Release Baseline",
+            "type": "process",
+            "command": "${workspaceFolder}/scripts/flash.sh",
+            "args": [
+                "--target",
+                "all",
+                "--config",
+                "Release",
+                "--build",
+                "--reset-boot-metadata"
+            ],
+            "problemMatcher": [],
+            "detail": "Build and verify FSBL + application A, preserve device parameters, back up both A/B boot-record sectors, then reset boot metadata for baseline adoption. Discards update/trial history."
         },
         {
             "label": "Flash: Program Existing Images",
@@ -84,7 +99,7 @@
                 "${input:flashTarget}"
             ],
             "problemMatcher": [],
-            "detail": "Program existing signed images and refresh selected Appli/FSBL build/flash timestamps, retaining original image build times from verified manifests."
+            "detail": "Program existing signed images and refresh selected build/flash timestamps; retain A/B boot records. Use Reprovision Release Baseline for a deliberate application A replacement."
         },
         {
             "label": "Flash: Program Parameters",

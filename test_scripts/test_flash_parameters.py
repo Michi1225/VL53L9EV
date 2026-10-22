@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import struct
 import subprocess
 import sys
 import tempfile
@@ -212,9 +213,17 @@ log = Path(os.environ['FAKE_LOG'])
 with log.open('a') as file:
     file.write(json.dumps(args) + '\n')
 state = Path(os.environ['FAKE_STATE'])
+boot = state.with_suffix('.boot.bin')
 if '-u' in args:
     index = args.index('-u')
-    Path(args[index + 3]).write_bytes(state.read_bytes()[:int(args[index + 2])])
+    address = args[index + 1]
+    data = (boot if address == '0x91100000' else state).read_bytes()[:int(args[index + 2])]
+    if address == '0x91100000':
+        if os.environ.get('FAKE_BOOT_SHORT'):
+            data = data[:-1]
+        if os.environ.get('FAKE_BOOT_VERIFY_BAD') and data == b'\xff' * 524288:
+            data = data[:-1] + b'\0'
+    Path(args[index + 3]).write_bytes(data)
 if '-w' in args:
     index = args.index('-w')
     image, address = Path(args[index + 1]), args[index + 2]
@@ -222,6 +231,9 @@ if '-w' in args:
         sys.exit(1)
     if address == '0x90000000':
         state.write_bytes(image.read_bytes())
+    if address == '0x91100000':
+        assert image.read_bytes() == b'\xff' * 524288
+        boot.write_bytes(image.read_bytes())
 '''
 
 
@@ -232,7 +244,7 @@ class FlashWorkflowTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         (self.root / 'scripts').mkdir()
-        for name in ['flash.sh', 'pack_parameters.py', 'build_provenance.py']:
+        for name in ['flash.sh', 'pack_parameters.py', 'build_provenance.py', 'firmware_update.py']:
             shutil.copyfile(ROOT / 'scripts' / name, self.root / 'scripts' / name)
         (self.root / 'config').mkdir()
         shutil.copyfile(ROOT / 'config/flash_parameters.json', self.root / 'config/flash_parameters.json')
@@ -245,6 +257,13 @@ class FlashWorkflowTests(unittest.TestCase):
             image = self.root / name
             image.parent.mkdir(parents=True)
             image.write_bytes(label.encode())
+            if label == 'application':
+                raw = bytearray(2048)
+                for offset, value in [(0, 0x324d5453), (0x68, 0x20300), (0x6c, 2048-0x240),
+                                      (0x70, 0x34000409), (0x400, 0x34200000), (0x404, 0x34000409)]:
+                    struct.pack_into('<I', raw, offset, value)
+                struct.pack_into('<I', raw, 0x64, sum(raw[0x240:]))
+                image.write_bytes(raw)
             manifest(image)
             self.images[label] = image
         self.programmer = self.root / 'fake programmer'
@@ -254,6 +273,8 @@ class FlashWorkflowTests(unittest.TestCase):
         self.state = self.root / 'device.bin'
         self.state.write_bytes(readback({'device': {'serial_number': 'BOARD-42'},
                                         'build': {'fsbl': {'image_sha256': 'original'}}}))
+        self.boot = self.state.with_suffix('.boot.bin')
+        self.boot.write_bytes(bytes(range(256)) * 2048)
         self.env = dict(os.environ, STM32_PROGRAMMER_CLI=str(self.programmer),
                         FAKE_LOG=str(self.log), FAKE_STATE=str(self.state), PYTHONDONTWRITEBYTECODE='1')
         subprocess.run(['git', 'init', '-q', str(self.root)], check=True)
@@ -261,8 +282,9 @@ class FlashWorkflowTests(unittest.TestCase):
                         'commit', '-q', '--allow-empty', '-m', 'Fixture'], check=True)
 
     ## @brief Execute the flash script against the simulated programmer with the selected options.
-    def run_flash(self, target, *extra, fail_address=None):
+    def run_flash(self, target, *extra, fail_address=None, **environment):
         env = dict(self.env)
+        env.update(environment)
         if fail_address:
             env['FAKE_FAIL_ADDRESS'] = fail_address
         return subprocess.run(['bash', str(self.root / 'scripts/flash.sh'), '--target', target, *extra],
@@ -371,6 +393,77 @@ class FlashWorkflowTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn('0x90000000', self.writes())
         self.assertEqual(self.state.read_bytes(), before)
+
+    def test_reprovision_backs_up_then_resets_only_boot_metadata_after_verified_images(self):
+        for target in ('all', 'appli-a'):
+            with self.subTest(target=target):
+                self.log.unlink(missing_ok=True)
+                before = self.boot.read_bytes()
+                result = self.run_flash(target, '--reset-boot-metadata')
+                self.assertEqual(result.returncode, 0, result.stderr)
+                expected = ['0x90040000'] if target == 'all' else []
+                self.assertEqual(self.writes(), expected + ['0x90100000', '0x90000000', '0x91100000'])
+                calls = self.calls()
+                readbacks = [i for i, call in enumerate(calls) if '-u' in call and '0x91100000' in call]
+                write_indexes = [i for i, call in enumerate(calls) if '-w' in call]
+                self.assertEqual(len(readbacks), 2)
+                self.assertLess(readbacks[0], write_indexes[0])
+                self.assertGreater(readbacks[1], write_indexes[-1])
+                backup_call = calls[readbacks[0]]
+                self.assertEqual(backup_call[backup_call.index('-u')+2], '524288')
+                backup = Path(backup_call[-1])
+                self.assertEqual(backup.read_bytes(), before)
+                self.assertEqual(self.boot.read_bytes(), b'\xff' * 524288)
+                self.assertEqual(self.data()['device']['serial_number'], 'BOARD-42')
+                self.assertTrue(all('-v' in call for call in calls if '-w' in call))
+
+    def test_boot_metadata_reset_is_explicit_and_restricted_to_slot_a_baseline(self):
+        original = self.boot.read_bytes()
+        result = self.run_flash('all')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.boot.read_bytes(), original)
+        self.assertNotIn('0x91100000', self.writes())
+        for target in ('fsbl', 'appli-b', 'parameters'):
+            self.log.unlink(missing_ok=True)
+            result = self.run_flash(target, '--reset-boot-metadata')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('requires --target all or appli-a', result.stderr)
+            self.assertFalse(self.log.exists())
+
+    def test_reprovision_requires_complete_backup_and_verified_firmware_and_parameters(self):
+        original = self.boot.read_bytes()
+        result = self.run_flash('all', '--reset-boot-metadata', FAKE_BOOT_SHORT='1')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('exactly 512 KiB', result.stderr)
+        self.assertEqual(self.writes(), [])
+        for address in ('0x90040000', '0x90100000', '0x90000000'):
+            self.log.unlink(missing_ok=True)
+            result = self.run_flash('all', '--reset-boot-metadata', fail_address=address)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertNotIn('0x91100000', self.writes())
+            self.assertEqual(self.boot.read_bytes(), original)
+        self.assertTrue(list((self.root / 'build').glob('boot-metadata-backup.*.bin')))
+        self.log.unlink(missing_ok=True)
+        result = self.run_flash('all', '--reset-boot-metadata', fail_address='0x91100000')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.boot.read_bytes(), original)
+        metadata_reads = [call for call in self.calls() if '-u' in call and '0x91100000' in call]
+        self.assertEqual(len(metadata_reads), 1)  # Backup only; no successful reset/readback claimed.
+
+    def test_reprovision_rejects_invalid_image_and_checks_erased_readback(self):
+        image = self.images['application']
+        valid = image.read_bytes()
+        image.write_bytes(b'invalid header')
+        manifest(image)
+        result = self.run_flash('all', '--reset-boot-metadata')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('valid persistent application', result.stderr)
+        self.assertEqual(self.writes(), [])
+        image.write_bytes(valid)
+        manifest(image)
+        result = self.run_flash('all', '--reset-boot-metadata', FAKE_BOOT_VERIFY_BAD='1')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('did not read back as erased', result.stderr)
 
 
 if __name__ == '__main__':
